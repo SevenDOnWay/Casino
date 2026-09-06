@@ -7,7 +7,10 @@ namespace Assets.Script {
     public class Deck : MonoBehaviour {
 
         private readonly List<Card> cards = new();
+        private readonly List<CardView> cardViews = new();
+
         public IReadOnlyList<Card> Cards => cards;
+        public IReadOnlyList<CardView> CardViews => cardViews;
 
         [SerializeField] private CardSpriteAtlas cardSpriteAtlas;
 
@@ -46,7 +49,7 @@ namespace Assets.Script {
                     cardObject.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
                     cardObject.transform.SetParent(this.gameObject.transform);
 
-
+                    cardViews.Add(cardObject.GetComponent<CardView>());
                 }
             }
 
@@ -64,24 +67,24 @@ namespace Assets.Script {
             }
         }
 
-        public Card Draw() {
+        public CardView Draw() {
             if ( cards.Count == 0 )
                 throw new InvalidOperationException("Deck is empty.");
 
-            Card card = cards[^1];
+            CardView cardView = cardViews[^1];
 
             cards.RemoveAt(cards.Count - 1);
 
-            return card;
+            return cardView;
         }
 
-        public List<Card> Draw( int amount ) {
+        public List<CardView> Draw( int amount ) {
             if ( amount > cards.Count )
                 throw new InvalidOperationException(
                     $"Cannot draw {amount} cards. Only {cards.Count} remaining."
                 );
 
-            List<Card> result = new();
+            List<CardView> result = new();
 
             for ( int i = 0; i < amount; i++ ) {
                 result.Add(Draw());

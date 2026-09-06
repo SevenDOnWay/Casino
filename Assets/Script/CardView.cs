@@ -3,11 +3,19 @@ using UnityEngine;
 
 namespace Assets.Script {
     public class CardView : MonoBehaviour {
-
         Sprite sprite;
+
+
+        Card card;
+
+        public Card Card { get => card; set => card = value; }
 
         private void Awake() {
             sprite = GetComponent<Sprite>();
+        }
+
+        public void Init(Card card ) {
+            this.card = card;
         }
 
 
@@ -16,6 +24,7 @@ namespace Assets.Script {
             this.sprite = sprite;
         }
 
+        
 
     }
 }

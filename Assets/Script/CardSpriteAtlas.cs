@@ -34,7 +34,7 @@ public class CardSpriteAtlas : MonoBehaviour {
 
 
     public Sprite GetCardSprite( Card card ) {
-        string suitStr = card.suit switch
+        string suitStr = card.Suit switch
         {
             CardSuit.Spades => "spades",
             CardSuit.Clubs => "clubs",
@@ -43,7 +43,7 @@ public class CardSpriteAtlas : MonoBehaviour {
             _ => ""
         };
 
-        string rankStr = card.rank switch
+        string rankStr = card.Rank switch
         {
             CardRank.Three => "03",
             CardRank.Four => "04",
