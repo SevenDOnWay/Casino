@@ -13,12 +13,11 @@ namespace Assets.Script.TienLen.Player {
 
 
 
-        private List<CardView> cardViews;
+        private List<CardView> cardViews = new();
 
         public List<CardView> CardViews => cardViews;
 
         public int Count => cardViews.Count;
-
 
         public void AddCard( CardView cardView ) {
             cardViews.Add(cardView);
@@ -37,7 +36,7 @@ namespace Assets.Script.TienLen.Player {
                 cardViews.Remove(card);
         }
 
-        public void Sort() {
+        public void Sort() {    
             //cardViews.Sort(cardComparer.Compare);
         }
 

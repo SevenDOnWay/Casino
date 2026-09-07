@@ -2,18 +2,15 @@ using Assets.Script;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CardSpriteAtlas : MonoBehaviour {
+public class CardSpriteAtlas {
 
     private readonly Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
 
-    [Header("Optional")]
-    [SerializeField] private Sprite cardBack;
+    private Sprite cardBack;
 
-    private void Awake() {
-        LoadAllSprites();
-    }
+    public Dictionary<string, Sprite> LoadAllSprites() {
+        if ( spriteCache.Count != 0 ) return spriteCache;
 
-    private void LoadAllSprites() {
         // Loads all Sprite assets located in "Assets/Resources/Cards/"
         Sprite[] loadedSprites = Resources.LoadAll<Sprite>("Cards");
 
@@ -27,11 +24,21 @@ public class CardSpriteAtlas : MonoBehaviour {
 
         Debug.Log($"[CardSpriteAtlas] Successfully cached {spriteCache.Count} card sprites.");
 
-        foreach ( var kvp in spriteCache ) {
-            Debug.Log($"[CardSpriteAtlas] Cached Sprite Key: '{kvp.Key}'");
-        }
+        //foreach ( var kvp in spriteCache ) {
+        //    Debug.Log($"[CardSpriteAtlas] Cached Sprite Key: '{kvp.Key}'");
+        //}
+
+        return spriteCache;
     }
 
+    public Sprite LoadSpriteBack() {
+        cardBack = Resources.Load<Sprite>("Cards/card_back");
+        if ( cardBack == null ) {
+            Debug.LogWarning("[CardSpriteAtlas] Card back sprite not found in Resources/Cards/card_back");
+        }
+
+        return cardBack;
+    }
 
     public Sprite GetCardSprite( Card card ) {
         string suitStr = card.Suit switch
@@ -62,7 +69,7 @@ public class CardSpriteAtlas : MonoBehaviour {
         };
 
         string lookupKey = $"{suitStr}_{rankStr}";
-
+            
         if ( spriteCache.TryGetValue(lookupKey, out Sprite found) ) {
             return found;
         }

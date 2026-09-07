@@ -17,12 +17,6 @@ namespace Assets.Script.TienLen {
             cards = deck.CardViews.ToList();
         }
 
-        
-        void DealCard() {
-
-        }
-
-
 
 
     }

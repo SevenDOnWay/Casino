@@ -1,8 +1,12 @@
-﻿using System;
+﻿using Assets.Script.TienLen.Player;
+using Assets.Script.TienLen.Rule;
+using Cysharp.Threading.Tasks;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Assets.Script.TienLen.Player;
-using Assets.Script.TienLen.Rule;
+using System.Threading;
+using UnityEngine;
 
 namespace Assets.Script.TienLen.Game {
     public class TienLenGame {
@@ -51,15 +55,20 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void StartRound() {
+            RunRoundRoutineAsync().Forget();
+        }
+
+        private async UniTaskVoid RunRoundRoutineAsync( CancellationToken cancellationToken = default ) {
             State = TienLenGameState.Dealing;
 
-            deck ??= new Deck();
             deck.Shuffle();
 
-            foreach ( TienLenPlayer player in players )
+            foreach ( TienLenPlayer player in players ) {
                 player.Hand.Clear();
+            }
 
-            DealCards();
+            // Waits here until all cards finish animating
+            await DealCardsAsync(cancellationToken);
 
             DetermineFirstPlayer();
 
@@ -74,16 +83,92 @@ namespace Assets.Script.TienLen.Game {
         }
 
         //TODO: Refactor this to handle ui,
+        public async UniTask DealCardsAsync( CancellationToken cancellationToken = default ) {
+            int delayMs = 80; // 0.08s
 
-        private void DealCards() {
+            Debug.Log($"[DealCardsAsync] Starting deal. Total players: {players?.Count ?? 0}");
+
+            if ( deck == null ) {
+                Debug.LogError("[DealCardsAsync] FAILED: 'deck' reference is NULL!");
+                return;
+            }
+
+            if ( players == null || players.Count == 0 ) {
+                Debug.LogError("[DealCardsAsync] FAILED: 'players' list is NULL or EMPTY!");
+                return;
+            }
+
             for ( int i = 0; i < 13; i++ ) {
+                Debug.Log($"[DealCardsAsync] --- Dealing Round {i + 1}/13 ---");
+
                 foreach ( TienLenPlayer player in players ) {
-                    player.Hand.AddCard(deck.Draw());
+                    if ( cancellationToken.IsCancellationRequested ) {
+                        Debug.LogWarning("[DealCardsAsync] Dealing cancelled via CancellationToken.");
+                        return;
+                    }
+
+                    if ( player == null ) {
+                        Debug.LogError("[DealCardsAsync] An entry in 'players' list is NULL!");
+                        continue;
+                    }
+
+                    CardView card = deck.Draw();
+                    if ( card == null ) {
+                        Debug.LogError($"[DealCardsAsync] deck.Draw() returned NULL! Deck ran out of cards at round {i + 1}.");
+                        return;
+                    }
+
+                    Debug.Log($"[DealCardsAsync] Dealing card '{card.name}' to player '{player.PlayerName}' (ID: {player.Id})");
+
+                    // Check Player Hand
+                    if ( player.Hand == null ) {
+                        Debug.LogError($"[DealCardsAsync] player.Hand is NULL for '{player.PlayerName}'!");
+                    }
+                    else {
+                        player.Hand.AddCard(card);
+                    }
+
+                    // Check Player CardHolder
+                    if ( player.CardHolder == null ) {
+                        Debug.LogError($"[DealCardsAsync] FAILED: player.CardHolder is NULL for '{player.PlayerName}' (ID: {player.Id})! Check if SetCardHolder was called properly.");
+                    }
+                    else {
+                        try {
+                            player.CardHolder.AddCard(card, true);
+                        }
+                        catch ( System.Exception ex ) {
+                            Debug.LogError($"[DealCardsAsync] Exception caught inside CardHolder.AddCard for '{player.PlayerName}': {ex.Message}\n{ex.StackTrace}");
+                        }
+                    }
+
+                    await UniTask.Delay(delayMs, cancellationToken: cancellationToken);
                 }
             }
 
-            foreach ( TienLenPlayer player in players )
-                player.Hand.Sort();
+            Debug.Log("[DealCardsAsync] Finished dealing 13 rounds. Starting sorting & final arrangement...");
+
+            foreach ( TienLenPlayer player in players ) {
+                if ( player == null ) continue;
+
+                Debug.Log($"[DealCardsAsync] Arranging cards for '{player.PlayerName}'");
+
+                if ( player.Hand != null ) {
+                    player.Hand.Sort();
+                }
+                else {
+                    Debug.LogWarning($"[DealCardsAsync] Cannot sort Hand: player.Hand is NULL for '{player.PlayerName}'");
+                }
+
+                if ( player.CardHolder != null ) {
+                    player.CardHolder.SortCards();
+                    player.CardHolder.ArrangeCards(true);
+                }
+                else {
+                    Debug.LogWarning($"[DealCardsAsync] Cannot arrange CardHolder: player.CardHolder is NULL for '{player.PlayerName}'");
+                }
+            }
+
+            Debug.Log("[DealCardsAsync] DealCardsAsync completed successfully.");
         }
 
         private void DetermineFirstPlayer() {
@@ -99,7 +184,9 @@ namespace Assets.Script.TienLen.Game {
             currentPlayerIndex = 0;
         }
 
-
+        public void SetDeck( Deck deck ) {
+            this.deck = deck;
+        }
 
     }
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Script {
-    public class Deck : MonoBehaviour {
+    public class Deck {
 
         private readonly List<Card> cards = new();
         private readonly List<CardView> cardViews = new();
@@ -12,48 +12,38 @@ namespace Assets.Script {
         public IReadOnlyList<Card> Cards => cards;
         public IReadOnlyList<CardView> CardViews => cardViews;
 
-        [SerializeField] private CardSpriteAtlas cardSpriteAtlas;
 
         public int Count => cards.Count;
 
 
-        void Start() {
-            CreateDeck();
-        }
-
-        private void CreateDeck() {
+        private void CreateDeck( CardSpriteAtlas cardSpriteAtlas ) {
             cards.Clear();
 
-            Debug.Break();
-
             CardSuit[] suits =
-            {
-                CardSuit.Clubs,
-                CardSuit.Diamonds,
-                CardSuit.Spades,
-                CardSuit.Hearts
-            };
+                {
+                    CardSuit.Clubs,
+                    CardSuit.Diamonds,
+                    CardSuit.Spades,
+                    CardSuit.Hearts
+                };
 
             foreach ( CardSuit suit in suits ) {
                 for ( int rank = 3; rank <= 15; rank++ ) {
                     cards.Add(
                         new Card((CardRank)rank, suit)
                     );
-
-                    Sprite cardSprite = cardSpriteAtlas.GetCardSprite(cards[^1]);
-
-                    GameObject cardObject = new GameObject($"Card_{suit}_{(CardRank)rank}");
-                    cardObject.AddComponent<SpriteRenderer>().sprite = cardSprite;
-                    cardObject.AddComponent<CardView>();
-
-                    cardObject.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
-                    cardObject.transform.SetParent(this.gameObject.transform);
-
-                    cardViews.Add(cardObject.GetComponent<CardView>());
                 }
             }
 
-            Debug.Break();
+            if ( cardViews.Count == 0 ) {
+                throw new InvalidOperationException("No card views were created. Check if the CardSpriteAtlas is assigned and contains sprites.");
+            }
+
+            foreach ( var cardView in cardViews ) {
+                // Do something with each card view if needed
+                Debug.Log(cardView.name);
+            }
+
         }
 
 
@@ -68,20 +58,20 @@ namespace Assets.Script {
         }
 
         public CardView Draw() {
-            if ( cards.Count == 0 )
+            if ( cardViews.Count == 0 )
                 throw new InvalidOperationException("Deck is empty.");
 
             CardView cardView = cardViews[^1];
 
-            cards.RemoveAt(cards.Count - 1);
+            cardViews.RemoveAt(cardViews.Count - 1);
 
             return cardView;
         }
 
         public List<CardView> Draw( int amount ) {
-            if ( amount > cards.Count )
+            if ( amount > cardViews.Count )
                 throw new InvalidOperationException(
-                    $"Cannot draw {amount} cards. Only {cards.Count} remaining."
+                    $"Cannot draw {amount} cards. Only {cardViews.Count} remaining."
                 );
 
             List<CardView> result = new();
@@ -92,7 +82,12 @@ namespace Assets.Script {
 
             return result;
         }
+
+
+        public void SetCardView( List<CardView> cardViews ) {
+            this.cardViews.Clear();
+            this.cardViews.AddRange(cardViews);
+        }
+
     }
-
-
 }
