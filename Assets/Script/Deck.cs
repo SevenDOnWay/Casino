@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using UnityEngine;
 
 namespace Assets.Script {
@@ -50,10 +51,10 @@ namespace Assets.Script {
         public void Shuffle() {
             System.Random random = new();
 
-            for ( int i = cards.Count - 1; i > 0; i-- ) {
-                int j = random.Next(i + 1);
+            for ( int i = cardViews.Count - 1; i > 0; i-- ) {
+                int j = RandomNumberGenerator.GetInt32(i + 1);
 
-                (cards[i], cards[j]) = (cards[j], cards[i]);
+                (cardViews[i], cardViews[j]) = (cardViews[j], cardViews[i]);
             }
         }
 
