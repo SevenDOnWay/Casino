@@ -1,5 +1,6 @@
 ﻿using Assets.Script.TienLen.Rule;
 using DG.Tweening;
+using FusionIntroShared;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -21,6 +22,13 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private Ease moveEase = Ease.OutQuad;
 
         private readonly List<CardView> cards = new();
+        private readonly List<CardView> selectedCards = new();
+
+
+        //TODO: Implement a way to set the interactable state of the CardHolder and its cards.
+        private bool interactable = true;
+
+
 
         public IReadOnlyList<CardView> Cards => cards;
 
@@ -44,6 +52,10 @@ namespace Assets.Script.TienLen.UI {
 
             cards.Add(cardView);
 
+            cardView.OnClicked += HandleCardClicked;
+
+            cardView.SetInteractable(interactable);
+
             // 2. Trigger arrangement so the dealt card flies into its hand slot
             ArrangeCards(animate);
         }
@@ -53,11 +65,35 @@ namespace Assets.Script.TienLen.UI {
 
             if ( !cards.Remove(cardView) ) return;
 
+            cardView.OnClicked -= HandleCardClicked;
+            cardView.SetInteractable(false);
+
             ArrangeCards(animate);
         }
 
         public void Clear() {
+            foreach ( CardView card in cards ) {
+                if ( card != null )
+                    card.OnClicked -= HandleCardClicked;
+            }
+
             cards.Clear();
+        }
+
+        private void HandleCardClicked( CardView cardView ) {
+
+            if ( selectedCards.Contains(cardView) ) {
+                selectedCards.Remove(cardView);
+                cardView.SetSelected(false);
+            }
+            else {
+                selectedCards.Add(cardView);
+                cardView.SetSelected(true);
+            }
+
+
+            // TODO: Notify listeners about the selection change and validate the selection.
+
         }
 
         public void SortCards() {

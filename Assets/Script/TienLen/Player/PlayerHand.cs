@@ -10,12 +10,9 @@ namespace Assets.Script.TienLen.Player {
 
         [Inject] CardComparer cardComparer;
 
-
-
-
         private List<CardView> cardViews = new();
 
-        public List<CardView> CardViews => cardViews;
+        public List<CardView> CardViews => cardViews; //TODO: Change this to list<card> 
 
         public int Count => cardViews.Count;
 

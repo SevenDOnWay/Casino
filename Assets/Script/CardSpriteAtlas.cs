@@ -34,7 +34,7 @@ public class CardSpriteAtlas {
     public Sprite LoadSpriteBack() {
         cardBack = Resources.Load<Sprite>("Cards/card_back");
         if ( cardBack == null ) {
-            Debug.LogWarning("[CardSpriteAtlas] Card back sprite not found in Resources/Cards/card_back");
+            Debug.LogWarning("[CardSpriteAtlas] Card back spriteRenderer not found in Resources/Cards/card_back");
         }
 
         return cardBack;

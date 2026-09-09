@@ -17,7 +17,7 @@ namespace Assets.Script.TienLen.Game {
 
         private int currentPlayerIndex;
 
-        private TienLen.Rule.CardCombination currentCombination;
+        private CardCombination currentCombination;
 
         private int lastPlayerIndex;
 
@@ -29,16 +29,19 @@ namespace Assets.Script.TienLen.Game {
 
         public TienLenPlayer CurrentPlayer => players[currentPlayerIndex];
 
-        public TienLen.Rule.CardCombination CurrentCombination => currentCombination;
+        public CardCombination CurrentCombination => currentCombination;
 
         public event Action<TienLenPlayer> OnTurnChanged;
-        public event Action<TienLen.Rule.CardCombination> OnCardsPlayed;
+        public event Action<CardCombination> OnCardsPlayed;
         public event Action<TienLenPlayer> OnPlayerWon;
         public event Action OnRoundStarted;
         public event Action OnRoundEnded;
 
 
         public void AddPlayer( TienLenPlayer player ) {
+
+            Debug.Log($"[AddPlayer] Adding player: {player.PlayerName}");
+
             if ( players.Count >= 4 )
                 throw new InvalidOperationException(
                     "Tiến Lên supports 4 players.");
@@ -47,7 +50,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void StartGame() {
-            if ( players.Count < 2 )
+            if ( players.Count < 1 ) //TODO: Change this to 2 on real game
                 throw new InvalidOperationException(
                     "Tiến Lên requires at least 2 players.");
 

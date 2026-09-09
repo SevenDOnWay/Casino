@@ -198,11 +198,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b287c00944ff2be44ae9ab632490452f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.TienLenGameController
-  cardHolders:
-  - {fileID: 829906683}
-  - {fileID: 87784263}
-  - {fileID: 654509018}
-  - {fileID: 764129594}
+  playerHandPositions:
+  - playerId: 0
+    cardHolder: {fileID: 829906683}
+    cardHolderPosition: {fileID: 829906682}
+  - playerId: 0
+    cardHolder: {fileID: 87784263}
+    cardHolderPosition: {fileID: 87784262}
+  - playerId: 0
+    cardHolder: {fileID: 654509018}
+    cardHolderPosition: {fileID: 654509017}
+  - playerId: 0
+    cardHolder: {fileID: 764129594}
+    cardHolderPosition: {fileID: 764129593}
   startGameBtn: {fileID: 428874635}
   startBtnText: {fileID: 1773020616}
   _IsGameStarted:
@@ -325,20 +333,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 428874636}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 183374122}
-        m_TargetAssemblyTypeName: Assets.Script.TienLen.Game.TienLenGameController,
-          Assembly-CSharp
-        m_MethodName: StartGame
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &428874636
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1470,8 +1465,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 829906682}
-  - {fileID: 654509017}
   - {fileID: 87784262}
+  - {fileID: 654509017}
   - {fileID: 764129593}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

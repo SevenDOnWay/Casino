@@ -4,6 +4,7 @@ using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
 using Fusion;
 using Fusion.Sockets;
+using Photon.Realtime;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,17 +13,19 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
+using static Unity.Collections.Unicode;
 
 namespace Assets.Script.TienLen.Game {
     public class TienLenGameController : NetworkBehaviour, INetworkRunnerCallbacks {
 
         [System.Serializable]
-        public class PlayerPosition {
+        public class PlayerHandPosition {
             public int playerId;
-            public Transform cardHolderPosition;
+            public CardHolder cardHolder;
+            public Transform cardHolderPosition; //might not be needed if we use cardholder position directly
         }
 
-        [SerializeField] private CardHolder[] cardHolders = new CardHolder[4];
+        [SerializeField] private PlayerHandPosition[] playerHandPositions = new PlayerHandPosition[4];
 
         [Space(5)]
         [Header("Start Game Button")]
@@ -33,7 +36,7 @@ namespace Assets.Script.TienLen.Game {
 
         public bool isGameStartable { get; set; }
 
-        int minPlayerToStart = 2;
+        private const int minPlayerToStart = 1; //TODO: Change to 2 or more for actual gameplay
 
 
         private TienLenGame game;
@@ -53,25 +56,69 @@ namespace Assets.Script.TienLen.Game {
             this.cardSpawner = cardSpawner;
         }
 
-        public async void Start() {
-            game = new TienLenGame();
-            game.OnTurnChanged += HandleTurnChanged;
-            game.OnCardsPlayed += HandleCardsPlayed;
-            game.OnPlayerWon += HandlePlayerWon;
-
-            // For testing purposes, you can start the game immediately if needed
-
-            //StartGame();
-        }
-
         public override void Spawned() {
             if ( startGameBtn != null ) {
                 startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
             }
 
+            if ( Object.HasStateAuthority ) {
+                Initialize();
+                RegisterExistingPlayers();
+            }
             // Sync initial state
             CheckPlayer();
             UpdateStartButtonUI();
+        }
+
+
+        private void Initialize() {
+            game = new TienLenGame();
+
+            game.OnTurnChanged += HandleTurnChanged;
+            game.OnCardsPlayed += HandleCardsPlayed;
+            game.OnPlayerWon += HandlePlayerWon;
+        }
+
+        private void RegisterExistingPlayers() {
+            foreach ( PlayerRef player in Runner.ActivePlayers ) {
+                RegisterPlayer(player);
+            }
+        }
+
+        private void RegisterPlayer( PlayerRef player ) {
+            if ( game == null ) {
+                Debug.LogError("Cannot register player: TienLenGame is not initialized.");
+                return;
+            }
+
+            // Prevent duplicate registration
+            if ( game.Players.Any(p => p.PlayerRef == player) ) {
+                return;
+            }
+
+            int playerId = FindAvailablePlayerId();
+
+            if ( playerId == -1 ) {
+                Debug.LogError($"No available Tiến Lên slot for {player}.");
+                return;
+            }
+
+            PlayerHandPosition position = playerHandPositions[playerId];
+
+            TienLenPlayer tienLenPlayer = new TienLenPlayer(
+                playerId,
+                player,
+                $"Player {playerId + 1}",
+                player == Runner.LocalPlayer
+            );
+
+            tienLenPlayer.SetCardHolder(position.cardHolder);
+
+            game.AddPlayer(tienLenPlayer);
+
+            Debug.Log(
+                $"[TienLen] Registered {player} as Player {playerId}"
+            );
         }
 
         public override void Despawned( NetworkRunner runner, bool hasState ) {
@@ -85,16 +132,27 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
-            Debug.Log($"[TienLen] Player joined: {player.PlayerId}. Active count: {runner.ActivePlayers.Count()}");
+            Debug.Log($"[TienLen] Player joined: {player.PlayerId}");
 
-            // Only the Host evaluates game start conditions
-            if ( Object.HasStateAuthority && !IsGameStarted ) {
-                CheckPlayer();
-            }
+            if ( !Object.HasStateAuthority ) return;
+
+            RegisterPlayer(player);
+
+            CheckPlayer();
+            UpdateStartButtonUI();
         }
 
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
             Debug.Log($"[TienLen] Player left: {player.PlayerId}");
+        }
+
+
+        private int FindAvailablePlayerId() {
+            for ( int i = 0; i < 4; i++ ) {
+                if ( !game.Players.Any(p => p.Id == i) ) return i;
+            }
+
+            return -1;
         }
 
         private void CreateDeck() {
@@ -149,79 +207,35 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        private void StartMatch() {
-            IsGameStarted = true;
 
-            CreateNetworkedPlayers();
+        //private void CreateNetworkedPlayers() {
+        //    // Assign card holders dynamically based on real connected players
+        //    int seatIndex = 0;
+        //    foreach ( PlayerRef pRef in Runner.ActivePlayers ) {
+        //        bool isLocalPlayer = (pRef == Runner.LocalPlayer);
+        //        string playerName = isLocalPlayer ? $"Player (You - {pRef.PlayerId})" : $"Player {pRef.PlayerId}";
 
-            game.StartGame();
-        }
+        //        TienLenPlayer player = new(pRef.PlayerId, playerName, isLocalPlayer);
 
-        private void CreateNetworkedPlayers() {
-            // Assign card holders dynamically based on real connected players
-            int seatIndex = 0;
-            foreach ( PlayerRef pRef in Runner.ActivePlayers ) {
-                bool isLocalPlayer = (pRef == Runner.LocalPlayer);
-                string playerName = isLocalPlayer ? $"Player (You - {pRef.PlayerId})" : $"Player {pRef.PlayerId}";
+        //        if ( seatIndex < cardHolders.Length ) {
+        //            player.SetCardHolder(cardHolders[seatIndex]);
+        //        }
 
-                TienLenPlayer player = new(pRef.PlayerId, playerName, isLocalPlayer);
+        //        game.AddPlayer(player);
+        //        seatIndex++;
+        //    }
 
-                if ( seatIndex < cardHolders.Length ) {
-                    player.SetCardHolder(cardHolders[seatIndex]);
-                }
-
-                game.AddPlayer(player);
-                seatIndex++;
-            }
-
-            // Optional: Fill remaining empty slots up to 4 with bots if needed
-            /*
-            while (seatIndex < 4) 
-            {
-                TienLenPlayer bot = new(seatIndex, $"Bot {seatIndex}", false);
-                bot.SetCardHolder(cardHolders[seatIndex]);
-                game.AddPlayer(bot);
-                seatIndex++;
-            }
-            */
-        }
-
-
-        private void CreatePlayers() {
-            TienLenPlayer player = new(
-                0,
-                "Player",
-                true
-            );
-
-            TienLenPlayer bot1 = new(
-                1,
-                "Bot 1",
-                false
-            );
-
-            TienLenPlayer bot2 = new(
-                2,
-                "Bot 2",
-                false
-            );
-
-            TienLenPlayer bot3 = new(
-                3,
-                "Bot 3",
-                false
-            );
-
-            player.SetCardHolder(cardHolders[0]);
-            bot1.SetCardHolder(cardHolders[1]);
-            bot2.SetCardHolder(cardHolders[2]);
-            bot3.SetCardHolder(cardHolders[3]);
-
-            game.AddPlayer(player);
-            game.AddPlayer(bot1);
-            game.AddPlayer(bot2);
-            game.AddPlayer(bot3);
-        }
+        //    // Optional: Fill remaining empty slots up to 4 with bots if needed
+        //    /*
+        //    while (seatIndex < 4) 
+        //    {
+        //        TienLenPlayer bot = new(seatIndex, $"Bot {seatIndex}", false);
+        //        bot.SetCardHolder(cardHolders[seatIndex]);
+        //        game.AddPlayer(bot);
+        //        seatIndex++;
+        //    }
+        //    */
+        //}
 
         public void StartGame() {
             CreateDeck();
@@ -276,10 +290,6 @@ namespace Assets.Script.TienLen.Game {
 
 
         #endregion
-
-
-
-
 
         private void HandleTurnChanged( TienLenPlayer player ) {
             Debug.Log($"Turn: {player.PlayerName}");

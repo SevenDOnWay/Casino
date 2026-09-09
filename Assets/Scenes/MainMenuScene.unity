@@ -1282,6 +1282,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.NetWorkScript.TienLenNetworkController
   runnerPrefab: {fileID: 5167594968630366340, guid: d0fc83228bbe31741b38f99713291981, type: 3}
   gameplaySceneName: GameScene
+  mainMenuSceneName: 
   testClientCount: 0
   testRoomName: TienLenTest
 --- !u!4 &1770802423

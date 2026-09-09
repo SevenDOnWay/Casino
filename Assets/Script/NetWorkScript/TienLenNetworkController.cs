@@ -89,15 +89,16 @@ namespace Assets.Script.NetWorkScript {
             }
 
 
-            //NetworkSceneInfo sceneInfo = new NetworkSceneInfo();
-            //sceneInfo.AddSceneRef(sceneRef);
             var sceneIndex = SceneUtility.GetBuildIndexByScenePath(gameplaySceneName);
             var sceneRef = SceneRef.FromIndex(sceneIndex);
+
+            NetworkSceneInfo sceneInfo = new NetworkSceneInfo();
+            sceneInfo.AddSceneRef(sceneRef, LoadSceneMode.Single);
 
             var result = await runner.StartGame(new StartGameArgs
             {
                 GameMode = mode,
-                SessionName = sessionName,
+                SessionName = sessionName,  
                 PlayerCount = playerCount,
                 Scene = sceneRef,
                 SceneManager = sceneManager
@@ -177,16 +178,6 @@ namespace Assets.Script.NetWorkScript {
         }
 
         public void OnSceneLoadDone( NetworkRunner runner ) {
-            var sceneindex = SceneUtility.GetBuildIndexByScenePath(mainMenuSceneName);
-
-            if( sceneindex < 0 ) {
-                Debug.LogError($"Scene not found: {mainMenuSceneName}");
-                return;
-            }
-
-            //Scene menuScene = SceneManager.GetSceneByBuildIndex(sceneindex);
-            //if ( menuScene.isLoaded ) SceneManager.UnloadSceneAsync(menuScene);
-
         }
 
         public void OnSceneLoadStart( NetworkRunner runner ) {
