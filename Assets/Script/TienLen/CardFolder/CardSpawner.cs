@@ -15,6 +15,7 @@ namespace Assets.Script.TienLen.CardFolder {
             foreach ( var (card, cardSprite) in spriteLookup ) {
                 GameObject cardObject = new GameObject($"Card_{card.Item1}_{card.Item2}");
                 cardObject.AddComponent<SpriteRenderer>().sprite = cardSprite;
+                cardObject.AddComponent<BoxCollider2D>();
 
                 var cardView = cardObject.AddComponent<CardView>();
                 cardView.Init(new Card(card.Item2, card.Item1));

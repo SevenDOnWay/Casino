@@ -113,6 +113,7 @@ namespace Assets.Script.TienLen.Game {
             );
 
             tienLenPlayer.SetCardHolder(position.cardHolder);
+            position.cardHolder.SetInteractable(tienLenPlayer.IsLocalPlayer);
 
             game.AddPlayer(tienLenPlayer);
 

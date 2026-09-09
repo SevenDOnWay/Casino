@@ -13,6 +13,7 @@ namespace Assets.Script.TienLen.Player {
 
         public PlayerHand Hand { get; }
         public CardHolder CardHolder { get; private set; }
+        public bool IsLocalPlayer { get; }
         public bool IsHuman { get; }
 
         public bool HasWon => Hand.Count == 0;
@@ -21,10 +22,12 @@ namespace Assets.Script.TienLen.Player {
             int id,
             PlayerRef playerRef,
             string playerName,
+            bool isLocalPlayer,
             bool isHuman = true ) {
             Id = id;
             PlayerRef = playerRef;
             PlayerName = playerName;
+            IsLocalPlayer = isLocalPlayer;
             IsHuman = isHuman;
 
             Hand = new PlayerHand();

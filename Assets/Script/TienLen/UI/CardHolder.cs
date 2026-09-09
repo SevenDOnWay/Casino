@@ -149,6 +149,12 @@ namespace Assets.Script.TienLen.UI {
             return Mathf.Max(spacing, minSpacing);
         }
 
+        public void SetInteractable( bool interactable ) {
+            foreach ( var card in cards ) {
+                card.SetInteractable(interactable);
+            }
+        }
+
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected() {
             Matrix4x4 previousMatrix = Gizmos.matrix;

@@ -36,6 +36,8 @@ namespace Assets.Script {
         public void OnPointerClick( PointerEventData eventData ) {
             if ( !interactable ) return;
 
+            Debug.Log($"[CardView] Card clicked: {card}");
+
             OnClicked?.Invoke(this);
         }
 
@@ -51,8 +53,7 @@ namespace Assets.Script {
             Vector3 position = transform.localPosition;
 
             // Example selection effect
-            position.y = selected ? 0.3f : 0f;
-
+            position.y = selected ? 0.7f : 0f;
             transform.localPosition = position;
         }
     }
