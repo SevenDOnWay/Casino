@@ -790,7 +790,6 @@ GameObject:
   m_Component:
   - component: {fileID: 920007556}
   - component: {fileID: 920007555}
-  - component: {fileID: 920007554}
   m_Layer: 0
   m_Name: Prototype Network Start
   m_TagString: Untagged
@@ -798,20 +797,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!114 &920007554
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 920007553}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ba5764f4714bd64ab9efab127938e77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Unity::Fusion.FusionBootstrapDebugGUI
-  EnableHotkeys: 0
-  BaseSkin: {fileID: 11400000, guid: e59b35dfeb4b6f54e9b2791b2a40a510, type: 2}
 --- !u!114 &920007555
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -828,11 +813,11 @@ MonoBehaviour:
   StartMode: 0
   AutoStartAs: 2
   AutoHideGUI: 1
-  AutoClients: 4
+  AutoClients: 3
   ClientStartDelay: 0.1
   ServerPort: 0
   DefaultRoomName: 
-  InitialScenePath: 
+  InitialScenePath: Assets/Scenes/GameScene.unity
   _currentStage: 0
   AutoConnectVirtualInstances: 1
   VirtualInstanceConnectDelay: 1
@@ -1297,6 +1282,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.NetWorkScript.TienLenNetworkController
   runnerPrefab: {fileID: 5167594968630366340, guid: d0fc83228bbe31741b38f99713291981, type: 3}
   gameplaySceneName: GameScene
+  testClientCount: 0
+  testRoomName: TienLenTest
 --- !u!4 &1770802423
 Transform:
   m_ObjectHideFlags: 0

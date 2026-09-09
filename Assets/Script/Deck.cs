@@ -49,12 +49,15 @@ namespace Assets.Script {
 
 
         public void Shuffle() {
-            System.Random random = new();
+            int time =  RandomNumberGenerator.GetInt32(3,10);
 
-            for ( int i = cardViews.Count - 1; i > 0; i-- ) {
-                int j = RandomNumberGenerator.GetInt32(i + 1);
-
-                (cardViews[i], cardViews[j]) = (cardViews[j], cardViews[i]);
+            for ( int i = 0; i < time; i++ ) {
+                int n = cardViews.Count;
+                while ( n > 1 ) {
+                    n--;
+                    int k = RandomNumberGenerator.GetInt32(n + 1);
+                    (cardViews[k], cardViews[n]) = (cardViews[n], cardViews[k]);
+                }
             }
         }
 

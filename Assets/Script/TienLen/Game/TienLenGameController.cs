@@ -2,13 +2,19 @@
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
+using Fusion;
+using Fusion.Sockets;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using VContainer;
 
 namespace Assets.Script.TienLen.Game {
-    public class TienLenGameController : MonoBehaviour {
+    public class TienLenGameController : NetworkBehaviour, INetworkRunnerCallbacks {
 
         [System.Serializable]
         public class PlayerPosition {
@@ -16,12 +22,21 @@ namespace Assets.Script.TienLen.Game {
             public Transform cardHolderPosition;
         }
 
-        [SerializeField]
-        private CardHolder[] cardHolders = new CardHolder[4];
+        [SerializeField] private CardHolder[] cardHolders = new CardHolder[4];
+
+        [Space(5)]
+        [Header("Start Game Button")]
+        [SerializeField] private Button startGameBtn;
+        [SerializeField] private TMP_Text startBtnText;
+
+        [Networked] public NetworkBool IsGameStarted { get; set; }
+
+        public bool isGameStartable { get; set; }
+
+        int minPlayerToStart = 2;
 
 
         private TienLenGame game;
-
 
         [Header("Dependencies")]
         CardSpawner cardSpawner;
@@ -38,22 +53,49 @@ namespace Assets.Script.TienLen.Game {
             this.cardSpawner = cardSpawner;
         }
 
-
-        private void Start() {
+        public async void Start() {
             game = new TienLenGame();
-
             game.OnTurnChanged += HandleTurnChanged;
             game.OnCardsPlayed += HandleCardsPlayed;
             game.OnPlayerWon += HandlePlayerWon;
 
-            CreateDeck();
-            CreatePlayers();
+            // For testing purposes, you can start the game immediately if needed
 
-            game.StartGame();
-
-
+            //StartGame();
         }
 
+        public override void Spawned() {
+            if ( startGameBtn != null ) {
+                startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
+            }
+
+            // Sync initial state
+            CheckPlayer();
+            UpdateStartButtonUI();
+        }
+
+        public override void Despawned( NetworkRunner runner, bool hasState ) {
+            if ( startGameBtn != null ) {
+                startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
+            }
+        }
+
+        private void OnGameStateChanged() {
+            UpdateStartButtonUI();
+        }
+
+        public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
+            Debug.Log($"[TienLen] Player joined: {player.PlayerId}. Active count: {runner.ActivePlayers.Count()}");
+
+            // Only the Host evaluates game start conditions
+            if ( Object.HasStateAuthority && !IsGameStarted ) {
+                CheckPlayer();
+            }
+        }
+
+        public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
+            Debug.Log($"[TienLen] Player left: {player.PlayerId}");
+        }
 
         private void CreateDeck() {
             Debug.Log("[CreateDeck] Starting deck creation...", this);
@@ -94,7 +136,55 @@ namespace Assets.Script.TienLen.Game {
             game.SetDeck(deck);
         }
 
+        private void CheckPlayer() {
+            int currentConnectedPlayers = Runner.ActivePlayers.Count();
 
+            if ( currentConnectedPlayers >= minPlayerToStart ) {
+                Debug.Log($"[TienLen] Player threshold reached ({currentConnectedPlayers}/{minPlayerToStart}). Starting game...");
+                isGameStartable = true;
+            }
+            else {
+                Debug.Log($"[TienLen] Waiting for more players... ({currentConnectedPlayers}/{minPlayerToStart})");
+                isGameStartable = false;
+            }
+        }
+
+        private void StartMatch() {
+            IsGameStarted = true;
+
+            CreateNetworkedPlayers();
+
+            game.StartGame();
+        }
+
+        private void CreateNetworkedPlayers() {
+            // Assign card holders dynamically based on real connected players
+            int seatIndex = 0;
+            foreach ( PlayerRef pRef in Runner.ActivePlayers ) {
+                bool isLocalPlayer = (pRef == Runner.LocalPlayer);
+                string playerName = isLocalPlayer ? $"Player (You - {pRef.PlayerId})" : $"Player {pRef.PlayerId}";
+
+                TienLenPlayer player = new(pRef.PlayerId, playerName, isLocalPlayer);
+
+                if ( seatIndex < cardHolders.Length ) {
+                    player.SetCardHolder(cardHolders[seatIndex]);
+                }
+
+                game.AddPlayer(player);
+                seatIndex++;
+            }
+
+            // Optional: Fill remaining empty slots up to 4 with bots if needed
+            /*
+            while (seatIndex < 4) 
+            {
+                TienLenPlayer bot = new(seatIndex, $"Bot {seatIndex}", false);
+                bot.SetCardHolder(cardHolders[seatIndex]);
+                game.AddPlayer(bot);
+                seatIndex++;
+            }
+            */
+        }
 
 
         private void CreatePlayers() {
@@ -133,6 +223,64 @@ namespace Assets.Script.TienLen.Game {
             game.AddPlayer(bot3);
         }
 
+        public void StartGame() {
+            CreateDeck();
+
+            game.StartGame();
+        }
+
+
+        //TODO:refactor into other script 
+        #region UI
+        private void UpdateStartButtonUI() {
+            if ( startGameBtn == null ) return;
+
+            // Hide the button for everyone once the game has started
+            if ( IsGameStarted ) {
+                startGameBtn.gameObject.SetActive(false);
+                return;
+            }
+
+            // Keep visible for everyone before the match starts
+            startGameBtn.gameObject.SetActive(true);
+
+            // ONLY the host can click it, and ONLY if enough players joined
+            bool isHost = Object.HasStateAuthority;
+            startGameBtn.interactable = isHost && isGameStartable;
+
+            // Optional: Provide visual feedback text
+            if ( startBtnText != null ) {
+                if ( !isHost ) {
+                    startBtnText.text = "Waiting for Host to start...";
+                }
+                else if ( !isGameStartable ) {
+                    startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more player(s)";
+                }
+                else {
+                    startBtnText.text = "Start Game";
+                }
+            }
+        }
+
+        private void OnStartGameButtonClicked() {
+            // Security check: Only the host can execute
+            if ( !Object.HasStateAuthority || !isGameStartable || IsGameStarted ) return;
+
+            IsGameStarted = true;
+            UpdateStartButtonUI();
+
+            StartGame();
+        }
+
+
+
+
+        #endregion
+
+
+
+
+
         private void HandleTurnChanged( TienLenPlayer player ) {
             Debug.Log($"Turn: {player.PlayerName}");
         }
@@ -145,5 +293,36 @@ namespace Assets.Script.TienLen.Game {
             Debug.Log($"{player.PlayerName} wins!");
         }
 
+        public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
+
+        public void OnObjectEnterAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
+
+        public void OnShutdown( NetworkRunner runner, ShutdownReason shutdownReason ) { }
+
+        public void OnDisconnectedFromServer( NetworkRunner runner, NetDisconnectReason reason ) { }
+
+        public void OnConnectRequest( NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token ) { }
+
+        public void OnConnectFailed( NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason ) { }
+
+        public void OnReliableDataReceived( NetworkRunner runner, PlayerRef player, ReliableKey key, ReadOnlySpan<byte> data ) { }
+
+        public void OnReliableDataProgress( NetworkRunner runner, PlayerRef player, ReliableKey key, float progress ) { }
+
+        public void OnInput( NetworkRunner runner, NetworkInput input ) { }
+
+        public void OnInputMissing( NetworkRunner runner, PlayerRef player, NetworkInput input ) { }
+
+        public void OnConnectedToServer( NetworkRunner runner ) { }
+
+        public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) { }
+
+        public void OnCustomAuthenticationResponse( NetworkRunner runner, Dictionary<string, object> data ) { }
+
+        public void OnHostMigration( NetworkRunner runner, HostMigrationToken hostMigrationToken ) { }
+
+        public void OnSceneLoadDone( NetworkRunner runner ) { }
+
+        public void OnSceneLoadStart( NetworkRunner runner ) { }
     }
 }
