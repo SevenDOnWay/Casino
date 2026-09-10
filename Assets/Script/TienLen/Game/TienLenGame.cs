@@ -15,6 +15,8 @@ namespace Assets.Script.TienLen.Game {
 
         private Deck deck;
 
+        private TurnManager turnManager = new();
+
         private int currentPlayerIndex;
 
         private CardCombination currentCombination;
@@ -22,6 +24,8 @@ namespace Assets.Script.TienLen.Game {
         private int lastPlayerIndex;
 
         private int passedPlayers;
+
+
 
         public TienLenGameState State { get; private set; }
 

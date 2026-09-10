@@ -1,17 +1,15 @@
 ﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Assets.Script {
     public class Timer : MonoBehaviour {
 
-        // Use this for initialization
-        void Start() {
+        [SerializeField] Image image;
 
-        }
 
-        // Update is called once per frame
-        void Update() {
 
-        }
+
+
     }
 }

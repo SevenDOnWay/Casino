@@ -4,6 +4,7 @@ using System.Text;
 
 namespace Assets.Script.TienLen.Rule {
      public enum CardCombinationType {
+        Invalid,
 
         Single,
         Pair,

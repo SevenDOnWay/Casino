@@ -1,6 +1,7 @@
 ﻿using Assets.Script.TienLen.Rule;
 using DG.Tweening;
 using FusionIntroShared;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -21,6 +22,8 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private float moveDuration = 0.25f;
         [SerializeField] private Ease moveEase = Ease.OutQuad;
 
+       
+        //TODO: Change into list of card.
         private readonly List<CardView> cards = new();
         private readonly List<CardView> selectedCards = new();
 
@@ -28,9 +31,13 @@ namespace Assets.Script.TienLen.UI {
         //TODO: Implement a way to set the interactable state of the CardHolder and its cards.
         private bool interactable = true;
 
+        public event Action<IReadOnlyList<CardView>> OnCardSelected;
+
+
 
 
         public IReadOnlyList<CardView> Cards => cards;
+        public IReadOnlyList<CardView> SelectedCards => selectedCards;
 
         [Inject]
         public void Construct( CardComparer cardComparer ) {
@@ -71,6 +78,18 @@ namespace Assets.Script.TienLen.UI {
             ArrangeCards(animate);
         }
 
+        public void RemoveCards( IEnumerable<CardView> cardViews, bool animate = true ) {
+            if ( cardViews == null ) return;
+            foreach ( CardView cardView in cardViews ) {
+                if ( cardView == null ) continue;
+                if ( cards.Remove(cardView) ) {
+                    cardView.OnClicked -= HandleCardClicked;
+                    cardView.SetInteractable(false);
+                }
+            }
+            ArrangeCards(animate);
+        }
+
         public void Clear() {
             foreach ( CardView card in cards ) {
                 if ( card != null )
@@ -85,10 +104,13 @@ namespace Assets.Script.TienLen.UI {
             if ( selectedCards.Contains(cardView) ) {
                 selectedCards.Remove(cardView);
                 cardView.SetSelected(false);
+                OnCardSelected?.Invoke(selectedCards);
             }
             else {
                 selectedCards.Add(cardView);
                 cardView.SetSelected(true);
+                OnCardSelected?.Invoke(selectedCards);
+
             }
 
 

@@ -1,19 +1,17 @@
-﻿using Assets.Script.TienLen.CardFolder;
+﻿using Assets.Script.NetWorkScript;
+using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
 using Fusion;
 using Fusion.Sockets;
-using Photon.Realtime;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
-using static Unity.Collections.Unicode;
 
 namespace Assets.Script.TienLen.Game {
     public class TienLenGameController : NetworkBehaviour, INetworkRunnerCallbacks {
@@ -43,6 +41,7 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Dependencies")]
         CardSpawner cardSpawner;
+        LocalPlayerService localPlayerService;
 
 
         [SerializeField] TienLenSO tienLenSO;
@@ -51,9 +50,10 @@ namespace Assets.Script.TienLen.Game {
 
 
         [Inject]
-        void Construct(
-            CardSpawner cardSpawner ) {
+        void Construct(CardSpawner cardSpawner,
+            LocalPlayerService localPlayerService ) {
             this.cardSpawner = cardSpawner;
+            this.localPlayerService = localPlayerService;
         }
 
         public override void Spawned() {
@@ -113,6 +113,8 @@ namespace Assets.Script.TienLen.Game {
             );
 
             tienLenPlayer.SetCardHolder(position.cardHolder);
+            localPlayerService.SetLocalPlayer(tienLenPlayer);
+
             position.cardHolder.SetInteractable(tienLenPlayer.IsLocalPlayer);
 
             game.AddPlayer(tienLenPlayer);
@@ -126,10 +128,6 @@ namespace Assets.Script.TienLen.Game {
             if ( startGameBtn != null ) {
                 startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
             }
-        }
-
-        private void OnGameStateChanged() {
-            UpdateStartButtonUI();
         }
 
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {

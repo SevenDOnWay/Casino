@@ -6,6 +6,7 @@ using VContainer;
 
 namespace Assets.Script.TienLen.Rule {
     public class CardCombination {
+        private CardComparer cardComparer;
 
         public CardCombinationType Type { get; }
 
@@ -15,11 +16,11 @@ namespace Assets.Script.TienLen.Rule {
 
         public CardSuit MainSuit { get; }
 
-        [Inject]
+
         public CardCombination(
-        CardComparer cardComparer,
         CardCombinationType type,
-        IEnumerable<Card> cards ) {
+        IEnumerable<Card> cards,
+        CardComparer cardComparer) {
             Type = type;
 
             Cards = cards

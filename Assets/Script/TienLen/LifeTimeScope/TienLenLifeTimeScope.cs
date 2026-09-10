@@ -1,4 +1,5 @@
-﻿using Assets.Script.TienLen.CardFolder;
+﻿using Assets.Script.NetWorkScript;
+using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
@@ -18,9 +19,10 @@ namespace Assets.Script.TienLen.LifeTimeScope {
         protected override void Configure( IContainerBuilder builder ) {
 
             //rule
-            builder.Register<CardCombination>(Lifetime.Singleton);
             builder.Register<CardCombinationType>(Lifetime.Singleton);
             builder.Register<CardComparer>(Lifetime.Singleton);
+            builder.Register<CardCombinationEvaluator>(Lifetime.Singleton);
+            builder.Register<TienLenRuleValidator>(Lifetime.Singleton);
 
 
             builder.Register<CardSpriteAtlas>(Lifetime.Singleton);
@@ -30,6 +32,8 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.RegisterComponentInHierarchy<TienLenGameController>();
 
             builder.RegisterInstance<IReadOnlyList<CardHolder>>(cardHolders);
+
+            builder.Register<LocalPlayerService>(Lifetime.Singleton).AsImplementedInterfaces();
 
         }
 
