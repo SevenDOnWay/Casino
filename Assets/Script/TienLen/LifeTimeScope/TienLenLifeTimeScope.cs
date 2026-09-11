@@ -17,6 +17,7 @@ namespace Assets.Script.TienLen.LifeTimeScope {
         [SerializeField] private CardHolder[] cardHolders;
 
         protected override void Configure( IContainerBuilder builder ) {
+            builder.Register<LocalPlayerService>(Lifetime.Singleton);
 
             //rule
             builder.Register<CardCombinationType>(Lifetime.Singleton);
@@ -24,16 +25,21 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.Register<CardCombinationEvaluator>(Lifetime.Singleton);
             builder.Register<TienLenRuleValidator>(Lifetime.Singleton);
 
-
             builder.Register<CardSpriteAtlas>(Lifetime.Singleton);
+
+            builder.Register<TienLenGame>(Lifetime.Singleton);
+            builder.Register<TurnManager>(Lifetime.Singleton);
+
+
+
 
 
             builder.RegisterComponentInHierarchy<CardSpawner>();
             builder.RegisterComponentInHierarchy<TienLenGameController>();
+            builder.RegisterComponentInHierarchy<ActionPanel>();
 
             builder.RegisterInstance<IReadOnlyList<CardHolder>>(cardHolders);
 
-            builder.Register<LocalPlayerService>(Lifetime.Singleton).AsImplementedInterfaces();
 
         }
 

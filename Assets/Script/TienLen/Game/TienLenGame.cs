@@ -15,8 +15,6 @@ namespace Assets.Script.TienLen.Game {
 
         private Deck deck;
 
-        private TurnManager turnManager = new();
-
         private int currentPlayerIndex;
 
         private CardCombination currentCombination;
@@ -24,8 +22,6 @@ namespace Assets.Script.TienLen.Game {
         private int lastPlayerIndex;
 
         private int passedPlayers;
-
-
 
         public TienLenGameState State { get; private set; }
 
@@ -106,7 +102,7 @@ namespace Assets.Script.TienLen.Game {
             }
 
             for ( int i = 0; i < 13; i++ ) {
-                Debug.Log($"[DealCardsAsync] --- Dealing Round {i + 1}/13 ---");
+                //Debug.Log($"[DealCardsAsync] --- Dealing Round {i + 1}/13 ---");
 
                 foreach ( TienLenPlayer player in players ) {
                     if ( cancellationToken.IsCancellationRequested ) {
@@ -194,6 +190,5 @@ namespace Assets.Script.TienLen.Game {
         public void SetDeck( Deck deck ) {
             this.deck = deck;
         }
-
     }
 }

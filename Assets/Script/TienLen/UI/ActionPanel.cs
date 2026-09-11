@@ -19,6 +19,8 @@ namespace Assets.Script.TienLen.UI {
         private CardCombinationEvaluator combinationEvaluator;
         private TurnManager turnManager;
 
+        [Header("UI Elements")]
+        [SerializeField] private GameObject actionPanel;
         [SerializeField] private Button playBtn;
         [SerializeField] private Button sortBtn;
         [SerializeField] private Button passBtn;
@@ -41,14 +43,17 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void Start() {
+            actionPanel.SetActive(false);
+
             playBtn.onClick.AddListener(OnPlayBtnClick);
             sortBtn.onClick.AddListener(OnSortBtnClick);
             passBtn.onClick.AddListener(OnPassBtnClick);
         }
 
         public void OnEnable() {
+            turnManager.OnTurnChanged += HandleTurnChanged;
             localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
-            cardHolder.OnCardSelected += HandleCardSelected;
+            
 
             if ( localPlayerService.Player != null ) {
                 HandleLocalPlayerSet(localPlayerService.Player);
@@ -57,9 +62,22 @@ namespace Assets.Script.TienLen.UI {
 
         private void HandleLocalPlayerSet( TienLenPlayer player ) {
             localPlayer = player;
+
+            localPlayer.CardHolder.OnCardSelected += HandleCardSelected;
         }
 
+        private void HandleTurnChanged() {
 
+            // Check if it's the local player's turn
+            bool enable;
+            if ( turnManager.CurrentPlayer == localPlayer ) enable = true;
+            else enable = false;
+
+            ChangePlayButtonState(enable);
+            ChangePassButtonState(enable);
+
+
+        }
 
         void OnPlayBtnClick() {
             if ( localPlayer == null ) return;
@@ -113,6 +131,10 @@ namespace Assets.Script.TienLen.UI {
 
         void ChangePlayButtonState( bool enable ) {
             playBtn.interactable = enable;
+        }
+
+        void ChangePassButtonState( bool enable ) {
+            passBtn.interactable = enable;
         }
 
         void HandleCardSelected( IReadOnlyList<CardView> selectedCards ) {

@@ -1,5 +1,6 @@
 ﻿using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Multiplayer.PlayMode;
@@ -11,8 +12,6 @@ namespace Assets.Script.TienLen.Game {
         [Header("Dependencies")]
         private TienLenRuleValidator validator;
 
-        public TienLenGameState state { get; private set; }
-
         private IReadOnlyList<TienLenPlayer> players;
 
         private CardCombination currentCombination;
@@ -23,6 +22,10 @@ namespace Assets.Script.TienLen.Game {
         private int currentPlayerIndex;
         private int lastPlayerIndex;
         private int passedPlayers;
+
+
+        public event Action OnTurnChanged;
+
 
         [Inject]
         public TurnManager( TienLenRuleValidator validator ) {
@@ -39,7 +42,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void ChangeState( TienLenGameState newState ) {
-            state = newState;
+            OnTurnChanged?.Invoke();
         }
 
         public bool TryPlay(
@@ -98,8 +101,7 @@ namespace Assets.Script.TienLen.Game {
         private void AdvanceTurn() {
             currentPlayerIndex++;
 
-            if ( currentPlayerIndex >= players.Count )
-                currentPlayerIndex = 0;
+            if ( currentPlayerIndex >= players.Count ) currentPlayerIndex = 0;
         }
 
         private void StartNewRound() {

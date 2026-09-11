@@ -16,14 +16,12 @@ using VContainer;
 namespace Assets.Script.TienLen.Game {
     public class TienLenGameController : NetworkBehaviour, INetworkRunnerCallbacks {
 
-        [System.Serializable]
-        public class PlayerHandPosition {
-            public int playerId;
-            public CardHolder cardHolder;
-            public Transform cardHolderPosition; //might not be needed if we use cardholder position directly
-        }
+        [Header("Dependencies")]
+        CardSpawner cardSpawner;
+        LocalPlayerService localPlayerService;
+        TienLenGame game;
+        TurnManager turnManager;
 
-        [SerializeField] private PlayerHandPosition[] playerHandPositions = new PlayerHandPosition[4];
 
         [Space(5)]
         [Header("Start Game Button")]
@@ -32,16 +30,18 @@ namespace Assets.Script.TienLen.Game {
 
         [Networked] public NetworkBool IsGameStarted { get; set; }
 
+
+
+        [SerializeField] private PlayerHandPosition[] playerHandPositions = new PlayerHandPosition[4];
+
         public bool isGameStartable { get; set; }
 
         private const int minPlayerToStart = 1; //TODO: Change to 2 or more for actual gameplay
 
 
-        private TienLenGame game;
+        List<TienLenPlayer> players = new List<TienLenPlayer>();
 
-        [Header("Dependencies")]
-        CardSpawner cardSpawner;
-        LocalPlayerService localPlayerService;
+
 
 
         [SerializeField] TienLenSO tienLenSO;
@@ -51,9 +51,13 @@ namespace Assets.Script.TienLen.Game {
 
         [Inject]
         void Construct(CardSpawner cardSpawner,
-            LocalPlayerService localPlayerService ) {
+            LocalPlayerService localPlayerService,
+            TienLenGame game,
+            TurnManager turnManager) {
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
+            this.game = game;
+            this.turnManager = turnManager;
         }
 
         public override void Spawned() {
@@ -72,8 +76,6 @@ namespace Assets.Script.TienLen.Game {
 
 
         private void Initialize() {
-            game = new TienLenGame();
-
             game.OnTurnChanged += HandleTurnChanged;
             game.OnCardsPlayed += HandleCardsPlayed;
             game.OnPlayerWon += HandlePlayerWon;
@@ -240,6 +242,9 @@ namespace Assets.Script.TienLen.Game {
             CreateDeck();
 
             game.StartGame();
+
+            turnManager.Initialize(game.Players);
+            
         }
 
 
@@ -333,5 +338,12 @@ namespace Assets.Script.TienLen.Game {
         public void OnSceneLoadDone( NetworkRunner runner ) { }
 
         public void OnSceneLoadStart( NetworkRunner runner ) { }
+
+        [System.Serializable]
+        public class PlayerHandPosition {
+            public int playerId;
+            public CardHolder cardHolder;
+            public Transform cardHolderPosition; //might not be needed if we use cardholder position directly
+        }
     }
 }
