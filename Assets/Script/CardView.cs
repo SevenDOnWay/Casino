@@ -1,7 +1,4 @@
-﻿using Fusion;
-using FusionIntroShared;
-using System;
-using System.Collections;
+﻿using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 

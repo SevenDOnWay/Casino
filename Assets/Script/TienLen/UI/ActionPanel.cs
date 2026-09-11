@@ -18,6 +18,7 @@ namespace Assets.Script.TienLen.UI {
         private TienLenRuleValidator validator;
         private CardCombinationEvaluator combinationEvaluator;
         private TurnManager turnManager;
+        private TienLenGame game;
 
         [Header("UI Elements")]
         [SerializeField] private GameObject actionPanel;
@@ -30,16 +31,20 @@ namespace Assets.Script.TienLen.UI {
         private CardCombination currentCombination;
 
 
+        private bool isLocalPlayerTurn => turnManager.CurrentPlayer == localPlayer;
+
 
         [Inject]
         void Construct( LocalPlayerService localPlayerService,
             TienLenRuleValidator validator,
             CardCombinationEvaluator combinationEvaluator,
-            TurnManager turnManager ) {
+            TurnManager turnManager,
+            TienLenGame game ) {
             this.localPlayerService = localPlayerService;
             this.validator = validator;
             this.combinationEvaluator = combinationEvaluator;
             this.turnManager = turnManager;
+            this.game = game;
         }
 
         public void Start() {
@@ -51,6 +56,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void OnEnable() {
+            game.OnRoundStarted += HandleStartRound;
             turnManager.OnTurnChanged += HandleTurnChanged;
             localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
             
@@ -66,15 +72,17 @@ namespace Assets.Script.TienLen.UI {
             localPlayer.CardHolder.OnCardSelected += HandleCardSelected;
         }
 
+        private void HandleStartRound() {
+            actionPanel.SetActive(true);
+
+            currentCombination = null;
+            ChangePlayButtonState(true);
+            ChangePassButtonState(true);
+        }
+
         private void HandleTurnChanged() {
 
             // Check if it's the local player's turn
-            bool enable;
-            if ( turnManager.CurrentPlayer == localPlayer ) enable = true;
-            else enable = false;
-
-            ChangePlayButtonState(enable);
-            ChangePassButtonState(enable);
 
 
         }
@@ -130,10 +138,14 @@ namespace Assets.Script.TienLen.UI {
 
 
         void ChangePlayButtonState( bool enable ) {
+            if ( !isLocalPlayerTurn ) return;
+
             playBtn.interactable = enable;
         }
 
         void ChangePassButtonState( bool enable ) {
+            if ( !isLocalPlayerTurn ) return;
+
             passBtn.interactable = enable;
         }
 

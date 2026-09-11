@@ -17,19 +17,12 @@ namespace Assets.Script.TienLen.Game {
 
         private int currentPlayerIndex;
 
-        private CardCombination currentCombination;
-
-        private int lastPlayerIndex;
-
-        private int passedPlayers;
-
         public TienLenGameState State { get; private set; }
 
         public IReadOnlyList<TienLenPlayer> Players => players;
 
         public TienLenPlayer CurrentPlayer => players[currentPlayerIndex];
 
-        public CardCombination CurrentCombination => currentCombination;
 
         public event Action<TienLenPlayer> OnTurnChanged;
         public event Action<CardCombination> OnCardsPlayed;
@@ -75,14 +68,9 @@ namespace Assets.Script.TienLen.Game {
 
             DetermineFirstPlayer();
 
-            currentCombination = null;
-            passedPlayers = 0;
-            lastPlayerIndex = currentPlayerIndex;
-
             State = TienLenGameState.Playing;
 
             OnRoundStarted?.Invoke();
-            OnTurnChanged?.Invoke(CurrentPlayer);
         }
 
         //TODO: Refactor this to handle ui,
@@ -154,13 +142,6 @@ namespace Assets.Script.TienLen.Game {
                 if ( player == null ) continue;
 
                 Debug.Log($"[DealCardsAsync] Arranging cards for '{player.PlayerName}'");
-
-                if ( player.Hand != null ) {
-                    player.Hand.Sort();
-                }
-                else {
-                    Debug.LogWarning($"[DealCardsAsync] Cannot sort Hand: player.Hand is NULL for '{player.PlayerName}'");
-                }
 
                 if ( player.CardHolder != null ) {
                     player.CardHolder.SortCards();

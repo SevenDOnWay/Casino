@@ -66,8 +66,7 @@ namespace Assets.Script.TienLen.Game {
             // The play is valid.
             validator.SetCurrentCombination(combination);
 
-            lastPlayerIndex = currentPlayerIndex;
-            passedPlayers = 0;
+            //passedPlayers = 0; 
 
             AdvanceTurn();
 
@@ -99,8 +98,9 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private void AdvanceTurn() {
-            currentPlayerIndex++;
+            lastPlayerIndex = currentPlayerIndex;
 
+            currentPlayerIndex++;
             if ( currentPlayerIndex >= players.Count ) currentPlayerIndex = 0;
         }
 

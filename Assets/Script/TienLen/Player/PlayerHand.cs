@@ -1,20 +1,19 @@
 ﻿using Assets.Script.TienLen.Rule;
-using NUnit.Framework;
 using System.Collections.Generic;
-using System.Threading;
-using UnityEngine;
 using VContainer;
 
 namespace Assets.Script.TienLen.Player {
     public class PlayerHand {
 
-        [Inject] CardComparer cardComparer;
 
         private List<CardView> cardViews = new();
 
         public List<CardView> CardViews => cardViews; //TODO: Change this to list<card> 
 
         public int Count => cardViews.Count;
+
+
+
 
         public void AddCard( CardView cardView ) {
             cardViews.Add(cardView);
@@ -31,10 +30,6 @@ namespace Assets.Script.TienLen.Player {
         public void Remove( IEnumerable<CardView> selectedCards ) {
             foreach ( CardView card in selectedCards )
                 cardViews.Remove(card);
-        }
-
-        public void Sort() {    
-            //cardViews.Sort(cardComparer.Compare);
         }
 
         public void Clear() {
