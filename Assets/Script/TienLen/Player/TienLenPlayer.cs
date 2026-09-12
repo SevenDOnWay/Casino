@@ -1,4 +1,5 @@
-﻿using Assets.Script.TienLen.Player;
+﻿using Assets.Script.TienLen.Game;
+using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.UI;
 using Fusion;
 using NUnit.Framework;
@@ -11,7 +12,7 @@ namespace Assets.Script.TienLen.Player {
         public int Id { get; }
         public PlayerRef PlayerRef { get; }
         public string PlayerName { get; }
-
+        public TienLenGameController controller;
         public PlayerHand Hand { get; }
         public CardHolder CardHolder { get; private set; }
         public bool IsLocalPlayer { get; }
@@ -24,19 +25,28 @@ namespace Assets.Script.TienLen.Player {
             PlayerRef playerRef,
             string playerName,
             bool isLocalPlayer,
+            TienLenGameController gameController,            
             bool isHuman = true ) {
             Id = id;
             PlayerRef = playerRef;
             PlayerName = playerName;
             IsLocalPlayer = isLocalPlayer;
+            controller = gameController;
             IsHuman = isHuman;
-
+            
             Hand = new PlayerHand();
         }
 
         public void SetCardHolder( CardHolder cardHolder ) {
             CardHolder = cardHolder;
         }
+
+        [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+        public void RPCRequestPlayCard( NetworkCard[] cards, RpcInfo info = default ) {
+            controller.HandlePlayRequest(info.Source,cards);
+        }
+
+
 
         public bool HasCards(List<Card> cards ) {
             if ( Hand == null ) return false;

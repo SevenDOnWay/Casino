@@ -115,7 +115,8 @@ namespace Assets.Script.TienLen.Game {
                 playerId,
                 player,
                 $"Player {playerId + 1}",
-                player == Runner.LocalPlayer
+                player == Runner.LocalPlayer,
+                this
             );
 
             tienLenPlayer.SetCardHolder(position.cardHolder);
@@ -343,7 +344,7 @@ namespace Assets.Script.TienLen.Game {
             return null;
         }
 
-        private void HandleAcceptedPlay( TienLenPlayer player, List<Card> playedCards ) {
+        public void HandleAcceptedPlay( TienLenPlayer player, List<Card> playedCards ) {
             if ( player == null ) {
                 Debug.LogError("Cannot handle accepted play: player is null.");
                 return;
@@ -388,6 +389,47 @@ namespace Assets.Script.TienLen.Game {
             // etc.
 
             
+        }
+
+
+        public void HandlePlayRequest(PlayerRef sender, NetworkCard[] cards) {
+            TienLenPlayer player = GetPlayer(sender);
+
+            if ( player == null ) {
+                Debug.LogWarning(
+                    $"Cannot find player for {sender}.");
+                return;
+            }
+
+            List<Card> requestedCards = cards
+        .Select(card => card.ToCard())
+        .ToList();
+
+            // Verify ownership.
+            if ( !player.HasCards(requestedCards) ) {
+                Debug.LogWarning(
+                    $"Player {player.Id} tried to play cards they don't own.");
+                return;
+            }
+
+            // Evaluate combination.
+            if ( !cardCombinationEvaluator.TryEvaluate(
+                    requestedCards,
+                    out CardCombination combination) ) {
+                Debug.LogWarning(
+                    $"Player {player.Id} submitted an invalid combination.");
+                return;
+            }
+
+            // Validate turn + game rules.
+            if ( !turnManager.TryPlay(player, combination) ) {
+                Debug.LogWarning(
+                    $"Player {player.Id} cannot play this combination.");
+                return;
+            }
+
+            // Accepted.
+            HandleAcceptedPlay(player, requestedCards);
         }
 
         #endregion

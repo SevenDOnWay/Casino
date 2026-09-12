@@ -21,7 +21,6 @@ namespace Assets.Script.TienLen.UI {
         private CardCombinationEvaluator combinationEvaluator;
         private TurnManager turnManager;
         private TienLenGame game;
-        private TienLenGameController controller;
 
         [Header("UI Elements")]
         [SerializeField] private GameObject actionPanel;
@@ -42,14 +41,12 @@ namespace Assets.Script.TienLen.UI {
             TienLenRuleValidator validator,
             CardCombinationEvaluator combinationEvaluator,
             TurnManager turnManager,
-            TienLenGame game ,
-            TienLenGameController controller) {
+            TienLenGame game) {
             this.localPlayerService = localPlayerService;
             this.validator = validator;
             this.combinationEvaluator = combinationEvaluator;
             this.turnManager = turnManager;
             this.game = game;
-            this.controller = controller;
         }
 
         public void Start() {
@@ -123,7 +120,7 @@ namespace Assets.Script.TienLen.UI {
                 .Select(card => new NetworkCard { Rank = (byte)card.Rank, Suit = (byte)card.Suit })
                 .ToArray();
 
-            controller.RPCRequestPlayCard(networkCards);
+            localPlayer.RPCRequestPlayCard(networkCards);
 
 
             // 3. Play succeeded.
