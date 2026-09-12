@@ -2,6 +2,8 @@
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
+using DG.Tweening;
+using Fusion;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,6 +21,7 @@ namespace Assets.Script.TienLen.UI {
         private CardCombinationEvaluator combinationEvaluator;
         private TurnManager turnManager;
         private TienLenGame game;
+        private TienLenGameController controller;
 
         [Header("UI Elements")]
         [SerializeField] private GameObject actionPanel;
@@ -39,12 +42,14 @@ namespace Assets.Script.TienLen.UI {
             TienLenRuleValidator validator,
             CardCombinationEvaluator combinationEvaluator,
             TurnManager turnManager,
-            TienLenGame game ) {
+            TienLenGame game ,
+            TienLenGameController controller) {
             this.localPlayerService = localPlayerService;
             this.validator = validator;
             this.combinationEvaluator = combinationEvaluator;
             this.turnManager = turnManager;
             this.game = game;
+            this.controller = controller;
         }
 
         public void Start() {
@@ -114,18 +119,53 @@ namespace Assets.Script.TienLen.UI {
                 return;
             }
 
-            // 2. Ask TurnManager if this player can play it.
-            if ( !turnManager.TryPlay(localPlayer, combination) ) {
-                Debug.Log("This combination cannot be played.");
-                return;
-            }
+            NetworkCard[] networkCards = combination.Cards
+                .Select(card => new NetworkCard { Rank = (byte)card.Rank, Suit = (byte)card.Suit })
+                .ToArray();
+
+            controller.RPCRequestPlayCard(networkCards);
+
 
             // 3. Play succeeded.
             Debug.Log($"Played {combination.Type}");
 
+            var cardsToAnimate = new List<CardView>(selectedCards);
             localPlayer.CardHolder.RemoveCards(selectedCards);
 
+            // Center animation settings
+            float duration = 0.35f;
+            float cardSpacing = 40f; // Pixel offset between cards if placed side-by-side
+            Vector3 centerPos = Vector3.zero;
 
+            for ( int i = 0; i < cardsToAnimate.Count; i++ ) {
+                var cardView = cardsToAnimate[i];
+                Transform cardTransform = cardView.transform;
+
+                // 1. Detach from the hand layout group so it doesn't fight the layout system
+                cardTransform.SetParent(cardTransform.root, worldPositionStays: true);
+
+                // 2. Calculate horizontal offset so cards don't overlap completely in the center
+                float offset = (i - (cardsToAnimate.Count - 1) / 2f) * cardSpacing;
+                Vector3 targetPos = centerPos + new Vector3(offset, 0f, 0f);
+
+                // 3. Optional: add a slight random rotation for a natural "dropped onto table" feel
+                float randomAngle = UnityEngine.Random.Range(-5f, 5f);
+
+                // 4. Kill any active hand tweens and animate to center
+                cardTransform.DOKill();
+
+                Sequence seq = DOTween.Sequence();
+                seq.Join(cardTransform.DOMove(targetPos, duration).SetEase(Ease.OutQuad));
+                seq.Join(cardTransform.DORotate(new Vector3(0, 0, randomAngle), duration));
+                seq.Join(cardTransform.DOScale(Vector3.one * 0.9f, duration)); // Slightly scale down to table size
+
+                // 5. Cleanup or hand off to table discard pile when done
+                seq.OnComplete(() =>
+                {
+                    // Example: cardView.DisableInteractions();
+                    // Destroy(cardView.gameObject, 2f); // or transfer to table manager
+                });
+            }
         }
 
         void OnSortBtnClick() {

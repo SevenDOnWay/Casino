@@ -66,10 +66,7 @@ namespace Assets.Script.TienLen.Game {
             // Waits here until all cards finish animating
             await DealCardsAsync(cancellationToken);
 
-            DetermineFirstPlayer();
-
             State = TienLenGameState.Playing;
-
             OnRoundStarted?.Invoke();
         }
 
@@ -116,7 +113,7 @@ namespace Assets.Script.TienLen.Game {
                         Debug.LogError($"[DealCardsAsync] player.Hand is NULL for '{player.PlayerName}'!");
                     }
                     else {
-                        player.Hand.AddCard(card);
+                        player.Hand.AddCard(card.Card);
                     }
 
                     // Check Player CardHolder
@@ -153,19 +150,6 @@ namespace Assets.Script.TienLen.Game {
             }
 
             Debug.Log("[DealCardsAsync] DealCardsAsync completed successfully.");
-        }
-
-        private void DetermineFirstPlayer() {
-            for ( int i = 0; i < players.Count; i++ ) {
-                if ( players[i].Hand.CardViews.Any(
-                    c => c.Card.Rank == CardRank.Three &&
-                         c.Card.Suit == CardSuit.Spades) ) {
-                    currentPlayerIndex = i;
-                    return;
-                }
-            }
-
-            currentPlayerIndex = 0;
         }
 
         public void SetDeck( Deck deck ) {

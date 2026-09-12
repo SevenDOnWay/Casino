@@ -5,10 +5,12 @@ using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
 using Fusion;
 using Fusion.Sockets;
+using Photon.Realtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -18,6 +20,7 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Dependencies")]
         CardSpawner cardSpawner;
+        CardCombinationEvaluator cardCombinationEvaluator;
         LocalPlayerService localPlayerService;
         TienLenGame game;
         TurnManager turnManager;
@@ -29,7 +32,6 @@ namespace Assets.Script.TienLen.Game {
         [SerializeField] private TMP_Text startBtnText;
 
         [Networked] public NetworkBool IsGameStarted { get; set; }
-
 
 
         [SerializeField] private PlayerHandPosition[] playerHandPositions = new PlayerHandPosition[4];
@@ -50,14 +52,16 @@ namespace Assets.Script.TienLen.Game {
 
 
         [Inject]
-        void Construct(CardSpawner cardSpawner,
+        void Construct( CardSpawner cardSpawner,
             LocalPlayerService localPlayerService,
             TienLenGame game,
-            TurnManager turnManager) {
+            TurnManager turnManager,
+            CardCombinationEvaluator cardCombinationEvaluator ) {
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
             this.game = game;
             this.turnManager = turnManager;
+            this.cardCombinationEvaluator = cardCombinationEvaluator;
         }
 
         public override void Spawned() {
@@ -244,7 +248,7 @@ namespace Assets.Script.TienLen.Game {
             game.StartGame();
 
             turnManager.Initialize(game.Players);
-            
+
         }
 
 
@@ -292,6 +296,99 @@ namespace Assets.Script.TienLen.Game {
 
 
 
+
+        [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+        public void RPCRequestPlayCard( NetworkCard[] cards, RpcInfo info = default ) {
+            PlayerRef sender = info.Source;
+
+            var player = GetPlayer(sender);
+
+            List<Card> requestedCards = cards.Select(
+                card => card.ToCard())
+                .ToList();
+
+            // Does the player actually own these cards?
+            if ( !player.HasCards(requestedCards) ) {
+                Debug.LogWarning(
+                    $"Player {player.Id} tried to play cards they don't own.");
+
+                return;
+            }
+
+
+            // Evaluate on the authoritative side.
+            if ( !cardCombinationEvaluator.TryEvaluate(requestedCards, out CardCombination combination) ) {
+                return;
+            }
+
+            // Is this combination legal against the current table?
+            if ( !turnManager.TryPlay(player, combination) ) {
+                Debug.LogWarning(
+                    $"Player {player.Id} cannot play this combination.");
+
+                return;
+            }
+
+
+            HandleAcceptedPlay(player, requestedCards);
+        }
+
+        private TienLenPlayer GetPlayer( PlayerRef sender ) {
+            foreach ( var player in players ) {
+                if ( player == null ) continue;
+                if ( player.PlayerRef == sender ) return player;
+
+            }
+
+            return null;
+        }
+
+        private void HandleAcceptedPlay( TienLenPlayer player, List<Card> playedCards ) {
+            if ( player == null ) {
+                Debug.LogError("Cannot handle accepted play: player is null.");
+                return;
+            }
+
+            // Remove cards from the authoritative hand.
+            if ( !player.TryRemoveCards(playedCards) ) {
+                Debug.LogError(
+                    $"Failed to remove played cards from player {player.Id}.");
+                return;
+            }
+
+            // Notify all clients that this play was accepted.
+            RPCPlayAccepted(
+                player.PlayerRef,
+                playedCards.Select(card => new NetworkCard(card)).ToArray()
+            );
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCPlayAccepted( PlayerRef playerRef, NetworkCard[] cards ) {
+            List<Card> playedCards = cards
+        .Select(card => card.ToCard())
+        .ToList();
+
+            HandlePlayPresentation(playerRef, playedCards);
+        }
+
+        private void HandlePlayPresentation( PlayerRef playerRef, List<Card> playedCards ) {
+            TienLenPlayer player = GetPlayer(playerRef);
+
+            if ( player == null )
+                return;
+
+            PlayCardsAnimation(player, playedCards);
+        }
+
+        private void PlayCardsAnimation( TienLenPlayer player, List<Card> playedCards ) {
+            // Move cards to table
+            // Flip cards
+            // Play sound
+            // etc.
+
+            
+        }
 
         #endregion
 

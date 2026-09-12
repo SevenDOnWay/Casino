@@ -5,35 +5,32 @@ using VContainer;
 namespace Assets.Script.TienLen.Player {
     public class PlayerHand {
 
+        private List<Card> cards = new();
 
-        private List<CardView> cardViews = new();
+        public List<Card> Cards => cards; //TODO: Change this to list<card> 
 
-        public List<CardView> CardViews => cardViews; //TODO: Change this to list<card> 
-
-        public int Count => cardViews.Count;
-
+        public int Count => cards.Count;
 
 
-
-        public void AddCard( CardView cardView ) {
-            cardViews.Add(cardView);
+        public void AddCard( Card card ) {
+            cards.Add(card);
         }
 
-        public void AddCard( List<CardView> cardViews ) {
-            this.cardViews.AddRange(cardViews);
+        public void AddCard( List<Card> cardList ) {
+            cards.AddRange(cardList);
         }
 
-        public void Remove( CardView card ) {
-            cardViews.Remove(card);
+        public void Remove( Card card ) {
+            cards.Remove(card);
         }
 
-        public void Remove( IEnumerable<CardView> selectedCards ) {
-            foreach ( CardView card in selectedCards )
-                cardViews.Remove(card);
+        public void Remove( IEnumerable<Card> selectedCards ) {
+            foreach ( Card card in selectedCards )
+                cards.Remove(card);
         }
 
         public void Clear() {
-            cardViews.Clear();
+            cards.Clear();
         }
 
 

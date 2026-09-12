@@ -1,7 +1,8 @@
 ﻿using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.UI;
 using Fusion;
-using System.Collections;
+using NUnit.Framework;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Script.TienLen.Player {
@@ -35,6 +36,31 @@ namespace Assets.Script.TienLen.Player {
 
         public void SetCardHolder( CardHolder cardHolder ) {
             CardHolder = cardHolder;
+        }
+
+        public bool HasCards(List<Card> cards ) {
+            if ( Hand == null ) return false;
+
+            var playercards = Hand.Cards;
+            
+            foreach(var card in cards) {
+                if(!playercards.Contains(card)) return false;
+            }
+
+            return true;
+        }
+
+        public bool TryRemoveCards(List<Card> cards ) {
+            if ( cards == null || cards.Count == 0 ) return false;
+            if ( Hand == null ) return false;
+
+            // Verify the player actually holds all required cards first
+            if ( !HasCards(cards) ) return false;
+
+            // 1. Remove from the logical hand model
+            Hand.Remove(cards);
+
+            return true;
         }
 
     }
