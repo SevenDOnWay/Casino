@@ -42,7 +42,6 @@ namespace Assets.Script.TienLen.UI {
         [Inject]
         public void Construct( CardComparer cardComparer ) {
             this.cardComparer = cardComparer;
-            Debug.Log($"[CardHolder] Injected CardComparer successfully on {gameObject.name}", this);
         }
 
         public void AddCard( CardView cardView, bool animate = true ) {

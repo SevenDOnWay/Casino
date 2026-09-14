@@ -156,6 +156,18 @@ namespace Assets.Script.TienLen.Game {
                 }
             }
 
+            int unusedCardCount = deck.CardViews?.Count ?? 0;
+            Debug.Log($"[DealCardsAsync] Disabling {unusedCardCount} unused card views from the deck.");
+
+            if ( deck.CardViews != null ) {
+                foreach ( CardView unusedCardView in deck.CardViews ) {
+                    if ( unusedCardView == null ) continue;
+
+                    unusedCardView.SetInteractable(false);
+                    unusedCardView.gameObject.SetActive(false);
+                }
+            }
+
             Debug.Log("[DealCardsAsync] DealCardsAsync completed successfully.");
         }
 
