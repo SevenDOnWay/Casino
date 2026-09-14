@@ -7,6 +7,7 @@ using Fusion;
 using Fusion.Sockets;
 using Photon.Realtime;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -33,18 +34,14 @@ namespace Assets.Script.TienLen.Game {
 
         [Networked] public NetworkBool IsGameStarted { get; set; }
 
-
+        [SerializeField] private GameObject tienLenNetworkPlayerPrefab;
         [SerializeField] private PlayerHandPosition[] playerHandPositions = new PlayerHandPosition[4];
-
+        [SerializeField] private PlayerHandPosition tableCenterPosition = new();
         public bool isGameStartable { get; set; }
 
         private const int minPlayerToStart = 1; //TODO: Change to 2 or more for actual gameplay
-
-
-        List<TienLenPlayer> players = new List<TienLenPlayer>();
-
-
-
+        Dictionary<PlayerRef, TienLenPlayer> playerMap = new();
+        Dictionary<PlayerRef, TienLenNetWorkPlayer> networkPlayerMap = new();
 
         [SerializeField] TienLenSO tienLenSO;
 
@@ -87,48 +84,123 @@ namespace Assets.Script.TienLen.Game {
 
         private void RegisterExistingPlayers() {
             foreach ( PlayerRef player in Runner.ActivePlayers ) {
-                RegisterPlayer(player);
+                SpawnNetworkPlayer(player);
             }
         }
 
-        private void RegisterPlayer( PlayerRef player ) {
-            if ( game == null ) {
-                Debug.LogError("Cannot register player: TienLenGame is not initialized.");
+        private void SpawnNetworkPlayer( PlayerRef player ) {
+            if ( !Object.HasStateAuthority ) {
+                Debug.LogError("[SpawnNetworkPlayer] Only the host can spawn network players.");
                 return;
             }
 
-            // Prevent duplicate registration
-            if ( game.Players.Any(p => p.PlayerRef == player) ) {
+            if ( tienLenNetworkPlayerPrefab == null ) {
+                Debug.LogError("[SpawnNetworkPlayer] tienLenNetworkPlayerPrefab is not assigned in the inspector.");
+                return;
+            }
+
+            // Prevent duplicate spawning
+            if ( networkPlayerMap.ContainsKey(player) ) {
+                Debug.LogWarning($"[SpawnNetworkPlayer] Player {player.PlayerId} already has a network localPlayer spawned.");
                 return;
             }
 
             int playerId = FindAvailablePlayerId();
-
             if ( playerId == -1 ) {
                 Debug.LogError($"No available Tiến Lên slot for {player}.");
+                return;
+            }
+
+            // Spawn the TienLenNetWorkPlayer prefab
+            NetworkObject spawnedObject = Runner.Spawn(
+                    tienLenNetworkPlayerPrefab,
+                    Vector3.zero,
+                    Quaternion.identity,
+                    inputAuthority: player,
+                    onBeforeSpawned: ( runner, obj ) => {
+                        TienLenNetWorkPlayer networkPlayer = obj.GetComponent<TienLenNetWorkPlayer>();
+                        if ( networkPlayer == null ) {
+                            Debug.LogError("[SpawnNetworkPlayer] onBeforeSpawned could not find TienLenNetWorkPlayer component.");
+                            return;
+                        }
+                        
+                        networkPlayer.PlayerRef = player;
+                        networkPlayer.PlayerId = playerId;
+                        networkPlayer.PlayerName = new NetworkString<_16>($"Player {playerId + 1}");
+                        networkPlayer.Controller = this;
+                    }
+                );
+
+            TienLenNetWorkPlayer networkPlayer = spawnedObject.GetComponent<TienLenNetWorkPlayer>();
+            if ( networkPlayer == null ) {
+                Debug.LogError($"[SpawnNetworkPlayer] Spawned object does not have TienLenNetWorkPlayer component.");
+                Runner.Despawn(spawnedObject);
+                return;
+            }
+
+            networkPlayerMap[player] = networkPlayer;
+
+            Debug.Log($"[SpawnNetworkPlayer] Spawned network localPlayer for {player} with ID {networkPlayer.PlayerId}");
+        }
+
+        public void RegisterPlayer( TienLenNetWorkPlayer networkPlayer ) {
+            if ( game == null ) {
+                Debug.LogError("Cannot register localPlayer: TienLenGame is not initialized.");
+                return;
+            }
+
+            PlayerRef player = networkPlayer.PlayerRef;
+
+            Debug.Log(
+                $"[RegisterPlayer] PlayerRef={player}, PlayerId={networkPlayer.PlayerId}, " +
+                $"IsValid={player.IsValid}, CurrentPlayerMapCount={playerMap.Count}, " +
+                $"CurrentNetworkPlayerMapCount={networkPlayerMap.Count}"
+            );
+
+            // Prevent duplicate registration
+            if ( playerMap.ContainsKey(player) || game.Players.Any(p => p.PlayerRef == player) ) {
+                Debug.LogWarning($"[RegisterPlayer] Duplicate registration skipped for {player}. " +
+                                 $"playerMapHasKey={playerMap.ContainsKey(player)}, " +
+                                 $"gameHasPlayer={game.Players.Any(p => p.PlayerRef == player)}");
+                return;
+            }
+
+            if ( networkPlayer == null ) {
+                Debug.LogError($"Cannot register localPlayer for {player}: networkPlayer is null.");
+                return;
+            }
+
+            networkPlayerMap[player] = networkPlayer;
+
+            int playerId = networkPlayer.PlayerId;
+            if ( playerId < 0 || playerId >= 4 ) {
+                Debug.LogError($"Invalid playerId: {playerId}");
                 return;
             }
 
             PlayerHandPosition position = playerHandPositions[playerId];
 
             TienLenPlayer tienLenPlayer = new TienLenPlayer(
-                playerId,
-                player,
-                $"Player {playerId + 1}",
-                player == Runner.LocalPlayer,
-                this
-            );
+                        playerId,
+                        player,
+                        networkPlayer.PlayerName.ToString(),
+                        this
+                    );
 
             tienLenPlayer.SetCardHolder(position.cardHolder);
-            localPlayerService.SetLocalPlayer(tienLenPlayer);
+            bool isLocalPlayer = (player == Runner.LocalPlayer);
+            if ( isLocalPlayer ) {
+                localPlayerService.SetNetworkPlayer(networkPlayer);
+                localPlayerService.SetLocalPlayer(tienLenPlayer);
+            }
 
-            position.cardHolder.SetInteractable(tienLenPlayer.IsLocalPlayer);
+            position.cardHolder.SetInteractable(isLocalPlayer);
 
+            playerMap[player] = tienLenPlayer;
             game.AddPlayer(tienLenPlayer);
 
-            Debug.Log(
-                $"[TienLen] Registered {player} as Player {playerId}"
-            );
+
+            Debug.Log($"[TienLen] Registered {player} as Player {playerId}. playerMapCount={playerMap.Count}");
         }
 
         public override void Despawned( NetworkRunner runner, bool hasState ) {
@@ -140,9 +212,9 @@ namespace Assets.Script.TienLen.Game {
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
             Debug.Log($"[TienLen] Player joined: {player.PlayerId}");
 
-            if ( !Object.HasStateAuthority ) return;
-
-            RegisterPlayer(player);
+            if ( Object.HasStateAuthority ) {
+                SpawnNetworkPlayer(player);
+            }
 
             CheckPlayer();
             UpdateStartButtonUI();
@@ -150,6 +222,20 @@ namespace Assets.Script.TienLen.Game {
 
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
             Debug.Log($"[TienLen] Player left: {player.PlayerId}");
+
+            //TODO: unregister play and support quick reconnect.
+            Debug.Log($"[TienLen] Player left: {player.PlayerId}");
+
+            if ( networkPlayerMap.TryGetValue(player, out var networkPlayer) ) {
+                Runner.Despawn(networkPlayer.Object);
+                networkPlayerMap.Remove(player);
+            }
+
+            playerMap.Remove(player);
+            game.RemovePlayer(player);
+
+            CheckPlayer();
+            UpdateStartButtonUI();
         }
 
 
@@ -191,7 +277,7 @@ namespace Assets.Script.TienLen.Game {
                 Debug.LogWarning("[CreateDeck] 'cardSpawner.SpawnAllCard(sprites)' executed, but returned NULL! Check inside SpawnAllCard.", this);
             }
             else {
-                Debug.Log($"[CreateDeck] SUCCESS! Spawned {list.Count} cards.", this);
+                Debug.Log($"[CreateDeck] SUCCESS! Spawned {list.Count} cardsViews.", this);
             }
 
             Deck deck = new Deck();
@@ -277,7 +363,7 @@ namespace Assets.Script.TienLen.Game {
                     startBtnText.text = "Waiting for Host to start...";
                 }
                 else if ( !isGameStartable ) {
-                    startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more player(s)";
+                    startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more localPlayer(s)";
                 }
                 else {
                     startBtnText.text = "Start Game";
@@ -302,7 +388,18 @@ namespace Assets.Script.TienLen.Game {
         public void RPCRequestPlayCard( NetworkCard[] cards, RpcInfo info = default ) {
             PlayerRef sender = info.Source;
 
+            Debug.Log(
+                $"[RPCRequestPlayCard] Received RPC. sender={sender}, senderId={sender.PlayerId}, " +
+                $"senderIsValid={sender.IsValid}, playerMapCount={playerMap.Count}, " +
+                $"networkPlayerMapCount={networkPlayerMap.Count}, hasStateAuthority={Object.HasStateAuthority}"
+            );
+
             var player = GetPlayer(sender);
+
+            if ( player == null ) {
+                Debug.LogWarning($"Received play request from unknown localPlayer {sender.PlayerId}.");
+                return;
+            }
 
             List<Card> requestedCards = cards.Select(
                 card => card.ToCard())
@@ -311,7 +408,7 @@ namespace Assets.Script.TienLen.Game {
             // Does the player actually own these cards?
             if ( !player.HasCards(requestedCards) ) {
                 Debug.LogWarning(
-                    $"Player {player.Id} tried to play cards they don't own.");
+                    $"Player {player.Id} tried to play cardsViews they don't own.");
 
                 return;
             }
@@ -335,25 +432,37 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private TienLenPlayer GetPlayer( PlayerRef sender ) {
-            foreach ( var player in players ) {
-                if ( player == null ) continue;
-                if ( player.PlayerRef == sender ) return player;
-
+            if ( !sender.IsValid ) {
+                Debug.LogWarning($"[GetPlayer] Sender is invalid. sender={sender}, senderId={sender.PlayerId}, playerMapCount={playerMap.Count}");
+                return null;
             }
+
+            if ( playerMap.Count == 0 ) {
+                Debug.LogWarning($"[GetPlayer] There is no localPlayer register in controller. sender={sender}, networkPlayerMapCount={networkPlayerMap.Count}");
+                return null;
+            }
+
+            if ( playerMap.TryGetValue(sender, out TienLenPlayer player ) ) {
+                Debug.Log($"[GetPlayer] Found player. sender={sender}, playerId={player.Id}, playerName={player.PlayerName}");
+                return player;
+            }
+
+            string knownPlayers = string.Join(", ", playerMap.Keys.Select(p => p.ToString()));
+            Debug.LogWarning($"[GetPlayer] No player found for sender={sender}, senderId={sender.PlayerId}. KnownPlayers=[{knownPlayers}]");
 
             return null;
         }
 
         public void HandleAcceptedPlay( TienLenPlayer player, List<Card> playedCards ) {
             if ( player == null ) {
-                Debug.LogError("Cannot handle accepted play: player is null.");
+                Debug.LogError("Cannot handle accepted play: localPlayer is null.");
                 return;
             }
 
             // Remove cards from the authoritative hand.
             if ( !player.TryRemoveCards(playedCards) ) {
                 Debug.LogError(
-                    $"Failed to remove played cards from player {player.Id}.");
+                    $"Failed to remove played cardsViews from localPlayer {player.Id}.");
                 return;
             }
 
@@ -367,8 +476,8 @@ namespace Assets.Script.TienLen.Game {
         [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
         private void RPCPlayAccepted( PlayerRef playerRef, NetworkCard[] cards ) {
             List<Card> playedCards = cards
-        .Select(card => card.ToCard())
-        .ToList();
+            .Select(card => card.ToCard())
+            .ToList();
 
             HandlePlayPresentation(playerRef, playedCards);
         }
@@ -388,27 +497,46 @@ namespace Assets.Script.TienLen.Game {
             // Play sound
             // etc.
 
-            
+            CardHolder hand = player.CardHolder;
+            CardHolder table = tableCenterPosition.cardHolder;
+
+            StartCoroutine(AnimatePlayedCards(hand, table, playedCards));
+
+        }
+
+        private IEnumerator AnimatePlayedCards( CardHolder cardHolder, CardHolder table, List<Card> playedCards ) {
+            List<CardView> views = cardHolder.FindCards(playedCards);
+
+            foreach ( CardView view in views ) {
+                view.transform.SetParent(table.transform);
+
+                // animate position
+                table.AddCard(view);
+            }
+
+            yield return null;
+
         }
 
 
-        public void HandlePlayRequest(PlayerRef sender, NetworkCard[] cards) {
+        public void HandlePlayRequest( PlayerRef sender, NetworkCard[] cards ) {
+            Debug.Log($"[HandlePlayRequest] sender={sender}, senderId={sender.PlayerId}, cards={cards?.Length ?? 0}");
+
             TienLenPlayer player = GetPlayer(sender);
 
             if ( player == null ) {
-                Debug.LogWarning(
-                    $"Cannot find player for {sender}.");
+                Debug.LogWarning($"Cannot find localPlayer for {sender.PlayerId}.");
                 return;
             }
 
             List<Card> requestedCards = cards
-        .Select(card => card.ToCard())
-        .ToList();
+            .Select(card => card.ToCard())
+            .ToList();
 
             // Verify ownership.
             if ( !player.HasCards(requestedCards) ) {
                 Debug.LogWarning(
-                    $"Player {player.Id} tried to play cards they don't own.");
+                    $"Player {player.Id} tried to play cardsViews they don't own.");
                 return;
             }
 

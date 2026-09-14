@@ -6,7 +6,11 @@ using UnityEngine;
 namespace Assets.Script.NetWorkScript {
     public class LocalPlayerService : IPlayer {
         public TienLenPlayer Player { get; private set; }
+        public TienLenNetWorkPlayer NetworkPlayer { get; private set; }
 
+        public void SetNetworkPlayer( TienLenNetWorkPlayer networkPlayer ) {
+            NetworkPlayer = networkPlayer;
+        }
 
         public event Action<TienLenPlayer> OnLocalPlayerSet;
         public void SetLocalPlayer( TienLenPlayer player ) {

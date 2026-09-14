@@ -12,6 +12,7 @@ using System.Net.NetworkInformation;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
+using static Unity.Collections.Unicode;
 
 namespace Assets.Script.TienLen.UI {
     public class ActionPanel : MonoBehaviour {
@@ -100,7 +101,7 @@ namespace Assets.Script.TienLen.UI {
 
             var selectedCards = hand.SelectedCards;
             if ( selectedCards == null || selectedCards.Count == 0 ) {
-                Debug.LogWarning("No cards selected to play.");
+                Debug.LogWarning("No cardsViews selected to play.");
                 return;
             }
 
@@ -112,7 +113,7 @@ namespace Assets.Script.TienLen.UI {
             if ( !combinationEvaluator.TryEvaluate(
                     cards,
                     out CardCombination combination) ) {
-                Debug.Log("Selected cards do not form a valid combination.");
+                Debug.Log("Selected cardsViews do not form a valid combination.");
                 return;
             }
 
@@ -120,8 +121,24 @@ namespace Assets.Script.TienLen.UI {
                 .Select(card => new NetworkCard { Rank = (byte)card.Rank, Suit = (byte)card.Suit })
                 .ToArray();
 
-            localPlayer.RPCRequestPlayCard(networkCards);
+            var networkPlayer = localPlayerService.NetworkPlayer;
+            if ( networkPlayer == null ) {
+                Debug.LogWarning("[ActionPanel] Cannot call RPCRequestPlayCard because NetworkPlayer is null.");
+                return;
+            }
 
+            Debug.Log(
+                $"[ActionPanel] Calling RPCRequestPlayCard. " +
+                $"PlayerRef={networkPlayer.PlayerRef}, " +
+                $"LocalPlayer={networkPlayer.Runner.LocalPlayer}, " +
+                $"HasInputAuthority={networkPlayer.Object.HasInputAuthority}, " +
+                $"SelectedCards={selectedCards.Count}, " +
+                $"Combination={combination.Type}"
+            );
+
+            networkPlayer.RPCRequestPlayCard(networkCards);
+
+            Debug.Log("[ActionPanel] RPCRequestPlayCard sent successfully.");
 
             // 3. Play succeeded.
             Debug.Log($"Played {combination.Type}");
@@ -130,8 +147,12 @@ namespace Assets.Script.TienLen.UI {
             localPlayer.CardHolder.RemoveCards(selectedCards);
 
             // Center animation settings
+            //animate(cardsToAnimate);
+        }
+
+        private void animate( List<CardView> cardsToAnimate ) {
             float duration = 0.35f;
-            float cardSpacing = 40f; // Pixel offset between cards if placed side-by-side
+            float cardSpacing = 0.2f; // Pixel offset between cards if placed side-by-side
             Vector3 centerPos = Vector3.zero;
 
             for ( int i = 0; i < cardsToAnimate.Count; i++ ) {
@@ -157,8 +178,7 @@ namespace Assets.Script.TienLen.UI {
                 seq.Join(cardTransform.DOScale(Vector3.one * 0.9f, duration)); // Slightly scale down to table size
 
                 // 5. Cleanup or hand off to table discard pile when done
-                seq.OnComplete(() =>
-                {
+                seq.OnComplete(() => {
                     // Example: cardView.DisableInteractions();
                     // Destroy(cardView.gameObject, 2f); // or transfer to table manager
                 });

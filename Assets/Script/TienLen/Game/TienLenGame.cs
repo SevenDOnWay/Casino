@@ -1,6 +1,7 @@
 ﻿using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Cysharp.Threading.Tasks;
+using Fusion;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -33,13 +34,19 @@ namespace Assets.Script.TienLen.Game {
 
         public void AddPlayer( TienLenPlayer player ) {
 
-            Debug.Log($"[AddPlayer] Adding player: {player.PlayerName}");
+            Debug.Log($"[AddPlayer] Adding localPlayer: {player.PlayerName}");
 
             if ( players.Count >= 4 )
                 throw new InvalidOperationException(
                     "Tiến Lên supports 4 players.");
 
             players.Add(player);
+        }
+
+        public void RemovePlayer(PlayerRef playerRef) {
+            Debug.Log($"[RemovePlayer] Removing localPlayer with PlayerRef: {playerRef}");
+
+            players.RemoveAll(p => p.PlayerRef == playerRef);
         }
 
         public void StartGame() {
@@ -102,15 +109,15 @@ namespace Assets.Script.TienLen.Game {
 
                     CardView card = deck.Draw();
                     if ( card == null ) {
-                        Debug.LogError($"[DealCardsAsync] deck.Draw() returned NULL! Deck ran out of cards at round {i + 1}.");
+                        Debug.LogError($"[DealCardsAsync] deck.Draw() returned NULL! Deck ran out of cardsViews at round {i + 1}.");
                         return;
                     }
 
-                    Debug.Log($"[DealCardsAsync] Dealing card '{card.name}' to player '{player.PlayerName}' (ID: {player.Id})");
+                    Debug.Log($"[DealCardsAsync] Dealing card '{card.name}' to localPlayer '{player.PlayerName}' (ID: {player.Id})");
 
                     // Check Player Hand
                     if ( player.Hand == null ) {
-                        Debug.LogError($"[DealCardsAsync] player.Hand is NULL for '{player.PlayerName}'!");
+                        Debug.LogError($"[DealCardsAsync] localPlayer.Hand is NULL for '{player.PlayerName}'!");
                     }
                     else {
                         player.Hand.AddCard(card.Card);
@@ -118,7 +125,7 @@ namespace Assets.Script.TienLen.Game {
 
                     // Check Player CardHolder
                     if ( player.CardHolder == null ) {
-                        Debug.LogError($"[DealCardsAsync] FAILED: player.CardHolder is NULL for '{player.PlayerName}' (ID: {player.Id})! Check if SetCardHolder was called properly.");
+                        Debug.LogError($"[DealCardsAsync] FAILED: localPlayer.CardHolder is NULL for '{player.PlayerName}' (ID: {player.Id})! Check if SetCardHolder was called properly.");
                     }
                     else {
                         try {
@@ -138,14 +145,14 @@ namespace Assets.Script.TienLen.Game {
             foreach ( TienLenPlayer player in players ) {
                 if ( player == null ) continue;
 
-                Debug.Log($"[DealCardsAsync] Arranging cards for '{player.PlayerName}'");
+                Debug.Log($"[DealCardsAsync] Arranging cardsViews for '{player.PlayerName}'");
 
                 if ( player.CardHolder != null ) {
                     player.CardHolder.SortCards();
                     player.CardHolder.ArrangeCards(true);
                 }
                 else {
-                    Debug.LogWarning($"[DealCardsAsync] Cannot arrange CardHolder: player.CardHolder is NULL for '{player.PlayerName}'");
+                    Debug.LogWarning($"[DealCardsAsync] Cannot arrange CardHolder: localPlayer.CardHolder is NULL for '{player.PlayerName}'");
                 }
             }
 

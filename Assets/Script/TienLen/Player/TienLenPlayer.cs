@@ -15,7 +15,6 @@ namespace Assets.Script.TienLen.Player {
         public TienLenGameController controller;
         public PlayerHand Hand { get; }
         public CardHolder CardHolder { get; private set; }
-        public bool IsLocalPlayer { get; }
         public bool IsHuman { get; }
 
         public bool HasWon => Hand.Count == 0;
@@ -24,13 +23,11 @@ namespace Assets.Script.TienLen.Player {
             int id,
             PlayerRef playerRef,
             string playerName,
-            bool isLocalPlayer,
             TienLenGameController gameController,            
             bool isHuman = true ) {
             Id = id;
             PlayerRef = playerRef;
             PlayerName = playerName;
-            IsLocalPlayer = isLocalPlayer;
             controller = gameController;
             IsHuman = isHuman;
             
@@ -40,13 +37,6 @@ namespace Assets.Script.TienLen.Player {
         public void SetCardHolder( CardHolder cardHolder ) {
             CardHolder = cardHolder;
         }
-
-        [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-        public void RPCRequestPlayCard( NetworkCard[] cards, RpcInfo info = default ) {
-            controller.HandlePlayRequest(info.Source,cards);
-        }
-
-
 
         public bool HasCards(List<Card> cards ) {
             if ( Hand == null ) return false;

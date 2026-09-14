@@ -75,7 +75,7 @@ namespace Assets.Script {
         public List<CardView> Draw( int amount ) {
             if ( amount > cardViews.Count )
                 throw new InvalidOperationException(
-                    $"Cannot draw {amount} cards. Only {cardViews.Count} remaining."
+                    $"Cannot draw {amount} cardsViews. Only {cardViews.Count} remaining."
                 );
 
             List<CardView> result = new();

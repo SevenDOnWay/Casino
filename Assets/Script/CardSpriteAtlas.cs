@@ -12,7 +12,7 @@ public class CardSpriteAtlas {
         if ( spriteCache.Count != 0 ) return spriteCache;
 
         // Loads all Sprite assets located in "Assets/Resources/Cards/"
-        Sprite[] loadedSprites = Resources.LoadAll<Sprite>("Cards");
+        Sprite[] loadedSprites = Resources.LoadAll<Sprite>("CardViews");
 
         foreach ( Sprite s in loadedSprites ) {
             // Key is normalized to lowercase (e.g., "clubs_05", "hearts_king")
@@ -32,9 +32,9 @@ public class CardSpriteAtlas {
     }
 
     public Sprite LoadSpriteBack() {
-        cardBack = Resources.Load<Sprite>("Cards/card_back");
+        cardBack = Resources.Load<Sprite>("CardViews/card_back");
         if ( cardBack == null ) {
-            Debug.LogWarning("[CardSpriteAtlas] Card back spriteRenderer not found in Resources/Cards/card_back");
+            Debug.LogWarning("[CardSpriteAtlas] Card back spriteRenderer not found in Resources/CardViews/card_back");
         }
 
         return cardBack;

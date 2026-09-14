@@ -24,7 +24,7 @@ namespace Assets.Script.TienLen.UI {
 
        
         //TODO: Change into list of card.
-        private readonly List<CardView> cards = new();
+        private readonly List<CardView> cardsViews = new();
         private readonly List<CardView> selectedCards = new();
 
 
@@ -36,7 +36,7 @@ namespace Assets.Script.TienLen.UI {
 
 
 
-        public IReadOnlyList<CardView> Cards => cards;
+        public IReadOnlyList<CardView> CardViews => cardsViews;
         public IReadOnlyList<CardView> SelectedCards => selectedCards;
 
         [Inject]
@@ -51,13 +51,13 @@ namespace Assets.Script.TienLen.UI {
                 return;
             }
 
-            if ( cards.Contains(cardView) )
+            if ( cardsViews.Contains(cardView) )
                 return;
 
             // 1. CRITICAL: Parent the card to this CardHolder keeping its current world position
             cardView.transform.SetParent(this.transform, worldPositionStays: true);
 
-            cards.Add(cardView);
+            cardsViews.Add(cardView);
 
             cardView.OnClicked += HandleCardClicked;
 
@@ -70,7 +70,7 @@ namespace Assets.Script.TienLen.UI {
         public void RemoveCard( CardView cardView, bool animate = true ) {
             if ( cardView == null ) return;
 
-            if ( !cards.Remove(cardView) ) return;
+            if ( !cardsViews.Remove(cardView) ) return;
 
             cardView.OnClicked -= HandleCardClicked;
             cardView.SetInteractable(false);
@@ -82,7 +82,7 @@ namespace Assets.Script.TienLen.UI {
             if ( cardViews == null ) return;
             foreach ( CardView cardView in cardViews ) {
                 if ( cardView == null ) continue;
-                if ( cards.Remove(cardView) ) {
+                if ( cardsViews.Remove(cardView) ) {
                     cardView.OnClicked -= HandleCardClicked;
                     cardView.SetInteractable(false);
                 }
@@ -91,12 +91,12 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void Clear() {
-            foreach ( CardView card in cards ) {
+            foreach ( CardView card in cardsViews ) {
                 if ( card != null )
                     card.OnClicked -= HandleCardClicked;
             }
 
-            cards.Clear();
+            cardsViews.Clear();
         }
 
         private void HandleCardClicked( CardView cardView ) {
@@ -120,23 +120,23 @@ namespace Assets.Script.TienLen.UI {
 
         public void SortCards() {
             if ( cardComparer == null ) {
-                Debug.LogError("[CardHolder] Cannot sort cards: 'cardComparer' is NULL! Falling back to raw Card comparison.", this);
-                cards.Sort(( a, b ) => a.Card != null && b.Card != null ? a.Card.Rank.CompareTo(b.Card.Rank) : 0);
+                Debug.LogError("[CardHolder] Cannot sort cardsViews: 'cardComparer' is NULL! Falling back to raw Card comparison.", this);
+                cardsViews.Sort(( a, b ) => a.Card != null && b.Card != null ? a.Card.Rank.CompareTo(b.Card.Rank) : 0);
                 return;
             }
 
-            cards.Sort(( a, b ) => cardComparer.Compare(a.Card, b.Card));
+            cardsViews.Sort(( a, b ) => cardComparer.Compare(a.Card, b.Card));
         }
 
         public void ArrangeCards( bool animate = true ) {
-            if ( cards.Count == 0 ) return;
+            if ( cardsViews.Count == 0 ) return;
 
             float spacing = CalculateSpacing();
-            float totalWidth = spacing * (cards.Count - 1);
+            float totalWidth = spacing * (cardsViews.Count - 1);
             float startX = -totalWidth / 2f;
 
-            for ( int i = 0; i < cards.Count; i++ ) {
-                CardView card = cards[i];
+            for ( int i = 0; i < cardsViews.Count; i++ ) {
+                CardView card = cardsViews[i];
                 if ( card == null ) continue;
 
                 Vector3 targetPosition = new Vector3(
@@ -162,19 +162,36 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private float CalculateSpacing() {
-            if ( cards.Count <= 1 )
+            if ( cardsViews.Count <= 1 )
                 return cardWidth;
 
             float availableWidth = maxWidth - cardWidth;
-            float spacing = availableWidth / (cards.Count - 1);
+            float spacing = availableWidth / (cardsViews.Count - 1);
 
             return Mathf.Max(spacing, minSpacing);
         }
 
         public void SetInteractable( bool interactable ) {
-            foreach ( var card in cards ) {
+            foreach ( var card in cardsViews ) {
                 card.SetInteractable(interactable);
             }
+        }
+
+        public List<CardView> FindCards(List<Card> cards) {
+            List<CardView> res = new();
+            Dictionary<Card, CardView> dic = new();
+
+            foreach(var cardView in cardsViews ) {
+                dic.Add(cardView.Card, cardView);
+            }
+
+            foreach ( var card in cards ) {
+                if ( dic.TryGetValue(card, out CardView cardView) ) {
+                    res.Add(cardView);
+                }
+            }
+
+            return res;
         }
 
 #if UNITY_EDITOR
@@ -188,7 +205,7 @@ namespace Assets.Script.TienLen.UI {
             Gizmos.color = new Color(0f, 1f, 1f, 0.4f);
             Gizmos.DrawWireCube(Vector3.zero, new Vector3(totalBoxWidth, estimatedHeight, 0.05f));
 
-            int count = (cards != null && cards.Count > 0) ? cards.Count : 13;
+            int count = (cardsViews != null && cardsViews.Count > 0) ? cardsViews.Count : 13;
             float spacing = CalculateSpacing();
             float totalWidth = spacing * (count - 1);
             float startX = -totalWidth / 2f;

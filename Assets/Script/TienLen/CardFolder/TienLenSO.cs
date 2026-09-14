@@ -45,7 +45,7 @@ namespace Assets.Script.TienLen.CardFolder {
             cardEntries.Clear();
 
             // 1. Find all Sprites in your specific art folder (no need for a Resources folder)
-            string[] guids = AssetDatabase.FindAssets("t:Sprite", new[] { "Assets/Resources/Cards" });
+            string[] guids = AssetDatabase.FindAssets("t:Sprite", new[] { "Assets/Resources/CardViews" });
 
             foreach ( string guid in guids ) {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
@@ -72,7 +72,7 @@ namespace Assets.Script.TienLen.CardFolder {
 
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[CardSpriteAtlas] Auto-populated {cardEntries.Count} cards successfully!");
+            Debug.Log($"[CardSpriteAtlas] Auto-populated {cardEntries.Count} cardsViews successfully!");
         }
 
         private bool TryParseCard( string filename, out CardSuit suit, out CardRank rank ) {
