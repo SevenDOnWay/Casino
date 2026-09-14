@@ -151,38 +151,8 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void animate( List<CardView> cardsToAnimate ) {
-            float duration = 0.35f;
-            float cardSpacing = 0.2f; // Pixel offset between cards if placed side-by-side
-            Vector3 centerPos = Vector3.zero;
-
-            for ( int i = 0; i < cardsToAnimate.Count; i++ ) {
-                var cardView = cardsToAnimate[i];
-                Transform cardTransform = cardView.transform;
-
-                // 1. Detach from the hand layout group so it doesn't fight the layout system
-                cardTransform.SetParent(cardTransform.root, worldPositionStays: true);
-
-                // 2. Calculate horizontal offset so cards don't overlap completely in the center
-                float offset = (i - (cardsToAnimate.Count - 1) / 2f) * cardSpacing;
-                Vector3 targetPos = centerPos + new Vector3(offset, 0f, 0f);
-
-                // 3. Optional: add a slight random rotation for a natural "dropped onto table" feel
-                float randomAngle = UnityEngine.Random.Range(-5f, 5f);
-
-                // 4. Kill any active hand tweens and animate to center
-                cardTransform.DOKill();
-
-                Sequence seq = DOTween.Sequence();
-                seq.Join(cardTransform.DOMove(targetPos, duration).SetEase(Ease.OutQuad));
-                seq.Join(cardTransform.DORotate(new Vector3(0, 0, randomAngle), duration));
-                seq.Join(cardTransform.DOScale(Vector3.one * 0.9f, duration)); // Slightly scale down to table size
-
-                // 5. Cleanup or hand off to table discard pile when done
-                seq.OnComplete(() => {
-                    // Example: cardView.DisableInteractions();
-                    // Destroy(cardView.gameObject, 2f); // or transfer to table manager
-                });
-            }
+            
+            
         }
 
         void OnSortBtnClick() {

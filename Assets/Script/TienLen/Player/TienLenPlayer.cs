@@ -23,14 +23,14 @@ namespace Assets.Script.TienLen.Player {
             int id,
             PlayerRef playerRef,
             string playerName,
-            TienLenGameController gameController,            
+            TienLenGameController gameController,
             bool isHuman = true ) {
             Id = id;
             PlayerRef = playerRef;
             PlayerName = playerName;
             controller = gameController;
             IsHuman = isHuman;
-            
+
             Hand = new PlayerHand();
         }
 
@@ -38,19 +38,19 @@ namespace Assets.Script.TienLen.Player {
             CardHolder = cardHolder;
         }
 
-        public bool HasCards(List<Card> cards ) {
+        public bool HasCards( List<Card> cards ) {
             if ( Hand == null ) return false;
-
+            if ( cards == null || cards.Count == 0 ) return false;
             var playercards = Hand.Cards;
-            
-            foreach(var card in cards) {
-                if(!playercards.Contains(card)) return false;
+
+            foreach ( var card in cards ) {
+                if ( !playercards.Contains(card) ) return false;
             }
 
             return true;
         }
 
-        public bool TryRemoveCards(List<Card> cards ) {
+        public bool TryRemoveCards( List<Card> cards ) {
             if ( cards == null || cards.Count == 0 ) return false;
             if ( Hand == null ) return false;
 

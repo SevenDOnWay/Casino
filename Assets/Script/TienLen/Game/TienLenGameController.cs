@@ -3,15 +3,14 @@ using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
+using DG.Tweening;
 using Fusion;
 using Fusion.Sockets;
-using Photon.Realtime;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -505,17 +504,74 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private IEnumerator AnimatePlayedCards( CardHolder cardHolder, CardHolder table, List<Card> playedCards ) {
+            Debug.Log(
+                $"[AnimatePlayedCards] Starting animation. " +
+                $"playedCards={playedCards?.Count ?? 0}, " +
+                $"cardHolder={(cardHolder != null ? cardHolder.name : "NULL")}, " +
+                $"table={(table != null ? table.name : "NULL")}" );
+
+            if ( cardHolder == null ) {
+                Debug.LogError("[AnimatePlayedCards] FAILED: 'cardHolder' is NULL!");
+                yield break;
+            }
+
+            if ( table == null ) {
+                Debug.LogError("[AnimatePlayedCards] FAILED: 'table' is NULL!");
+                yield break;
+            }
+
+            if ( playedCards == null || playedCards.Count == 0 ) {
+                Debug.LogWarning("[AnimatePlayedCards] playedCards is NULL or EMPTY.");
+                yield break;
+            }
+
             List<CardView> views = cardHolder.FindCards(playedCards);
+            if ( views == null || views.Count == 0 ) {
+                Debug.LogWarning("[AnimatePlayedCards] No matching CardView objects found in cardHolder.");
+                yield break;
+            }
 
-            foreach ( CardView view in views ) {
-                view.transform.SetParent(table.transform);
+            float duration = 0.35f;
+            float cardSpacing = 0.2f;
+            Vector3 centerPos = Vector3.zero;
 
-                // animate position
+            Debug.Log($"[AnimatePlayedCards] Animating {views.Count} card views.");
+
+            for ( int i = 0; i < views.Count; i++ ) {
+                CardView view = views[i];
+
+                if ( view == null ) {
+                    Debug.LogError($"[AnimatePlayedCards] CardView at index {i} is NULL!");
+                    continue;
+                }
+
+                Debug.Log($"[AnimatePlayedCards] Animating card '{view.name}' at index {i}.");
+
+                Transform cardTransform = view.transform;
+
+                // Detach from the hand layout group so it doesn't fight the layout system.
+                cardTransform.SetParent(cardTransform.root, worldPositionStays: true);
+
+                float offset = (i - (views.Count - 1) / 2f) * cardSpacing;
+                Vector3 targetPos = centerPos + new Vector3(offset, 0f, 0f);
+                float randomAngle = UnityEngine.Random.Range(-5f, 5f);
+
+                cardTransform.DOKill();
+
+                Sequence seq = DOTween.Sequence();
+                seq.Join(cardTransform.DOMove(targetPos, duration).SetEase(Ease.OutQuad));
+                seq.Join(cardTransform.DORotate(new Vector3(0, 0, randomAngle), duration));
+                seq.Join(cardTransform.DOScale(Vector3.one * 0.9f, duration));
+
+                seq.OnComplete(() => {
+                    Debug.Log($"[AnimatePlayedCards] Animation complete for '{view.name}'. Adding to table.");
+                });
+
                 table.AddCard(view);
             }
 
+            Debug.Log("[AnimatePlayedCards] Animation setup completed.");
             yield return null;
-
         }
 
 
@@ -535,8 +591,7 @@ namespace Assets.Script.TienLen.Game {
 
             // Verify ownership.
             if ( !player.HasCards(requestedCards) ) {
-                Debug.LogWarning(
-                    $"Player {player.Id} tried to play cardsViews they don't own.");
+                Debug.LogWarning($"Player {player.Id} tried to play cardsViews they don't own.");
                 return;
             }
 
