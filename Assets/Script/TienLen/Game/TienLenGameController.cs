@@ -61,9 +61,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public override void Spawned() {
-            if ( startGameBtn != null ) {
-                startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
-            }
+            if ( startGameBtn != null ) startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
 
             if ( Object.HasStateAuthority ) {
                 Initialize();
@@ -76,8 +74,8 @@ namespace Assets.Script.TienLen.Game {
 
 
         private void Initialize() {
-            game.OnTurnChanged += HandleTurnChanged;
-            game.OnCardsPlayed += HandleCardsPlayed;
+            //game.OnTurnChanged += HandleTurnChanged;
+            //game.OnCardsPlayed += HandleCardsPlayed;
             game.OnPlayerWon += HandlePlayerWon;
         }
 
@@ -380,56 +378,6 @@ namespace Assets.Script.TienLen.Game {
             StartGame();
         }
 
-
-
-
-        [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-        public void RPCRequestPlayCard( NetworkCard[] cards, RpcInfo info = default ) {
-            PlayerRef sender = info.Source;
-
-            Debug.Log(
-                $"[RPCRequestPlayCard] Received RPC. sender={sender}, senderId={sender.PlayerId}, " +
-                $"senderIsValid={sender.IsValid}, playerMapCount={playerMap.Count}, " +
-                $"networkPlayerMapCount={networkPlayerMap.Count}, hasStateAuthority={Object.HasStateAuthority}"
-            );
-
-            var player = GetPlayer(sender);
-
-            if ( player == null ) {
-                Debug.LogWarning($"Received play request from unknown localPlayer {sender.PlayerId}.");
-                return;
-            }
-
-            List<Card> requestedCards = cards.Select(
-                card => card.ToCard())
-                .ToList();
-
-            // Does the player actually own these cards?
-            if ( !player.HasCards(requestedCards) ) {
-                Debug.LogWarning(
-                    $"Player {player.Id} tried to play cardsViews they don't own.");
-
-                return;
-            }
-
-
-            // Evaluate on the authoritative side.
-            if ( !cardCombinationEvaluator.TryEvaluate(requestedCards, out CardCombination combination) ) {
-                return;
-            }
-
-            // Is this combination legal against the current table?
-            if ( !turnManager.TryPlay(player, combination) ) {
-                Debug.LogWarning(
-                    $"Player {player.Id} cannot play this combination.");
-
-                return;
-            }
-
-
-            HandleAcceptedPlay(player, requestedCards);
-        }
-
         private TienLenPlayer GetPlayer( PlayerRef sender ) {
             if ( !sender.IsValid ) {
                 Debug.LogWarning($"[GetPlayer] Sender is invalid. sender={sender}, senderId={sender.PlayerId}, playerMapCount={playerMap.Count}");
@@ -451,7 +399,38 @@ namespace Assets.Script.TienLen.Game {
 
             return null;
         }
+        #endregion
 
+
+        #region Pass handle
+        //TODO: make it support as the new round begin, all the card from last round clear or turn down.
+        public void HandlePassRequest( PlayerRef sender ) {
+            Debug.Log($"[HandlePassRequest] sender={sender}, senderId={sender.PlayerId}");
+            TienLenPlayer player = GetPlayer(sender);
+            if ( player == null ) {
+                Debug.LogWarning($"Cannot find localPlayer for {sender.PlayerId}.");
+                return;
+            }
+            if ( !turnManager.TryPass(player) ) {
+                Debug.LogWarning($"Player {player.Id} cannot pass at this time.");
+                return;
+            }
+            // Notify all clients that this pass was accepted.
+            RPCPassAccepted(player.PlayerRef);
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCPassAccepted( PlayerRef playerRef ) {
+            TienLenPlayer player = GetPlayer(playerRef);
+            if ( player == null ) {
+                Debug.LogWarning($"Cannot find localPlayer for {playerRef.PlayerId}.");
+                return;
+            }
+            Debug.Log($"[RPCPassAccepted] Player {player.Id} has passed their turn.");
+        }
+        #endregion
+
+        #region Play handle
         public void HandleAcceptedPlay( TienLenPlayer player, List<Card> playedCards ) {
             if ( player == null ) {
                 Debug.LogError("Cannot handle accepted play: localPlayer is null.");
@@ -616,6 +595,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         #endregion
+       
 
         private void HandleTurnChanged( TienLenPlayer player ) {
             Debug.Log($"Turn: {player.PlayerName}");

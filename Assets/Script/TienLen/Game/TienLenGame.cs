@@ -24,9 +24,6 @@ namespace Assets.Script.TienLen.Game {
 
         public TienLenPlayer CurrentPlayer => players[currentPlayerIndex];
 
-
-        public event Action<TienLenPlayer> OnTurnChanged;
-        public event Action<CardCombination> OnCardsPlayed;
         public event Action<TienLenPlayer> OnPlayerWon;
         public event Action OnRoundStarted;
         public event Action OnRoundEnded;

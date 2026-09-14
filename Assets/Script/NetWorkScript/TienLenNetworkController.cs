@@ -18,14 +18,14 @@ namespace Assets.Script.NetWorkScript {
         [SerializeField] private string mainMenuSceneName;
 
 
-        [SerializeField] private int testClientCount = 1;
+        [SerializeField] private int testClientCount = 1; //this is for testing multi-peer connection, set to 0 for normal use
 
         [SerializeField] private string testRoomName = "TienLenTest";
         private readonly List<NetworkRunner> runners = new();
 
         private NetworkRunner runner;
 
-        public async void Start() {
+        public void Start() {
 
             runner = Instantiate(runnerPrefab);
 

@@ -59,9 +59,9 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void OnEnable() {
+            localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
             game.OnRoundStarted += HandleStartRound;
             turnManager.OnTurnChanged += HandleTurnChanged;
-            localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
             
 
             if ( localPlayerService.Player != null ) {
@@ -84,9 +84,14 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void HandleTurnChanged() {
-
             // Check if it's the local player's turn
+            if ( localPlayer == null ) {
+                actionPanel.SetActive(false);
+                return;
+            }
 
+            ChangePlayButtonState(isLocalPlayerTurn);
+            ChangePassButtonState(isLocalPlayerTurn);
 
         }
 
@@ -160,7 +165,13 @@ namespace Assets.Script.TienLen.UI {
         }
 
         void OnPassBtnClick() {
-            turnManager.TryPass(localPlayer);
+            var networkPlayer = localPlayerService.NetworkPlayer;
+            if ( networkPlayer == null ) {
+                Debug.LogWarning("[ActionPanel] Cannot call RPCRequestPass because NetworkPlayer is null.");
+                return;
+            }
+
+            networkPlayer.RPCRequestPass();
         }
 
 

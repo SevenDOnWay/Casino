@@ -14,10 +14,7 @@ namespace Assets.Script.TienLen.Game {
 
         private IReadOnlyList<TienLenPlayer> players;
 
-        private CardCombination currentCombination;
-
-        public TienLenPlayer CurrentPlayer =>
-            players != null && players.Count > 0 ? players[currentPlayerIndex] : null;
+        public TienLenPlayer CurrentPlayer => players != null && players.Count > 0 ? players[currentPlayerIndex] : null;
 
         private int currentPlayerIndex;
         private int lastPlayerIndex;
@@ -38,30 +35,23 @@ namespace Assets.Script.TienLen.Game {
             currentPlayerIndex = 0;
             lastPlayerIndex = -1;
             passedPlayers = 0;
-            currentCombination = null;
         }
 
         public void ChangeState( TienLenGameState newState ) {
             OnTurnChanged?.Invoke();
         }
 
-        public bool TryPlay(
-           TienLenPlayer player,
-           CardCombination combination ) {
-            if ( player == null )
-                return false;
+        public bool TryPlay(TienLenPlayer player, CardCombination combination ) {
+            if ( player == null ) return false;
 
-            if ( combination == null )
-                return false;
+            if ( combination == null ) return false;
 
             // Make sure it is actually this player's turn.
-            if ( CurrentPlayer != player )
-                return false;
+            if ( CurrentPlayer != player ) return false;
 
             // Check whether the combination is legal against
             // the previous combination.
-            if ( !validator.CanPlay(combination) )
-                return false;
+            if ( !validator.CanPlay(combination)) return false;
 
             // The play is valid.
             validator.SetCurrentCombination(combination);
@@ -74,26 +64,21 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public bool TryPass( TienLenPlayer player ) {
-            if ( player == null )
-                return false;
-
-            if ( CurrentPlayer != player )
-                return false;
-
+            if ( player == null ) return false;
+            if ( CurrentPlayer != player ) return false;
             // Cannot pass when there is no active combination.
-            if ( validator.CurrentCombination == null )
-                return false;
+            if ( validator.CurrentCombination == null ) return false;
 
             passedPlayers++;
-
-            AdvanceTurn();
 
             // Everyone except the player who made the last
             // combination has passed.
             if ( passedPlayers >= players.Count - 1 ) {
                 StartNewRound();
+                return true;
             }
 
+            AdvanceTurn();
             return true;
         }
 
@@ -102,16 +87,15 @@ namespace Assets.Script.TienLen.Game {
 
             currentPlayerIndex++;
             if ( currentPlayerIndex >= players.Count ) currentPlayerIndex = 0;
+            OnTurnChanged?.Invoke();
         }
 
         private void StartNewRound() {
             validator.Reset();
-
             passedPlayers = 0;
 
             // The player who played the last valid combination
             // starts the new round.
-            currentPlayerIndex = lastPlayerIndex;
 
             lastPlayerIndex = -1;
         }
