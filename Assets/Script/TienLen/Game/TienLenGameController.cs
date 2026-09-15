@@ -32,15 +32,18 @@ namespace Assets.Script.TienLen.Game {
         [Header("Start Game Button")]
         [SerializeField] private Button startGameBtn;
         [SerializeField] private TMP_Text startBtnText;
+        private const int minPlayerToStart = 1; //TODO: Change to 2 or more for actual gameplay
+        private const int maxPlayerToStart = 4;
 
-        [Networked] public NetworkBool IsGameStarted { get; set; }
+        [Networked] 
+        public NetworkBool IsGameStarted { get; set; }
 
         [SerializeField] private GameObject tienLenNetworkPlayerPrefab;
         [SerializeField] private PlayerHandPosition[] playerHandPositions = new PlayerHandPosition[4];
         [SerializeField] private PlayerHandPosition tableCenterPosition = new();
         public bool isGameStartable { get; set; }
+        private bool lastRenderedGameStarted;
 
-        private const int minPlayerToStart = 1; //TODO: Change to 2 or more for actual gameplay
         Dictionary<PlayerRef, TienLenPlayer> playerMap = new();
         Dictionary<PlayerRef, TienLenNetWorkPlayer> networkPlayerMap = new();
 
@@ -326,17 +329,11 @@ namespace Assets.Script.TienLen.Game {
         //    */
         //}
 
-        public void StartGame() {
-            CreateDeck();
 
-            game.StartGame();
-
-            RPCPlayDealAnimation();
-
-            turnManager.Initialize(game.Players);
-            OnRoundStarted?.Invoke();
-        }
-
+        //[Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        //private void RPC_NotifyGameStarted() {
+        //    UpdateStartButtonUI();
+        //}
 
         #region Deal Cards
 
@@ -438,7 +435,27 @@ namespace Assets.Script.TienLen.Game {
         }
 
 
+        private TienLenPlayer GetPlayer( PlayerRef sender ) {
+            if ( !sender.IsValid ) {
+                Debug.LogWarning($"[GetPlayer] Sender is invalid. sender={sender}, senderId={sender.PlayerId}, playerMapCount={playerMap.Count}");
+                return null;
+            }
 
+            if ( playerMap.Count == 0 ) {
+                Debug.LogWarning($"[GetPlayer] There is no localPlayer register in controller. sender={sender}, networkPlayerMapCount={networkPlayerMap.Count}");
+                return null;
+            }
+
+            if ( playerMap.TryGetValue(sender, out TienLenPlayer player) ) {
+                Debug.Log($"[GetPlayer] Found player. sender={sender}, playerId={player.Id}, playerName={player.PlayerName}");
+                return player;
+            }
+
+            string knownPlayers = string.Join(", ", playerMap.Keys.Select(p => p.ToString()));
+            Debug.LogWarning($"[GetPlayer] No player found for sender={sender}, senderId={sender.PlayerId}. KnownPlayers=[{knownPlayers}]");
+
+            return null;
+        }
 
 
 
@@ -477,36 +494,53 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private void OnStartGameButtonClicked() {
-            // Security check: Only the host can execute
-            if ( !Object.HasStateAuthority || !isGameStartable || IsGameStarted ) return;
+            if ( !Object.HasStateAuthority )
+                return;
 
+            if ( !isGameStartable )
+                return;
+
+            if ( IsGameStarted )
+                return;
+
+            Debug.Log("[StartGame] Host starting authoritative game state.");
+
+            // Networked state.
             IsGameStarted = true;
+
+            // Host only.
+            StartGameState();
+        }
+
+        private void StartGameState() {
+            if ( !Object.HasStateAuthority ) return;
+
+            CreateDeck();
+
+            game.StartGame();
+
+            turnManager.Initialize(game.Players);
+
+            RPCPlayDealAnimation();
+
+            OnRoundStarted?.Invoke();
+        }
+
+        public override void Render() {
+            if ( lastRenderedGameStarted == IsGameStarted )
+                return;
+
+            lastRenderedGameStarted = IsGameStarted;
+
+            Debug.Log(
+                $"[Render] GameStarted={IsGameStarted}, " +
+                $"LocalPlayer={Runner.LocalPlayer}, " +
+                $"StateAuthority={Object.HasStateAuthority}",
+                this);
+
             UpdateStartButtonUI();
-
-            StartGame();
         }
 
-        private TienLenPlayer GetPlayer( PlayerRef sender ) {
-            if ( !sender.IsValid ) {
-                Debug.LogWarning($"[GetPlayer] Sender is invalid. sender={sender}, senderId={sender.PlayerId}, playerMapCount={playerMap.Count}");
-                return null;
-            }
-
-            if ( playerMap.Count == 0 ) {
-                Debug.LogWarning($"[GetPlayer] There is no localPlayer register in controller. sender={sender}, networkPlayerMapCount={networkPlayerMap.Count}");
-                return null;
-            }
-
-            if ( playerMap.TryGetValue(sender, out TienLenPlayer player) ) {
-                Debug.Log($"[GetPlayer] Found player. sender={sender}, playerId={player.Id}, playerName={player.PlayerName}");
-                return player;
-            }
-
-            string knownPlayers = string.Join(", ", playerMap.Keys.Select(p => p.ToString()));
-            Debug.LogWarning($"[GetPlayer] No player found for sender={sender}, senderId={sender.PlayerId}. KnownPlayers=[{knownPlayers}]");
-
-            return null;
-        }
         #endregion
 
 
