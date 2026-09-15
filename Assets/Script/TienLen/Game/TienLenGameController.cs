@@ -3,6 +3,7 @@ using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Fusion;
 using Fusion.Sockets;
@@ -10,6 +11,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,7 +20,6 @@ using VContainer;
 
 namespace Assets.Script.TienLen.Game {
     public class TienLenGameController : NetworkBehaviour, INetworkRunnerCallbacks {
-
         [Header("Dependencies")]
         CardSpawner cardSpawner;
         CardCombinationEvaluator cardCombinationEvaluator;
@@ -45,6 +47,9 @@ namespace Assets.Script.TienLen.Game {
         [SerializeField] TienLenSO tienLenSO;
 
         Dictionary<(CardSuit, CardRank), Sprite> sprites = new Dictionary<(CardSuit, CardRank), Sprite>();
+        Sprite cardBack;
+
+        public event Action OnRoundStarted;
 
 
         [Inject]
@@ -120,7 +125,7 @@ namespace Assets.Script.TienLen.Game {
                             Debug.LogError("[SpawnNetworkPlayer] onBeforeSpawned could not find TienLenNetWorkPlayer component.");
                             return;
                         }
-                        
+
                         networkPlayer.PlayerRef = player;
                         networkPlayer.PlayerId = playerId;
                         networkPlayer.PlayerName = new NetworkString<_16>($"Player {playerId + 1}");
@@ -255,31 +260,26 @@ namespace Assets.Script.TienLen.Game {
 
             // 2. Check ScriptableObject reference
             if ( tienLenSO == null ) {
-                Debug.LogError("[CreateDeck] FAILED: 'tienLenSO' field is NULL! (Assign it in the Inspector)", this);
+                Debug.LogError("[CreateDeck] FAILED: 'tienLenSO' field is NULL! (Assign it in the Inspector)", this); 
                 return;
             }
 
             // 3. Check Lookup Table
             sprites = tienLenSO.GetLookUpTable();
+            cardBack = tienLenSO.GetCardBackSprite();
             if ( sprites == null ) {
                 Debug.LogError("[CreateDeck] FAILED: 'sprites' dictionary returned from tienLenSO.GetLookUpTable() is NULL! (Did you call Initialize() inside the SO?)", this);
+                return;
+            }
+            if ( cardBack == null ) {
+                Debug.LogError("[CreateDeck] FAILED: 'cardBack' sprite returned from tienLenSO.GetCardBackSprite() is NULL! (Did you assign a card back sprite in the SO?)", this);
                 return;
             }
 
             Debug.Log($"[CreateDeck] Retrieved sprites lookup table with {sprites.Count} items.");
 
-            // 4. Check Spawning
-            var list = cardSpawner.SpawnAllCard(sprites);
-            if ( list == null ) {
-                Debug.LogWarning("[CreateDeck] 'cardSpawner.SpawnAllCard(sprites)' executed, but returned NULL! Check inside SpawnAllCard.", this);
-            }
-            else {
-                Debug.Log($"[CreateDeck] SUCCESS! Spawned {list.Count} cardsViews.", this);
-            }
-
             Deck deck = new Deck();
-            deck.SetCardView(list);
-
+            deck.CreateDeck();
             game.SetDeck(deck);
         }
 
@@ -331,10 +331,118 @@ namespace Assets.Script.TienLen.Game {
 
             game.StartGame();
 
-            turnManager.Initialize(game.Players);
+            RPCPlayDealAnimation();
 
+            turnManager.Initialize(game.Players);
+            OnRoundStarted?.Invoke();
         }
 
+
+        #region Deal Cards
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCPlayDealAnimation() {
+            AnimateDealingRoutineAsync(destroyCancellationToken).Forget();
+        }
+
+        private async UniTask AnimateDealingRoutineAsync( CancellationToken ct ) {
+            int delayMs = 60;
+            TienLenPlayer localPlayer = localPlayerService.Player;
+            ct.ThrowIfCancellationRequested();
+
+            Debug.Log($"[AnimateDealingRoutineAsync] Start. localPlayer={(localPlayer != null ? localPlayer.PlayerName : "NULL")}, players={game.Players.Count()}, delayMs={delayMs}", this);
+
+            // 1. Spawn 52 card backs in the center table position (deck stack)
+            Vector3 centerDeckPos = tableCenterPosition != null
+        ? tableCenterPosition.cardHolder.transform.position
+        : Vector3.zero;
+
+            Debug.Log($"[AnimateDealingRoutineAsync] centerDeckPos={centerDeckPos}", this);
+
+            Queue<CardView> deckStack = new Queue<CardView>(52);
+            for ( int i = 0; i < 52; i++ ) {
+                CardView backView = cardSpawner.SpawnCardBack(cardBack);
+                backView.transform.position = centerDeckPos;
+                // Keep inside controller's local hierarchy for Multi-Peer isolation
+                backView.transform.SetParent(transform, worldPositionStays: true);
+                deckStack.Enqueue(backView);
+            }
+
+            // 2. Deal 13 rounds to all players
+            for ( int i = 0; i < 13; i++ ) {
+                Debug.Log($"[AnimateDealingRoutineAsync] Dealing round {i + 1}/13. deckStackRemaining={deckStack.Count}", this);
+
+                foreach ( var player in game.Players ) {
+                    ct.ThrowIfCancellationRequested();
+
+                    if ( deckStack.Count == 0 ) {
+                        Debug.LogWarning("[AnimateDealingRoutineAsync] Deck stack ran out early!");
+                        break;
+                    }
+
+                    CardView movingCardBack = deckStack.Dequeue();
+                    bool isLocal = (player.PlayerRef == Runner.LocalPlayer);
+
+                    Debug.Log($"[AnimateDealingRoutineAsync] Dealing to player={player.PlayerName} ref={player.PlayerRef.PlayerId} isLocal={isLocal}", this);
+
+                    if ( isLocal ) {
+                        // Guard: Make sure hand data arrived
+                        if ( player.Hand?.Cards == null || player.Hand.Cards.Count <= i ) {
+                            Debug.LogError($"[AnimateDealingRoutineAsync] Hand data missing at index {i} for {player.PlayerName}! Destroying placeholder.", this);
+                            Destroy(movingCardBack.gameObject);
+                            continue;
+                        }
+
+                        Card cardData = player.Hand.Cards[i];
+                        Sprite cardSprite = sprites[(cardData.Suit, cardData.Rank)];
+
+                        // Spawn actual face card
+                        CardView faceCardView = cardSpawner.SpawnCard(cardData, cardSprite);
+                        faceCardView.transform.position = movingCardBack.transform.position;
+                        faceCardView.transform.rotation = movingCardBack.transform.rotation;
+                        faceCardView.transform.SetParent(player.CardHolder.transform, worldPositionStays: true);
+
+                        // Destroy placeholder back
+                        Destroy(movingCardBack.gameObject);
+
+                        // Animate card into holder
+                        player.CardHolder.AddCard(faceCardView, animate: true);
+                    }
+                    else {
+                        // Opponent receives the card back
+                        movingCardBack.transform.SetParent(player.CardHolder.transform, worldPositionStays: true);
+                        player.CardHolder.AddCard(movingCardBack, animate: true);
+                    }
+                }
+
+                Debug.Log($"[AnimateDealingRoutineAsync] Round {i + 1} waiting {delayMs}ms.", this);
+                await UniTask.Delay(delayMs, cancellationToken: ct);
+            }
+
+            // 3. Clean up remaining unused cards OUTSIDE the loop (after all 13 rounds finish)
+            Debug.Log($"[AnimateDealingRoutineAsync] Cleaning up {deckStack.Count} remaining cards in deckStack.", this);
+            while ( deckStack.Count > 0 ) {
+                CardView remaining = deckStack.Dequeue();
+                if ( remaining != null ) {
+                    Destroy(remaining.gameObject);
+                }
+            }
+
+            // 4. Sort and arrange local hand once all cards arrive
+            if ( localPlayer?.CardHolder != null ) {
+                localPlayer.CardHolder.SortCards();
+                localPlayer.CardHolder.ArrangeCards(animate: true);
+            }
+
+            Debug.Log("[AnimateDealingRoutineAsync] Completed.", this);
+        }
+
+
+
+
+
+
+        #endregion
 
         //TODO:refactor into other script 
         #region UI
@@ -389,7 +497,7 @@ namespace Assets.Script.TienLen.Game {
                 return null;
             }
 
-            if ( playerMap.TryGetValue(sender, out TienLenPlayer player ) ) {
+            if ( playerMap.TryGetValue(sender, out TienLenPlayer player) ) {
                 Debug.Log($"[GetPlayer] Found player. sender={sender}, playerId={player.Id}, playerName={player.PlayerName}");
                 return player;
             }
@@ -487,7 +595,7 @@ namespace Assets.Script.TienLen.Game {
                 $"[AnimatePlayedCards] Starting animation. " +
                 $"playedCards={playedCards?.Count ?? 0}, " +
                 $"cardHolder={(cardHolder != null ? cardHolder.name : "NULL")}, " +
-                $"table={(table != null ? table.name : "NULL")}" );
+                $"table={(table != null ? table.name : "NULL")}");
 
             if ( cardHolder == null ) {
                 Debug.LogError("[AnimatePlayedCards] FAILED: 'cardHolder' is NULL!");
@@ -595,7 +703,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         #endregion
-       
+
 
         private void HandleTurnChanged( TienLenPlayer player ) {
             Debug.Log($"Turn: {player.PlayerName}");

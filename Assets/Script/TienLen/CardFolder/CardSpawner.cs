@@ -26,6 +26,24 @@ namespace Assets.Script.TienLen.CardFolder {
             return cardViews;
         }
 
+        public CardView SpawnCard( Card card, Sprite sprite ) {
+            GameObject cardObject = new GameObject($"Card_{card.Rank}_{card.Suit}");
+            cardObject.AddComponent<SpriteRenderer>().sprite = sprite;
+            cardObject.AddComponent<BoxCollider2D>();
+
+            var cardView = cardObject.AddComponent<CardView>();
+            cardView.Init(new Card(card.Rank, card.Suit));
+
+            return cardView;
+        }
+
+        public CardView SpawnCardBack( Sprite sprite ) {
+            GameObject cardObject = new GameObject("Card_Back");
+            cardObject.AddComponent<SpriteRenderer>().sprite = sprite;
+            cardObject.AddComponent<BoxCollider2D>();
+
+            return cardObject.AddComponent<CardView>();
+        }
 
         //public CardView SpawnCard( ) {
         //Transform spawnParent = parent != null ? parent : deckAnchor;

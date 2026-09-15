@@ -38,6 +38,10 @@ namespace Assets.Script.TienLen.CardFolder {
             return lookupTable.GetValueOrDefault((suit, rank));
         }
 
+        public Sprite GetCardBackSprite() {
+            return cardBack;
+        }
+
 #if UNITY_EDITOR
         // Right-click the component header in the Inspector -> click "Auto Load All Sprites"
         [ContextMenu("Auto Load All Sprites")]

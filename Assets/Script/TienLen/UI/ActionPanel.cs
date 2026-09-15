@@ -2,17 +2,11 @@
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
-using DG.Tweening;
-using Fusion;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.NetworkInformation;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
-using static Unity.Collections.Unicode;
 
 namespace Assets.Script.TienLen.UI {
     public class ActionPanel : MonoBehaviour {
@@ -22,6 +16,7 @@ namespace Assets.Script.TienLen.UI {
         private CardCombinationEvaluator combinationEvaluator;
         private TurnManager turnManager;
         private TienLenGame game;
+        private TienLenGameController gameController;
 
         [Header("UI Elements")]
         [SerializeField] private GameObject actionPanel;
@@ -42,12 +37,14 @@ namespace Assets.Script.TienLen.UI {
             TienLenRuleValidator validator,
             CardCombinationEvaluator combinationEvaluator,
             TurnManager turnManager,
-            TienLenGame game) {
+            TienLenGame game,
+            TienLenGameController gameController) {
             this.localPlayerService = localPlayerService;
             this.validator = validator;
             this.combinationEvaluator = combinationEvaluator;
             this.turnManager = turnManager;
             this.game = game;
+            this.gameController = gameController;
         }
 
         public void Start() {
@@ -60,7 +57,8 @@ namespace Assets.Script.TienLen.UI {
 
         public void OnEnable() {
             localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
-            game.OnRoundStarted += HandleStartRound;
+            //game.OnRoundStarted += HandleStartRound;
+            gameController.OnRoundStarted += HandleStartRound;
             turnManager.OnTurnChanged += HandleTurnChanged;
             
 
