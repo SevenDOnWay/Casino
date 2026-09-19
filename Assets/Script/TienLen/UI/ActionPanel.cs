@@ -2,6 +2,7 @@
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
+using Fusion;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -11,6 +12,7 @@ using VContainer;
 namespace Assets.Script.TienLen.UI {
     public class ActionPanel : MonoBehaviour {
         [Header("Dependencies")]
+        private LobbySessionController lobbySessionController;
         private LocalPlayerService localPlayerService;
         private TienLenRuleValidator validator;
         private CardCombinationEvaluator combinationEvaluator;
@@ -33,12 +35,14 @@ namespace Assets.Script.TienLen.UI {
 
 
         [Inject]
-        void Construct( LocalPlayerService localPlayerService,
+        void Construct( LobbySessionController lobbySessionController,
+            LocalPlayerService localPlayerService,
             TienLenRuleValidator validator,
             CardCombinationEvaluator combinationEvaluator,
             TurnManager turnManager,
             TienLenGame game,
             TienLenGameController gameController) {
+            this.lobbySessionController = lobbySessionController;
             this.localPlayerService = localPlayerService;
             this.validator = validator;
             this.combinationEvaluator = combinationEvaluator;
@@ -60,17 +64,41 @@ namespace Assets.Script.TienLen.UI {
             //game.OnRoundStarted += HandleStartRound;
             gameController.OnRoundStarted += HandleStartRound;
             turnManager.OnTurnChanged += HandleTurnChanged;
-            
+
+
+            lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
+            lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
 
             if ( localPlayerService.Player != null ) {
                 HandleLocalPlayerSet(localPlayerService.Player);
             }
         }
 
+        public void OnDisable() {
+            localPlayerService.OnLocalPlayerSet -= HandleLocalPlayerSet;
+            //game.OnRoundStarted -= HandleStartRound;
+            gameController.OnRoundStarted -= HandleStartRound;
+            turnManager.OnTurnChanged -= HandleTurnChanged;
+            lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
+            lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
+        }
+
         private void HandleLocalPlayerSet( TienLenPlayer player ) {
             localPlayer = player;
 
             localPlayer.CardHolder.OnCardSelected += HandleCardSelected;
+        }
+
+        private void HandlePlayerJoined( NetworkRunner runner ) {
+            if ( runner.LocalPlayer == localPlayer?.PlayerRef ) {
+                actionPanel.SetActive(true);
+            }
+        }
+
+        private void HandlePlayerLeft( NetworkRunner runner ) {
+            if ( runner.LocalPlayer == localPlayer?.PlayerRef ) {
+                actionPanel.SetActive(false);
+            }
         }
 
         private void HandleStartRound() {

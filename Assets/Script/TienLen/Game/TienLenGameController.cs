@@ -40,8 +40,8 @@ namespace Assets.Script.TienLen.Game {
         [Networked]
         public NetworkBool IsGameStarted { get; set; }
 
-        [SerializeField] private PlayerSeat[] playerSeats = new PlayerSeat[totalSeats];
-        [SerializeField] private PlayerSeat tableCenterPosition = new(); //TODO: change the name for better understanding
+        [SerializeField] private PlayerSeat[] playerSeats;
+        [SerializeField] private PlayerSeat tableCenterPosition; //TODO: change the name for better understanding
         public bool isGameStartable { get; set; }
         private bool lastRenderedGameStarted;
 
@@ -146,6 +146,8 @@ namespace Assets.Script.TienLen.Game {
 
         private void CheckPlayer() {
             int currentConnectedPlayers = Runner.ActivePlayers.Count();
+
+            Debug.Log($"[TienLen] Current connected players: {currentConnectedPlayers}/{minPlayerToStart}");
 
             if ( currentConnectedPlayers >= minPlayerToStart ) {
                 Debug.Log($"[TienLen] Player threshold reached ({currentConnectedPlayers}/{minPlayerToStart}). Starting game...");

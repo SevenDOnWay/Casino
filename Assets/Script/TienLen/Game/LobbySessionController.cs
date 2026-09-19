@@ -1,6 +1,7 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.UI;
 using Fusion;
+using Fusion.Sockets;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ using static Assets.Script.TienLen.Game.TienLenGameController;
 using static Unity.Collections.Unicode;
 
 namespace Assets.Script.TienLen.Game {
-    public class LobbySessionController : NetworkBehaviour {
+    public class LobbySessionController : NetworkBehaviour, INetworkRunnerCallbacks {
 
         [SerializeField] private GameObject networkPlayerPrefab;
 
@@ -28,12 +29,17 @@ namespace Assets.Script.TienLen.Game {
         public event Action<NetworkRunner> OnPlayerLeftEvent;
 
         public override void Spawned() {
+            Runner.AddCallbacks(this);
+
             if ( Object.HasStateAuthority ) {
                 RegisterExistingPlayers();
             }
         }
 
-        public void OnPlayerJoined( PlayerRef player ) {
+
+        //TODO: Handle cases player join mid game
+        public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
+            Debug.Log($"OnPlayerJoined fired for player: {player.PlayerId} | HasStateAuthority: {Object.HasStateAuthority}");
             if ( !Object.HasStateAuthority ) return;
 
             if ( Runner.ActivePlayers.Count() > totalSeats ) {
@@ -44,7 +50,10 @@ namespace Assets.Script.TienLen.Game {
             SpawnNetworkPlayer(player);
         }
 
-        public void OnPlayerLeft( PlayerRef player ) {
+        //TODO: Handle cases player leave mid game
+        public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
+            Debug.Log($"[Lobby] OnPlayerLeft: {player}");
+
             if ( !Object.HasStateAuthority ) return;
 
             RemovePlayer(player);
@@ -78,7 +87,7 @@ namespace Assets.Script.TienLen.Game {
             networkPlayers.Add(player, networkPlayer);
             OnPlayerJoinedEvent?.Invoke(Runner);
 
-            Debug.Log($"Spawned network player for {player.PlayerId}");
+            Debug.Log($"[Lobby] Spawned network player for {player.PlayerId}");
         }
 
         //TODO: Handle cases player leave mid game
@@ -99,6 +108,36 @@ namespace Assets.Script.TienLen.Game {
             return -1;
         }
 
+        public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
 
+        public void OnObjectEnterAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
+
+        public void OnShutdown( NetworkRunner runner, ShutdownReason shutdownReason ) { }
+
+        public void OnDisconnectedFromServer( NetworkRunner runner, NetDisconnectReason reason ) { }
+
+        public void OnConnectRequest( NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token ) { }
+
+        public void OnConnectFailed( NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason ) { }
+
+        public void OnReliableDataReceived( NetworkRunner runner, PlayerRef player, ReliableKey key, ReadOnlySpan<byte> data ) { }
+
+        public void OnReliableDataProgress( NetworkRunner runner, PlayerRef player, ReliableKey key, float progress ) { }
+
+        public void OnInput( NetworkRunner runner, NetworkInput input ) { }
+
+        public void OnInputMissing( NetworkRunner runner, PlayerRef player, NetworkInput input ) { }
+
+        public void OnConnectedToServer( NetworkRunner runner ) { }
+
+        public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) { }
+
+        public void OnCustomAuthenticationResponse( NetworkRunner runner, Dictionary<string, object> data ) { }
+
+        public void OnHostMigration( NetworkRunner runner, HostMigrationToken hostMigrationToken ) { }
+
+        public void OnSceneLoadDone( NetworkRunner runner ) { }
+
+        public void OnSceneLoadStart( NetworkRunner runner ) { }
     }
 }

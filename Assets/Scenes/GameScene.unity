@@ -261,7 +261,7 @@ MonoBehaviour:
   minSpacing: 0.2
   moveDuration: 0.25
   moveEase: 6
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 889437778}
 --- !u!114 &87784264
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -506,7 +506,7 @@ GameObject:
   - component: {fileID: 428874636}
   - component: {fileID: 428874635}
   m_Layer: 5
-  m_Name: Button
+  m_Name: StartBtn
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1297,7 +1297,7 @@ MonoBehaviour:
   minSpacing: 0.2
   moveDuration: 0.25
   moveEase: 6
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 55481598}
 --- !u!114 &764129595
 MonoBehaviour:
   m_ObjectHideFlags: 0
