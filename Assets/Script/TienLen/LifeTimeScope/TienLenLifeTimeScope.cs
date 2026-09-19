@@ -27,15 +27,19 @@ namespace Assets.Script.TienLen.LifeTimeScope {
 
             builder.Register<CardSpriteAtlas>(Lifetime.Singleton);
 
+            builder.RegisterComponentInHierarchy<LobbySessionController>();
+            builder.RegisterComponentInHierarchy<TienLenGameController>();
+            builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
+
             builder.Register<TienLenGame>(Lifetime.Singleton);
             builder.Register<TurnManager>(Lifetime.Singleton);
+            
 
 
 
 
 
             builder.RegisterComponentInHierarchy<CardSpawner>();
-            builder.RegisterComponentInHierarchy<TienLenGameController>();
             builder.RegisterComponentInHierarchy<ActionPanel>();
 
             builder.RegisterInstance<IReadOnlyList<CardHolder>>(cardHolders);

@@ -22,7 +22,9 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private float moveDuration = 0.25f;
         [SerializeField] private Ease moveEase = Ease.OutQuad;
 
-       
+        [Header("Avatar")]
+        [SerializeField] private SpriteRenderer spriteRenderer;
+
         //TODO: Change into list of card.
         private readonly List<CardView> cardsViews = new();
         private readonly List<CardView> selectedCards = new();

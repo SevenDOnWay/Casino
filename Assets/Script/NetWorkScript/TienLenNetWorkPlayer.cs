@@ -12,17 +12,9 @@ namespace Assets.Script.NetWorkScript {
         [Networked] public int PlayerId { get; set; }
         [Networked] public NetworkString<_16> PlayerName { get; set; }
 
+        public int SeatIndex { get; set; } = -1;
+
         public TienLenGameController Controller { get; set; }
-
-        public override void Spawned() {
-            Debug.Log($"[TienLenNetWorkPlayer] Spawned - PlayerId: {PlayerId}, PlayerName: {PlayerName}, PlayerRef: {PlayerRef}");
-
-            TienLenGameController controller = FindFirstObjectByType<TienLenGameController>();
-            if ( controller != null ) {
-                controller.RegisterPlayer(this);
-            }
-        }
-
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
         public void RPCRequestPlayCard( NetworkCard[] cards, RpcInfo info = default ) {

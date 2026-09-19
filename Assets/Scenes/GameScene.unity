@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 87784262}
   - component: {fileID: 87784263}
+  - component: {fileID: 87784264}
   m_Layer: 0
   m_Name: CardHolder (1)
   m_TagString: Untagged
@@ -168,6 +169,23 @@ MonoBehaviour:
   minSpacing: 0.2
   moveDuration: 0.25
   moveEase: 6
+  spriteRenderer: {fileID: 0}
+--- !u!114 &87784264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 87784261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
+  SeatIndex: 1
+  IsOccupied: 0
+  cardHolder: {fileID: 87784263}
+  cardHolderPosition: {fileID: 87784262}
 --- !u!1 &107600210
 GameObject:
   m_ObjectHideFlags: 0
@@ -341,24 +359,12 @@ MonoBehaviour:
   startBtnText: {fileID: 1773020616}
   _IsGameStarted:
     RawValue: 0
-  tienLenNetworkPlayerPrefab: {fileID: 6573136436725559624, guid: 324c1b15187ebc544a0d5a2a8d0cbf6f, type: 3}
-  playerHandPositions:
-  - playerId: 0
-    cardHolder: {fileID: 829906683}
-    cardHolderPosition: {fileID: 829906682}
-  - playerId: 0
-    cardHolder: {fileID: 87784263}
-    cardHolderPosition: {fileID: 87784262}
-  - playerId: 0
-    cardHolder: {fileID: 654509018}
-    cardHolderPosition: {fileID: 654509017}
-  - playerId: 0
-    cardHolder: {fileID: 764129594}
-    cardHolderPosition: {fileID: 764129593}
-  tableCenterPosition:
-    playerId: 5
-    cardHolder: {fileID: 937606375}
-    cardHolderPosition: {fileID: 937606376}
+  playerSeats:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  tableCenterPosition: {fileID: 0}
   tienLenSO: {fileID: 11400000, guid: 4b726a4dce8693641a3fb80f1bcd6f7f, type: 2}
 --- !u!4 &183374123
 Transform:
@@ -763,7 +769,7 @@ Camera:
   m_GameObject: {fileID: 519420028}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -999,6 +1005,7 @@ GameObject:
   m_Component:
   - component: {fileID: 654509017}
   - component: {fileID: 654509018}
+  - component: {fileID: 654509019}
   m_Layer: 0
   m_Name: CardHolder (2)
   m_TagString: Untagged
@@ -1038,6 +1045,23 @@ MonoBehaviour:
   minSpacing: 0.2
   moveDuration: 0.25
   moveEase: 6
+  spriteRenderer: {fileID: 0}
+--- !u!114 &654509019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 654509016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
+  SeatIndex: 2
+  IsOccupied: 0
+  cardHolder: {fileID: 654509018}
+  cardHolderPosition: {fileID: 654509017}
 --- !u!1 &764129592
 GameObject:
   m_ObjectHideFlags: 0
@@ -1048,6 +1072,7 @@ GameObject:
   m_Component:
   - component: {fileID: 764129593}
   - component: {fileID: 764129594}
+  - component: {fileID: 764129595}
   m_Layer: 0
   m_Name: CardHolder (3)
   m_TagString: Untagged
@@ -1087,6 +1112,23 @@ MonoBehaviour:
   minSpacing: 0.2
   moveDuration: 0.25
   moveEase: 6
+  spriteRenderer: {fileID: 0}
+--- !u!114 &764129595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 764129592}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
+  SeatIndex: 3
+  IsOccupied: 0
+  cardHolder: {fileID: 764129594}
+  cardHolderPosition: {fileID: 764129593}
 --- !u!1 &767955854
 GameObject:
   m_ObjectHideFlags: 0
@@ -1166,6 +1208,81 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &820989133
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 820989134}
+  - component: {fileID: 820989136}
+  - component: {fileID: 820989135}
+  m_Layer: 5
+  m_Name: Image
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &820989134
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 820989133}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1967596345}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0.000015258789, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &820989135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 820989133}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 737813532562295425, guid: c9ec7697d74a9224aab7b87f3061e77c, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &820989136
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 820989133}
+  m_CullTransparentMesh: 1
 --- !u!1 &829906681
 GameObject:
   m_ObjectHideFlags: 0
@@ -1176,6 +1293,7 @@ GameObject:
   m_Component:
   - component: {fileID: 829906682}
   - component: {fileID: 829906683}
+  - component: {fileID: 829906684}
   m_Layer: 0
   m_Name: CardHolder
   m_TagString: Untagged
@@ -1215,6 +1333,23 @@ MonoBehaviour:
   minSpacing: 0.3
   moveDuration: 0.25
   moveEase: 6
+  spriteRenderer: {fileID: 0}
+--- !u!114 &829906684
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 829906681}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
+  SeatIndex: 0
+  IsOccupied: 0
+  cardHolder: {fileID: 829906683}
+  cardHolderPosition: {fileID: 829906682}
 --- !u!1 &893415425
 GameObject:
   m_ObjectHideFlags: 0
@@ -1417,6 +1552,7 @@ MonoBehaviour:
   minSpacing: 0.2
   moveDuration: 0.25
   moveEase: 19
+  spriteRenderer: {fileID: 0}
 --- !u!4 &937606376
 Transform:
   m_ObjectHideFlags: 0
@@ -1658,6 +1794,55 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1189243363}
   m_CullTransparentMesh: 1
+--- !u!1 &1611512764
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1611512766}
+  - component: {fileID: 1611512765}
+  m_Layer: 0
+  m_Name: TableVisualLayer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1611512765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1611512764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f34e098d4abc96848986819c3cb5e535, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.TableVisualLayoutManager
+  visualSlots:
+  - {fileID: 829906684}
+  - {fileID: 87784264}
+  - {fileID: 654509019}
+  - {fileID: 764129595}
+--- !u!4 &1611512766
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1611512764}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.0832, y: -0.14827, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1773020614
 GameObject:
   m_ObjectHideFlags: 0
@@ -1795,6 +1980,77 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1773020614}
   m_CullTransparentMesh: 1
+--- !u!1 &1937543988
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1937543991}
+  - component: {fileID: 1937543990}
+  - component: {fileID: 1937543989}
+  m_Layer: 0
+  m_Name: LobbySessionController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1937543989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1937543988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 2954918688
+  SendPriority: 1
+  EnableInterpolation: 1
+  Flags: 262146
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 1937543990}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &1937543990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1937543988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a58c837622c15840bba93928ac4ae3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.LobbySessionController
+  networkPlayerPrefab: {fileID: 0}
+  playerSeats:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+--- !u!4 &1937543991
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1937543988}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1967596339
 GameObject:
   m_ObjectHideFlags: 0
@@ -1925,6 +2181,7 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 820989134}
   - {fileID: 2035977414}
   - {fileID: 428874634}
   - {fileID: 2077176563}
@@ -2611,3 +2868,5 @@ SceneRoots:
   - {fileID: 1967596345}
   - {fileID: 767955857}
   - {fileID: 937606376}
+  - {fileID: 1611512766}
+  - {fileID: 1937543991}
