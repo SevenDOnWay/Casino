@@ -16,6 +16,8 @@ namespace Assets.Script.TienLen.Game {
 
         private const int totalSeats = 4;
 
+        [SerializeField] private PlayerSeat[] playerSeats = new PlayerSeat[totalSeats];
+
 
         private readonly PlayerRef[] seatAssignments = new PlayerRef[totalSeats];
         private Dictionary<PlayerRef, TienLenNetWorkPlayer> networkPlayers = new();
@@ -87,6 +89,16 @@ namespace Assets.Script.TienLen.Game {
                 OnPlayerLeftEvent?.Invoke(Runner);
             }
         }
+
+        private int FindAvailableSeat() {
+            for ( int i = 0; i < totalSeats; i++ ) {
+                if ( playerSeats[i].IsOccupied ) continue;
+                return i;
+            }
+
+            return -1;
+        }
+
 
     }
 }

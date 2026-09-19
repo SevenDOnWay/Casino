@@ -195,6 +195,12 @@ namespace Assets.Script.TienLen.UI {
             return res;
         }
 
+
+        public void ChangeAvatar( bool isAvatarVisible ) {
+            spriteRenderer.gameObject.SetActive(isAvatarVisible); //TODO: Change into configurable sprite or avatar.
+        }
+
+
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected() {
             Matrix4x4 previousMatrix = Gizmos.matrix;

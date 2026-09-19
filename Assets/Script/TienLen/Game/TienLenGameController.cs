@@ -33,7 +33,7 @@ namespace Assets.Script.TienLen.Game {
         [Header("Start Game Button")]
         [SerializeField] private Button startGameBtn;
         [SerializeField] private TMP_Text startBtnText;
-        private const int minPlayerToStart = 1; //TODO: Change to 2 or more for actual gameplay
+        private const int minPlayerToStart = 2; //TODO: Change to 2 or more for actual gameplay
         private const int maxPlayerToStart = 4;
         private const int totalSeats = 4;
 
@@ -308,7 +308,7 @@ namespace Assets.Script.TienLen.Game {
                     startBtnText.text = "Waiting for Host to start...";
                 }
                 else if ( !isGameStartable ) {
-                    startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more localPlayer(s)";
+                    startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more to start";
                 }
                 else {
                     startBtnText.text = "Start Game";

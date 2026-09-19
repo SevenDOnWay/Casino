@@ -15,6 +15,8 @@ namespace Assets.Script.TienLen.UI {
             IsOccupied = true;
             SeatIndex = player.SeatIndex;
             // Additional logic to bind the player to this seat
+
+            cardHolder.ChangeAvatar(true);
         }
 
     }
