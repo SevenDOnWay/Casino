@@ -6,27 +6,43 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.UI;
 using static Assets.Script.TienLen.Game.TienLenGameController;
 using static Unity.Collections.Unicode;
 
 namespace Assets.Script.TienLen.Game {
     public class LobbySessionController : NetworkBehaviour, INetworkRunnerCallbacks {
 
+        [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
 
-        private const int totalSeats = 4;
+        [Header("Start Game Button")]
+        [SerializeField] private Button startGameBtn;
+        [SerializeField] private TMP_Text startBtnText;
 
+
+        [Header("Player Seats")]
         [SerializeField] private PlayerSeat[] playerSeats = new PlayerSeat[totalSeats];
-
-
         private readonly PlayerRef[] seatAssignments = new PlayerRef[totalSeats];
-        private Dictionary<PlayerRef, TienLenNetWorkPlayer> networkPlayers = new();
 
+
+        [Header("Network Players")]
+        private Dictionary<PlayerRef, TienLenNetWorkPlayer> networkPlayers = new();
         public IReadOnlyDictionary<PlayerRef, TienLenNetWorkPlayer> NetworkPlayers => networkPlayers;
+
+        private const int minPlayerToStart = 2;
+        private const int totalSeats = 4;
+        public bool isGameStartable { get; set; }
+
+        [Networked] public NetworkBool IsGameStarted { get; set; }
+
 
         public event Action<NetworkRunner> OnPlayerJoinedEvent;
         public event Action<NetworkRunner> OnPlayerLeftEvent;
+        public event Action OnGameStartedEvent;
 
         public override void Spawned() {
             Runner.AddCallbacks(this);
@@ -39,7 +55,8 @@ namespace Assets.Script.TienLen.Game {
 
         //TODO: Handle cases player join mid game
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
-            Debug.Log($"OnPlayerJoined fired for player: {player.PlayerId} | HasStateAuthority: {Object.HasStateAuthority}");
+            Debug.Log($"OnPlayerJoined fired for player: {player.PlayerId}");
+            UpdateStartButtonUI();
             if ( !Object.HasStateAuthority ) return;
 
             if ( Runner.ActivePlayers.Count() > totalSeats ) {
@@ -88,6 +105,8 @@ namespace Assets.Script.TienLen.Game {
             OnPlayerJoinedEvent?.Invoke(Runner);
 
             Debug.Log($"[Lobby] Spawned network player for {player.PlayerId}");
+
+            CheckPlayer();
         }
 
         //TODO: Handle cases player leave mid game
@@ -106,6 +125,77 @@ namespace Assets.Script.TienLen.Game {
             }
 
             return -1;
+        }
+
+        #region Start Game Button Logic
+        private void UpdateStartButtonUI() {
+            Debug.Log(
+                    $"[StartUI] " +
+                    $"Runner={Runner.name}, " +
+                    $"LocalPlayer={Runner.LocalPlayer}, " +
+                    $"IsServer={Runner.IsServer}, " +
+                    $"HasStateAuthority={Object.HasStateAuthority}, " +
+                    $"IsGameStarted={IsGameStarted}"
+                );
+
+            if ( startGameBtn == null ) return;
+
+            // Hide the button for everyone once the game has started
+            if ( IsGameStarted ) {
+                startGameBtn.gameObject.SetActive(false);
+                return;
+            }
+
+            // Keep visible for everyone before the match starts
+            startGameBtn.gameObject.SetActive(true);
+
+            // ONLY the host can click it, and ONLY if enough players joined
+            bool isHost = Runner.IsServer;
+            startGameBtn.interactable = isHost && isGameStartable;
+
+            // Optional: Provide visual feedback text
+            if ( startBtnText != null ) {
+                if ( !isHost ) {
+                    startBtnText.text = "Waiting for Host to start...";
+                }
+                else if ( !isGameStartable ) {
+                    startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more to start";
+                }
+                else {
+                    startBtnText.text = "Start Game";
+                }
+            }
+        }
+
+        private void OnStartGameButtonClicked() {
+            if ( !Object.HasStateAuthority ) return;
+            if ( !isGameStartable ) return;
+            if ( IsGameStarted ) return;
+
+            Debug.Log("[StartGame] Host starting authoritative game state.");
+
+            IsGameStarted = true;
+
+            OnGameStartedEvent?.Invoke();
+        }
+
+        #endregion
+
+        private void CheckPlayer() {
+            int currentConnectedPlayers = Runner.ActivePlayers.Count();
+
+            Debug.Log($"[TienLen] Current connected players: {currentConnectedPlayers}/{minPlayerToStart}");
+
+            if ( currentConnectedPlayers >= minPlayerToStart ) {
+                Debug.Log($"[TienLen] Player threshold reached ({currentConnectedPlayers}/{minPlayerToStart}). Starting game...");
+                isGameStartable = true;
+            }
+            else {
+                Debug.Log($"[TienLen] Waiting for more players... ({currentConnectedPlayers}/{minPlayerToStart})");
+                isGameStartable = false;
+            }
+
+            UpdateStartButtonUI();
         }
 
         public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }

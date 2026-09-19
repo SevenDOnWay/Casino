@@ -28,21 +28,12 @@ namespace Assets.Script.TienLen.Game {
         TienLenGame game;
         TurnManager turnManager;
 
-
-        [Space(5)]
-        [Header("Start Game Button")]
-        [SerializeField] private Button startGameBtn;
-        [SerializeField] private TMP_Text startBtnText;
-        private const int minPlayerToStart = 2; //TODO: Change to 2 or more for actual gameplay
-        private const int maxPlayerToStart = 4;
         private const int totalSeats = 4;
 
-        [Networked]
-        public NetworkBool IsGameStarted { get; set; }
 
         [SerializeField] private PlayerSeat[] playerSeats;
         [SerializeField] private PlayerSeat tableCenterPosition; //TODO: change the name for better understanding
-        public bool isGameStartable { get; set; }
+        
         private bool lastRenderedGameStarted;
 
         Dictionary<PlayerRef, TienLenPlayer> playerMap = new();
@@ -76,11 +67,13 @@ namespace Assets.Script.TienLen.Game {
         public void OnEnable() {
             lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
             lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
+            lobbySessionController.OnGameStartedEvent += HandleGameStarted;
         }
 
         public void OnDisable() {
             lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
             lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
+            lobbySessionController.OnGameStartedEvent -= HandleGameStarted;
         }
 
         private void Initialize() {
@@ -89,17 +82,12 @@ namespace Assets.Script.TienLen.Game {
             game.OnPlayerWon += HandlePlayerWon;
         }
 
-        public override void Despawned( NetworkRunner runner, bool hasState ) {
-            if ( startGameBtn != null ) {
-                startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
-            }
-        }
-
+        
 
 
         private void HandlePlayerJoined(NetworkRunner runner) {
-            CheckPlayer();
-            UpdateStartButtonUI();
+            //CheckPlayer();
+            //UpdateStartButtonUI();
         }
 
         private void HandlePlayerLeft( NetworkRunner runner ) {
@@ -144,19 +132,16 @@ namespace Assets.Script.TienLen.Game {
             game.SetDeck(deck);
         }
 
-        private void CheckPlayer() {
-            int currentConnectedPlayers = Runner.ActivePlayers.Count();
+        private void HandleGameStarted() {
+            if ( !Object.HasStateAuthority ) return;
 
-            Debug.Log($"[TienLen] Current connected players: {currentConnectedPlayers}/{minPlayerToStart}");
+            CreateDeck();
 
-            if ( currentConnectedPlayers >= minPlayerToStart ) {
-                Debug.Log($"[TienLen] Player threshold reached ({currentConnectedPlayers}/{minPlayerToStart}). Starting game...");
-                isGameStartable = true;
-            }
-            else {
-                Debug.Log($"[TienLen] Waiting for more players... ({currentConnectedPlayers}/{minPlayerToStart})");
-                isGameStartable = false;
-            }
+            turnManager.Initialize(game.Players);
+            game.StartGame();
+
+            RPCPlayDealAnimation();
+            OnRoundStarted?.Invoke();
         }
 
 
@@ -284,90 +269,7 @@ namespace Assets.Script.TienLen.Game {
 
 
 
-        #endregion
-
-        //TODO:refactor into other script 
-        #region UI
-        private void UpdateStartButtonUI() {
-            if ( startGameBtn == null ) return;
-
-            // Hide the button for everyone once the game has started
-            if ( IsGameStarted ) {
-                startGameBtn.gameObject.SetActive(false);
-                return;
-            }
-
-            // Keep visible for everyone before the match starts
-            startGameBtn.gameObject.SetActive(true);
-
-            // ONLY the host can click it, and ONLY if enough players joined
-            bool isHost = Object.HasStateAuthority;
-            startGameBtn.interactable = isHost && isGameStartable;
-
-            // Optional: Provide visual feedback text
-            if ( startBtnText != null ) {
-                if ( !isHost ) {
-                    startBtnText.text = "Waiting for Host to start...";
-                }
-                else if ( !isGameStartable ) {
-                    startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more to start";
-                }
-                else {
-                    startBtnText.text = "Start Game";
-                }
-            }
-        }
-
-        private void OnStartGameButtonClicked() {
-            if ( !Object.HasStateAuthority )
-                return;
-
-            if ( !isGameStartable )
-                return;
-
-            if ( IsGameStarted )
-                return;
-
-            Debug.Log("[StartGame] Host starting authoritative game state.");
-
-            // Networked state.
-            IsGameStarted = true;
-
-            // Host only.
-            StartGameState();
-        }
-
-        private void StartGameState() {
-            if ( !Object.HasStateAuthority ) return;
-
-            CreateDeck();
-
-            game.StartGame();
-
-            turnManager.Initialize(game.Players);
-
-            RPCPlayDealAnimation();
-
-            OnRoundStarted?.Invoke();
-        }
-
-        public override void Render() {
-            if ( lastRenderedGameStarted == IsGameStarted )
-                return;
-
-            lastRenderedGameStarted = IsGameStarted;
-
-            Debug.Log(
-                $"[Render] GameStarted={IsGameStarted}, " +
-                $"LocalPlayer={Runner.LocalPlayer}, " +
-                $"StateAuthority={Object.HasStateAuthority}",
-                this);
-
-            UpdateStartButtonUI();
-        }
-
-        #endregion
-
+        #endregion       
 
         #region Pass handle
         //TODO: make it support as the new round begin, all the card from last round clear or turn down.
