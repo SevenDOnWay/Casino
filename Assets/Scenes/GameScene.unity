@@ -274,8 +274,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
-  SeatIndex: 2
-  IsOccupied: 0
+  seatIndex: 0
+  isOccupied: 0
   cardHolder: {fileID: 87784263}
   cardHolderPosition: {fileID: 87784262}
 --- !u!1 &107600210
@@ -447,11 +447,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b287c00944ff2be44ae9ab632490452f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.TienLenGameController
-  playerSeats:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
   tableCenterPosition: {fileID: 0}
   tienLenSO: {fileID: 11400000, guid: 4b726a4dce8693641a3fb80f1bcd6f7f, type: 2}
 --- !u!4 &183374123
@@ -1147,8 +1142,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
-  SeatIndex: 1
-  IsOccupied: 0
+  seatIndex: 0
+  isOccupied: 0
   cardHolder: {fileID: 654509018}
   cardHolderPosition: {fileID: 654509017}
 --- !u!1 &671960060
@@ -1306,8 +1301,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
-  SeatIndex: 3
-  IsOccupied: 0
+  seatIndex: 0
+  isOccupied: 0
   cardHolder: {fileID: 764129594}
   cardHolderPosition: {fileID: 764129593}
 --- !u!1 &767955854
@@ -1528,8 +1523,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
-  SeatIndex: 0
-  IsOccupied: 0
+  seatIndex: 0
+  isOccupied: 0
   cardHolder: {fileID: 829906683}
   cardHolderPosition: {fileID: 829906682}
 --- !u!1 &889437776
@@ -2187,11 +2182,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f34e098d4abc96848986819c3cb5e535, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.TableVisualLayoutManager
-  visualSlots:
-  - {fileID: 829906684}
-  - {fileID: 87784264}
-  - {fileID: 654509019}
-  - {fileID: 764129595}
 --- !u!4 &1611512766
 Transform:
   m_ObjectHideFlags: 0
@@ -2397,11 +2387,6 @@ MonoBehaviour:
   networkPlayerPrefab: {fileID: 6573136436725559624, guid: 324c1b15187ebc544a0d5a2a8d0cbf6f, type: 3}
   startGameBtn: {fileID: 428874635}
   startBtnText: {fileID: 1773020616}
-  playerSeats:
-  - {fileID: 829906684}
-  - {fileID: 87784264}
-  - {fileID: 654509019}
-  - {fileID: 764129595}
   _IsGameStarted:
     RawValue: 0
 --- !u!4 &1937543991
@@ -2676,6 +2661,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2034101243}
+  - component: {fileID: 2034101244}
   m_Layer: 0
   m_Name: Seat
   m_TagString: Untagged
@@ -2702,6 +2688,23 @@ Transform:
   - {fileID: 764129593}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2034101244
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2034101242}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d6abe6c34f91384ca8edcc7fe256c0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.SeatProvider
+  playerSeats:
+  - {fileID: 829906684}
+  - {fileID: 654509019}
+  - {fileID: 87784264}
+  - {fileID: 764129595}
 --- !u!1 &2035977413
 GameObject:
   m_ObjectHideFlags: 0

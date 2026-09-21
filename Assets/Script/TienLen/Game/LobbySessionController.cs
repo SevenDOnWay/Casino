@@ -27,7 +27,6 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Player Seats")]
         private IReadOnlyList<PlayerSeat> playerSeats;
-        private readonly PlayerRef[] seatAssignments;
 
 
         [Header("Network Players")]
@@ -108,8 +107,6 @@ namespace Assets.Script.TienLen.Game {
                 Debug.LogWarning($"Lobby is full. Cannot seat {player.PlayerId}");
                 return;
             }
-
-            seatAssignments[seatIndex] = player;
 
             var networkPlayerObject = Runner.Spawn(networkPlayerPrefab, Vector3.zero, Quaternion.identity, player);
             var networkPlayer = networkPlayerObject.GetComponent<TienLenNetWorkPlayer>();

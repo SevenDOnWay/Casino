@@ -70,7 +70,7 @@ namespace Assets.Script.TienLen.UI {
             visited[localSeatIndex] = true;
             if ( seatToPlayer.TryGetValue(localSeatIndex, out var localPlayer) ) {
                 //Debug.Log($"[TableLayout] Binding Local Player (Seat {localSeatIndex}) to Visual Slot 0");
-                visualSlots[0].BindNetworkPlayer(localPlayer);
+                playerSeats[0].BindNetworkPlayer(localPlayer);
             }
             else {
                 Debug.LogWarning($"[TableLayout] Local seat {localSeatIndex} not found in seatToPlayer dictionary!");
@@ -89,7 +89,7 @@ namespace Assets.Script.TienLen.UI {
                 if ( seatToPlayer.TryGetValue(previousSeat, out var prevPlayer) ) {
                     int visualSlotIndex = (previousSeat - localSeatIndex + totalSeats) % totalSeats;
                     //Debug.Log($"[TableLayout] Step {step} (Backwards): Bound Player at Seat {previousSeat} to Visual Slot {visualSlotIndex}");
-                    visualSlots[visualSlotIndex].BindNetworkPlayer(prevPlayer);
+                    playerSeats[visualSlotIndex].BindNetworkPlayer(prevPlayer);
                 }
                 else {
                     //Debug.Log($"[TableLayout] Step {step} (Backwards): Seat {previousSeat} is empty.");
@@ -109,7 +109,7 @@ namespace Assets.Script.TienLen.UI {
                 if ( seatToPlayer.TryGetValue(nextSeat, out var nextPlayer) ) {
                     int visualSlotIndex = (nextSeat - localSeatIndex + totalSeats) % totalSeats;
                     //Debug.Log($"[TableLayout] Step {step} (Forwards): Bound Player at Seat {nextSeat} to Visual Slot {visualSlotIndex}");
-                    visualSlots[visualSlotIndex].BindNetworkPlayer(nextPlayer);
+                    playerSeats[visualSlotIndex].BindNetworkPlayer(nextPlayer);
                 }
                 else {
                     //Debug.Log($"[TableLayout] Step {step} (Forwards): Seat {nextSeat} is empty.");
