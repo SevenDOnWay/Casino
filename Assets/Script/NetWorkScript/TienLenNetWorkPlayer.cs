@@ -19,8 +19,6 @@ namespace Assets.Script.NetWorkScript {
 
         public override void Spawned() {
             Initialize();
-
-            Debug.Log("[TienLenNetWorkPlayer] Spawned. PlayerRef: " + PlayerRef + ", PlayerSeatIndex: " + PlayerSeatIndex + ", PlayerName: " + PlayerName);
         }
 
 
@@ -30,7 +28,15 @@ namespace Assets.Script.NetWorkScript {
             Controller = Controller ?? FindFirstObjectByType<TienLenGameController>();
             TableVisualLayoutManager = TableVisualLayoutManager ?? FindFirstObjectByType<TableVisualLayoutManager>();
 
-            Debug.Log("[TienLenNetWorkPlayer] Initialize called. Controller: " + (Controller != null) + ", TableVisualLayoutManager: " + (TableVisualLayoutManager != null));
+            if ( Controller == null ) {
+                Debug.LogError("[TienLenNetWorkPlayer.Initialize] TienLenGameController not found in scene.");
+            }
+
+            if ( TableVisualLayoutManager == null ) {
+                Debug.LogError("[TienLenNetWorkPlayer.Initialize] TableVisualLayoutManager not found in scene.");
+            }
+
+            TableVisualLayoutManager.RefreshLayout(Runner);
         }
 
 

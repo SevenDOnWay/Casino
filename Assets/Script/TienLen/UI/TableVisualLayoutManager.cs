@@ -27,14 +27,14 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void OnEnable() {
-            lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoin;
-            lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
+            //lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoin;
+            //lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
         }
 
 
         private void OnDisable() {
-            lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoin;
-            lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
+            //lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoin;
+            //lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
         }
 
 
@@ -54,9 +54,16 @@ namespace Assets.Script.TienLen.UI {
             foreach ( var kvp in networkedPlayers ) {
                 var networkObject = kvp.Value;
 
+                Debug.Log(
+                         $"[TableLayout] Entry: " +
+                         $"PlayerRef={kvp.Key}, " +
+                         $"NetworkObject={networkObject}, " +
+                         $"IsValid={networkObject != null && networkObject.IsValid}"
+                     );
+
                 if ( networkObject == null ) {
                     Debug.LogWarning(
-                        $"[TableLayout] NetworkObject for {kvp.Key} is null."
+                        $"[TableLayout] NetworkObject is NULL for {kvp.Key}"
                     );
 
                     continue;
@@ -64,14 +71,10 @@ namespace Assets.Script.TienLen.UI {
 
                 var player = networkObject.GetComponent<TienLenNetWorkPlayer>();
 
-                if ( player == null ) {
-                    Debug.LogWarning(
-                        $"[TableLayout] NetworkObject for {kvp.Key} " +
-                        $"does not contain TienLenNetWorkPlayer."
-                    );
-
-                    continue;
-                }
+                Debug.Log(
+                    $"[TableLayout] GetComponent result: " +
+                    $"{player}"
+                );
 
                 int seatIndex = player.PlayerSeatIndex;
 
@@ -161,7 +164,7 @@ namespace Assets.Script.TienLen.UI {
             );
         }
 
-        private void HandlePlayerLeft(NetworkRunner runner) {
+        private void HandlePlayerLeft( NetworkRunner runner ) {
             // Update the visual layout to reflect the player leaving
             Debug.Log("Player left. Updating table layout.");
             // Implement your logic to update the table layout here
@@ -169,9 +172,9 @@ namespace Assets.Script.TienLen.UI {
 
         }
 
-
-
-
+        public void RefreshLayout( NetworkRunner runner ) {
+            HandlePlayerJoin(runner);
+        }
 
     }
 }

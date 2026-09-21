@@ -71,7 +71,6 @@ namespace Assets.Script.TienLen.Game {
 
         //TODO: Handle cases player join mid game
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
-            Debug.Log($"OnPlayerJoined fired for player: {player.PlayerId}");
             UpdateStartButtonUI();
 
             if ( !Object.HasStateAuthority ) return;
