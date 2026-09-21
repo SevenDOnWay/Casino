@@ -20,6 +20,7 @@ namespace Assets.Script.TienLen.Game {
         LocalPlayerService localPlayerService;
 
         private readonly List<TienLenPlayer> players = new();
+        public IReadOnlyList<TienLenPlayer> Players => players;
 
         private Deck deck;
 
@@ -27,7 +28,6 @@ namespace Assets.Script.TienLen.Game {
 
         public TienLenGameState State { get; private set; }
 
-        public IReadOnlyList<TienLenPlayer> Players => players;
 
         public TienLenPlayer CurrentPlayer => players[currentPlayerIndex];
 
@@ -38,6 +38,12 @@ namespace Assets.Script.TienLen.Game {
         [Inject]
         void Construct( LocalPlayerService localPlayerService ) {
             this.localPlayerService = localPlayerService;
+        }
+
+        public void Initialize() {
+            Debug.Log("[InitializeGame] Initializing Tiến Lên game.");
+            State = TienLenGameState.DealingCard;
+            currentPlayerIndex = 0;
         }
 
         public void AddPlayer( TienLenPlayer player ) {
@@ -57,12 +63,16 @@ namespace Assets.Script.TienLen.Game {
             players.RemoveAll(p => p.PlayerRef == playerRef);
         }
 
+        
+        //TODO: to test for now
         public void StartGame() {
-            if ( players.Count < 1 ) //TODO: Change this to 2 on real game
-                throw new InvalidOperationException(
-                    "Tiến Lên requires at least 2 players.");
+            //if ( players.Count < 1 ) //TODO: Change this to 2 on real game
+            //    throw new InvalidOperationException(
+            //        "Tiến Lên requires at least 2 players.");
 
-            StartRound();
+            //StartRound();
+
+            Debug.Log($"[StartGame] Starting game with {players.Count} players.");
         }
 
         public void StartRound() {
@@ -84,7 +94,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private async UniTaskVoid RunRoundRoutineAsync( CancellationToken cancellationToken = default ) {
-            State = TienLenGameState.Dealing;
+            State = TienLenGameState.DealingCard;
 
             deck.Shuffle();
 
@@ -200,7 +210,7 @@ namespace Assets.Script.TienLen.Game {
 
                 foreach ( TienLenPlayer player in players ) {
                     if ( cancellationToken.IsCancellationRequested ) {
-                        Debug.LogWarning("[DealCardsAsync] Dealing cancelled via CancellationToken.");
+                        Debug.LogWarning("[DealCardsAsync] DealingCard cancelled via CancellationToken.");
                         return;
                     }
 

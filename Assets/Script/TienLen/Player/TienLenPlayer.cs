@@ -8,11 +8,9 @@ using UnityEngine;
 
 namespace Assets.Script.TienLen.Player {
     public class TienLenPlayer {
-
         public int Id { get; }
         public PlayerRef PlayerRef { get; }
         public string PlayerName { get; }
-        public TienLenGameController controller;
         public PlayerHand Hand { get; }
         public CardHolder CardHolder { get; private set; }
         public bool IsHuman { get; }
@@ -23,12 +21,10 @@ namespace Assets.Script.TienLen.Player {
             int id,
             PlayerRef playerRef,
             string playerName,
-            TienLenGameController gameController,
             bool isHuman = true ) {
             Id = id;
             PlayerRef = playerRef;
             PlayerName = playerName;
-            controller = gameController;
             IsHuman = isHuman;
 
             Hand = new PlayerHand();

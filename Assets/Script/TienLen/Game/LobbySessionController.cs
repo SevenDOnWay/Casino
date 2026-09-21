@@ -1,20 +1,21 @@
 ﻿using Assets.Script.NetWorkScript;
+using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.UI;
 using Fusion;
 using Fusion.Sockets;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Rendering;
 using UnityEngine.UI;
-using static Assets.Script.TienLen.Game.TienLenGameController;
-using static Unity.Collections.Unicode;
+using VContainer;
 
 namespace Assets.Script.TienLen.Game {
     public class LobbySessionController : NetworkBehaviour, INetworkRunnerCallbacks {
+
+        [Header("Dependencies")]
+        private SeatProvider seatProvider;
 
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
@@ -25,8 +26,8 @@ namespace Assets.Script.TienLen.Game {
 
 
         [Header("Player Seats")]
-        [SerializeField] private PlayerSeat[] playerSeats = new PlayerSeat[totalSeats];
-        private readonly PlayerRef[] seatAssignments = new PlayerRef[totalSeats];
+        private IReadOnlyList<PlayerSeat> playerSeats;
+        private readonly PlayerRef[] seatAssignments;
 
 
         [Header("Network Players")]
@@ -44,6 +45,13 @@ namespace Assets.Script.TienLen.Game {
         public event Action<NetworkRunner> OnPlayerLeftEvent;
         public event Action OnGameStartedEvent;
 
+        [Inject]
+        void Construct( SeatProvider seatProvider ) {
+            this.seatProvider = seatProvider;
+
+            playerSeats = seatProvider.AllSeats;
+        }
+
         public override void Spawned() {
             Runner.AddCallbacks(this);
 
@@ -52,11 +60,19 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
+        public void OnEnable() {
+            startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
+        }
+
+        public void OnDisable() {
+            startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
+        }
 
         //TODO: Handle cases player join mid game
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
             Debug.Log($"OnPlayerJoined fired for player: {player.PlayerId}");
             UpdateStartButtonUI();
+
             if ( !Object.HasStateAuthority ) return;
 
             if ( Runner.ActivePlayers.Count() > totalSeats ) {
@@ -101,12 +117,25 @@ namespace Assets.Script.TienLen.Game {
             networkPlayer.SeatIndex = seatIndex;
             networkPlayer.PlayerRef = player;
 
+            var tienLenPlayer = new TienLenPlayer(player.PlayerId, 
+                player,
+                "test"
+                );
+
             networkPlayers.Add(player, networkPlayer);
-            OnPlayerJoinedEvent?.Invoke(Runner);
+
+            if ( seatProvider != null ) {
+                var seat = seatProvider.GetSeat(seatIndex);
+                if ( seat != null ) {
+                    seat.BindNetworkPlayer(networkPlayer);
+                    seat.BindLogicPlayer(tienLenPlayer);
+                }
+            }
 
             Debug.Log($"[Lobby] Spawned network player for {player.PlayerId}");
 
             CheckPlayer();
+            OnPlayerJoinedEvent?.Invoke(Runner);
         }
 
         //TODO: Handle cases player leave mid game
@@ -116,15 +145,6 @@ namespace Assets.Script.TienLen.Game {
                 networkPlayers.Remove(player);
                 OnPlayerLeftEvent?.Invoke(Runner);
             }
-        }
-
-        private int FindAvailableSeat() {
-            for ( int i = 0; i < totalSeats; i++ ) {
-                if ( playerSeats[i].IsOccupied ) continue;
-                return i;
-            }
-
-            return -1;
         }
 
         #region Start Game Button Logic
@@ -168,6 +188,9 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private void OnStartGameButtonClicked() {
+
+            Debug.Log($"[StartGame] Start button clicked, IsGameStarted={IsGameStarted}, isGameStartable={isGameStartable}");
+
             if ( !Object.HasStateAuthority ) return;
             if ( !isGameStartable ) return;
             if ( IsGameStarted ) return;
@@ -180,6 +203,15 @@ namespace Assets.Script.TienLen.Game {
         }
 
         #endregion
+
+        private int FindAvailableSeat() {
+            for ( int i = 0; i < totalSeats; i++ ) {
+                if ( playerSeats[i].isOccupied ) continue;
+                return i;
+            }
+
+            return -1;
+        }
 
         private void CheckPlayer() {
             int currentConnectedPlayers = Runner.ActivePlayers.Count();

@@ -14,12 +14,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 
 namespace Assets.Script.TienLen.Game {
     public class TienLenGameController : NetworkBehaviour {
+
+        //TODO: reduce this DI
         [Header("Dependencies")]
         LobbySessionController lobbySessionController;
         CardSpawner cardSpawner;
@@ -27,13 +30,13 @@ namespace Assets.Script.TienLen.Game {
         LocalPlayerService localPlayerService;
         TienLenGame game;
         TurnManager turnManager;
+        SeatProvider seatProvider;
 
         private const int totalSeats = 4;
 
-
-        [SerializeField] private PlayerSeat[] playerSeats;
+        private IReadOnlyList<PlayerSeat> playerSeats;
         [SerializeField] private PlayerSeat tableCenterPosition; //TODO: change the name for better understanding
-        
+
         private bool lastRenderedGameStarted;
 
         Dictionary<PlayerRef, TienLenPlayer> playerMap = new();
@@ -53,15 +56,18 @@ namespace Assets.Script.TienLen.Game {
             LocalPlayerService localPlayerService,
             TienLenGame game,
             TurnManager turnManager,
-            CardCombinationEvaluator cardCombinationEvaluator ) {
+            CardCombinationEvaluator cardCombinationEvaluator,
+            SeatProvider seatProvider ) {
             this.lobbySessionController = lobbySessionController;
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
             this.game = game;
             this.turnManager = turnManager;
             this.cardCombinationEvaluator = cardCombinationEvaluator;
+            this.seatProvider = seatProvider;
 
             networkPlayerMap = lobbySessionController.NetworkPlayers;
+            playerSeats = seatProvider.AllSeats;
         }
 
         public void OnEnable() {
@@ -82,10 +88,8 @@ namespace Assets.Script.TienLen.Game {
             game.OnPlayerWon += HandlePlayerWon;
         }
 
-        
 
-
-        private void HandlePlayerJoined(NetworkRunner runner) {
+        private void HandlePlayerJoined( NetworkRunner runner ) {
             //CheckPlayer();
             //UpdateStartButtonUI();
         }
@@ -137,8 +141,9 @@ namespace Assets.Script.TienLen.Game {
 
             CreateDeck();
 
-            turnManager.Initialize(game.Players);
+            game.Initialize();
             game.StartGame();
+            turnManager.Initialize(game.Players);
 
             RPCPlayDealAnimation();
             OnRoundStarted?.Invoke();
@@ -177,9 +182,9 @@ namespace Assets.Script.TienLen.Game {
 
             // 2. Deal 13 rounds to all players
             for ( int i = 0; i < 13; i++ ) {
-                Debug.Log($"[AnimateDealingRoutineAsync] Dealing round {i + 1}/13. deckStackRemaining={deckStack.Count}", this);
+                Debug.Log($"[AnimateDealingRoutineAsync] DealingCard round {i + 1}/13. deckStackRemaining={deckStack.Count}", this);
 
-                foreach ( var player in game.Players ) {
+                foreach ( var player in game.Players ) { //TODO: hold a 
                     ct.ThrowIfCancellationRequested();
 
                     if ( deckStack.Count == 0 ) {
@@ -190,7 +195,7 @@ namespace Assets.Script.TienLen.Game {
                     CardView movingCardBack = deckStack.Dequeue();
                     bool isLocal = (player.PlayerRef == Runner.LocalPlayer);
 
-                    Debug.Log($"[AnimateDealingRoutineAsync] Dealing to player={player.PlayerName} ref={player.PlayerRef.PlayerId} isLocal={isLocal}", this);
+                    Debug.Log($"[AnimateDealingRoutineAsync] DealingCard to player={player.PlayerName} ref={player.PlayerRef.PlayerId} isLocal={isLocal}", this);
 
                     if ( isLocal ) {
                         // Guard: Make sure hand data arrived
@@ -228,12 +233,12 @@ namespace Assets.Script.TienLen.Game {
 
             // 3. Clean up remaining unused cards OUTSIDE the loop (after all 13 rounds finish)
             Debug.Log($"[AnimateDealingRoutineAsync] Cleaning up {deckStack.Count} remaining cards in deckStack.", this);
-            while ( deckStack.Count > 0 ) {
-                CardView remaining = deckStack.Dequeue();
-                if ( remaining != null ) {
-                    Destroy(remaining.gameObject);
-                }
-            }
+            //while ( deckStack.Count > 0 ) {
+            //    CardView remaining = deckStack.Dequeue();
+            //    if ( remaining != null ) {
+            //        Destroy(remaining.gameObject);
+            //    }
+            //}
 
             // 4. Sort and arrange local hand once all cards arrive
             if ( localPlayer?.CardHolder != null ) {
@@ -257,7 +262,7 @@ namespace Assets.Script.TienLen.Game {
             }
 
             if ( playerMap.TryGetValue(sender, out TienLenPlayer player) ) {
-                Debug.Log($"[GetPlayer] Found player. sender={sender}, SeatIndex={player.Id}, playerName={player.PlayerName}");
+                Debug.Log($"[GetPlayer] Found player. sender={sender}, seatIndex={player.Id}, playerName={player.PlayerName}");
                 return player;
             }
 

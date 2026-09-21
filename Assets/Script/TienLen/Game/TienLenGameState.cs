@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Assets.Script.TienLen.Game {
     public enum TienLenGameState {
         WaitingForPlayers,
-        Dealing,
+        DealingCard,
         Playing,
         RoundOver,
         GameOver

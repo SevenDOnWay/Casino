@@ -30,6 +30,7 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.RegisterComponentInHierarchy<LobbySessionController>();
             builder.RegisterComponentInHierarchy<TienLenGameController>();
             builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
+            builder.RegisterComponentInHierarchy<SeatProvider>();
 
             builder.Register<TienLenGame>(Lifetime.Singleton);
             builder.Register<TurnManager>(Lifetime.Singleton);
