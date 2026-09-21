@@ -4,6 +4,7 @@ using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -15,9 +16,12 @@ namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope{
 
         [SerializeField] private CardHolder[] cardHolders;
+        [SerializeField] private TienLenNetWorkPlayer prefab; 
 
         protected override void Configure( IContainerBuilder builder ) {
             builder.Register<LocalPlayerService>(Lifetime.Singleton);
+
+            builder.RegisterComponentInNewPrefab(prefab, Lifetime.Scoped);
 
             //rule
             builder.Register<CardCombinationType>(Lifetime.Singleton);

@@ -1063,6 +1063,7 @@ MonoBehaviour:
   - {fileID: 654509016}
   - {fileID: 764129592}
   cardHolders: []
+  prefab: {fileID: 38872888978625927, guid: 324c1b15187ebc544a0d5a2a8d0cbf6f, type: 3}
 --- !u!4 &633747304
 Transform:
   m_ObjectHideFlags: 0

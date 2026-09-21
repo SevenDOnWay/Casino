@@ -16,7 +16,7 @@ namespace Assets.Script.TienLen.UI {
 
         public void BindNetworkPlayer( TienLenNetWorkPlayer player ) {
             isOccupied = true;
-            seatIndex = player.SeatIndex;
+            seatIndex = player.PlayerSeatIndex;
             // Additional logic to bind the player to this seat
 
             cardHolder.ChangeAvatar(true);

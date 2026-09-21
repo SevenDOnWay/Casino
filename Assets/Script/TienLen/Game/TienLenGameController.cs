@@ -40,7 +40,9 @@ namespace Assets.Script.TienLen.Game {
         private bool lastRenderedGameStarted;
 
         Dictionary<PlayerRef, TienLenPlayer> playerMap = new();
-        IReadOnlyDictionary<PlayerRef, TienLenNetWorkPlayer> networkPlayerMap;
+        Dictionary<PlayerRef, NetworkObject> networkPlayerMap;
+
+        Dictionary<PlayerRef, TienLenNetWorkPlayer> NetworkPlayerMap;
 
         [SerializeField] TienLenSO tienLenSO;
 
@@ -65,9 +67,6 @@ namespace Assets.Script.TienLen.Game {
             this.turnManager = turnManager;
             this.cardCombinationEvaluator = cardCombinationEvaluator;
             this.seatProvider = seatProvider;
-
-            networkPlayerMap = lobbySessionController.NetworkPlayers;
-            playerSeats = seatProvider.AllSeats;
         }
 
         public void OnEnable() {
@@ -138,6 +137,8 @@ namespace Assets.Script.TienLen.Game {
 
         private void HandleGameStarted() {
             if ( !Object.HasStateAuthority ) return;
+
+            //TODO: get network players 
 
             CreateDeck();
 

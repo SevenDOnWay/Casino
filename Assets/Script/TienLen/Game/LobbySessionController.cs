@@ -30,8 +30,10 @@ namespace Assets.Script.TienLen.Game {
 
 
         [Header("Network Players")]
-        private Dictionary<PlayerRef, TienLenNetWorkPlayer> networkPlayers = new();
-        public IReadOnlyDictionary<PlayerRef, TienLenNetWorkPlayer> NetworkPlayers => networkPlayers;
+        [Networked, Capacity(4)]
+        private NetworkDictionary<PlayerRef, NetworkObject> networkedPlayers => default;
+        public NetworkDictionary<PlayerRef, NetworkObject> NetworkedPlayers => networkedPlayers;
+
 
         private const int minPlayerToStart = 2;
         private const int totalSeats = 4;
@@ -80,6 +82,7 @@ namespace Assets.Script.TienLen.Game {
             }
 
             SpawnNetworkPlayer(player);
+            RpcPlayerJoined(player);
         }
 
         //TODO: Handle cases player leave mid game
@@ -100,7 +103,9 @@ namespace Assets.Script.TienLen.Game {
 
         //TODO: Handle cases player join mid game
         private void SpawnNetworkPlayer( PlayerRef player ) {
-            if ( networkPlayers.ContainsKey(player) ) return;
+            TienLenNetWorkPlayer networkPlayer = null;
+
+            if ( networkedPlayers.ContainsKey(player) ) return;
 
             int seatIndex = FindAvailableSeat();
             if ( seatIndex == -1 ) {
@@ -108,18 +113,24 @@ namespace Assets.Script.TienLen.Game {
                 return;
             }
 
-            var networkPlayerObject = Runner.Spawn(networkPlayerPrefab, Vector3.zero, Quaternion.identity, player);
-            var networkPlayer = networkPlayerObject.GetComponent<TienLenNetWorkPlayer>();
+            var networkPlayerObject = Runner.Spawn(networkPlayerPrefab,
+                                        Vector3.zero,
+                                        Quaternion.identity,
+                                        inputAuthority: player,
+                                        onBeforeSpawned: (runner, obj) => {
+                                            networkPlayer = obj.GetComponent<TienLenNetWorkPlayer>();
+                                            networkPlayer.PlayerRef = player;
+                                            networkPlayer.PlayerSeatIndex = seatIndex;
+                                            networkPlayer.PlayerName = $"Player {player.PlayerId + 1}";
+                                        }
+                                        );
 
-            networkPlayer.SeatIndex = seatIndex;
-            networkPlayer.PlayerRef = player;
-
-            var tienLenPlayer = new TienLenPlayer(player.PlayerId, 
+            var tienLenPlayer = new TienLenPlayer(player.PlayerId,
                 player,
                 "test"
                 );
 
-            networkPlayers.Add(player, networkPlayer);
+            networkedPlayers.Add(player, networkPlayerObject);
 
             if ( seatProvider != null ) {
                 var seat = seatProvider.GetSeat(seatIndex);
@@ -132,14 +143,19 @@ namespace Assets.Script.TienLen.Game {
             Debug.Log($"[Lobby] Spawned network player for {player.PlayerId}");
 
             CheckPlayer();
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        public void RpcPlayerJoined( PlayerRef player ) {
+            Debug.Log($"[Lobby] RpcPlayerJoined: {player.PlayerId}");
             OnPlayerJoinedEvent?.Invoke(Runner);
         }
 
         //TODO: Handle cases player leave mid game
         private void RemovePlayer( PlayerRef player ) {
-            if ( networkPlayers.TryGetValue(player, out var networkPlayer) ) {
-                Runner.Despawn(networkPlayer.Object);
-                networkPlayers.Remove(player);
+            if ( networkedPlayers.TryGet(player, out var networkPlayer) ) {
+                Runner.Despawn(networkPlayer);
+                networkedPlayers.Remove(player);
                 OnPlayerLeftEvent?.Invoke(Runner);
             }
         }

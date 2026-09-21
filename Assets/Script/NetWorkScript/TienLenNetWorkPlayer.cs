@@ -1,20 +1,39 @@
 ﻿using Assets.Script.TienLen;
 using Assets.Script.TienLen.Game;
+using Assets.Script.TienLen.UI;
 using Fusion;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using VContainer;
 
 namespace Assets.Script.NetWorkScript {
     public class TienLenNetWorkPlayer : NetworkBehaviour {
+        [Header("Dependencies")]
+        private TienLenGameController Controller { get; set; }
+        private TableVisualLayoutManager TableVisualLayoutManager { get; set; }
 
         [Networked] public PlayerRef PlayerRef { get; set; }
-        [Networked] public int PlayerId { get; set; }
+        [Networked] public int PlayerSeatIndex { get; set; }
         [Networked] public NetworkString<_16> PlayerName { get; set; }
 
-        public int SeatIndex { get; set; } = -1;
+        public override void Spawned() {
+            Initialize();
 
-        public TienLenGameController Controller { get; set; }
+            Debug.Log("[TienLenNetWorkPlayer] Spawned. PlayerRef: " + PlayerRef + ", PlayerSeatIndex: " + PlayerSeatIndex + ", PlayerName: " + PlayerName);
+        }
+
+
+        //TODO: Consider using dependency injection to ensure these are always set, rather than relying on FindFirstObjectByType.
+        //lazy for now, but this could lead to null reference exceptions if the objects aren't present in the scene.
+        private void Initialize() {
+            Controller = Controller ?? FindFirstObjectByType<TienLenGameController>();
+            TableVisualLayoutManager = TableVisualLayoutManager ?? FindFirstObjectByType<TableVisualLayoutManager>();
+
+            Debug.Log("[TienLenNetWorkPlayer] Initialize called. Controller: " + (Controller != null) + ", TableVisualLayoutManager: " + (TableVisualLayoutManager != null));
+        }
+
+
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
         public void RPCRequestPlayCard( NetworkCard[] cards, RpcInfo info = default ) {
@@ -38,8 +57,9 @@ namespace Assets.Script.NetWorkScript {
             Controller.HandlePlayRequest(sender, cards);
         }
 
+
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-        public void RPCRequestPass(RpcInfo info = default){
+        public void RPCRequestPass( RpcInfo info = default ) {
             PlayerRef sender = (info.Source != PlayerRef.None) ? info.Source : Object.InputAuthority;
 
             // Fallback if InputAuthority wasn't assigned:
