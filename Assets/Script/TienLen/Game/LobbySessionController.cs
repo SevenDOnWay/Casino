@@ -31,8 +31,8 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Network Players")]
         [Networked, Capacity(4)]
-        private NetworkDictionary<PlayerRef, NetworkObject> networkedPlayers => default;
-        public NetworkDictionary<PlayerRef, NetworkObject> NetworkedPlayers => networkedPlayers;
+        private NetworkArray<NetworkObject> networkedPlayers => default;
+        public NetworkArray<NetworkObject> NetworkedPlayers => networkedPlayers;
 
 
         private const int minPlayerToStart = 2;
@@ -104,7 +104,8 @@ namespace Assets.Script.TienLen.Game {
         private void SpawnNetworkPlayer( PlayerRef player ) {
             TienLenNetWorkPlayer networkPlayer = null;
 
-            if ( networkedPlayers.ContainsKey(player) ) return;
+            bool flowControl = CheckPlayerExist(player);
+            if ( !flowControl ) return;
 
             int seatIndex = FindAvailableSeat();
             if ( seatIndex == -1 ) {
@@ -129,7 +130,8 @@ namespace Assets.Script.TienLen.Game {
                 "test"
                 );
 
-            networkedPlayers.Add(player, networkPlayerObject);
+            networkedPlayers.Set(seatIndex, networkPlayerObject);
+            seatProvider.assignSeat(new KeyValuePair<int, NetworkObject>(seatIndex, networkPlayerObject));
 
             if ( seatProvider != null ) {
                 var seat = seatProvider.GetSeat(seatIndex);
@@ -144,6 +146,19 @@ namespace Assets.Script.TienLen.Game {
             CheckPlayer();
         }
 
+        private bool CheckPlayerExist( PlayerRef player ) {
+            foreach ( var existingPlayer in networkedPlayers ) {
+                if ( existingPlayer != null && existingPlayer.TryGetComponent<TienLenNetWorkPlayer>(out var existingNetworkPlayer) ) {
+                    if ( existingNetworkPlayer.PlayerRef == player ) {
+                        Debug.LogWarning($"Player {player.PlayerId} already has a network player object. Skipping spawn.");
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
         public void RpcPlayerJoined( PlayerRef player ) {
             Debug.Log($"[Lobby] RpcPlayerJoined: {player.PlayerId}");
@@ -152,11 +167,11 @@ namespace Assets.Script.TienLen.Game {
 
         //TODO: Handle cases player leave mid game
         private void RemovePlayer( PlayerRef player ) {
-            if ( networkedPlayers.TryGet(player, out var networkPlayer) ) {
-                Runner.Despawn(networkPlayer);
-                networkedPlayers.Remove(player);
-                OnPlayerLeftEvent?.Invoke(Runner);
-            }
+            //if ( networkedPlayers.TryGet(player, out var networkPlayer) ) {
+            //    Runner.Despawn(networkPlayer);
+            //    networkedPlayers.Remove(player);
+            //    OnPlayerLeftEvent?.Invoke(Runner);
+            //}
         }
 
         #region Start Game Button Logic

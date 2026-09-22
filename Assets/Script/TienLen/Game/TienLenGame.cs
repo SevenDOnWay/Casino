@@ -19,7 +19,7 @@ namespace Assets.Script.TienLen.Game {
         [Header("Dependencies")]
         LocalPlayerService localPlayerService;
 
-        private readonly List<TienLenPlayer> players = new();
+        private List<TienLenPlayer> players;
         public IReadOnlyList<TienLenPlayer> Players => players;
 
         private Deck deck;
@@ -36,12 +36,13 @@ namespace Assets.Script.TienLen.Game {
         public event Action OnRoundEnded;
 
         [Inject]
-        void Construct( LocalPlayerService localPlayerService ) {
+        public TienLenGame( LocalPlayerService localPlayerService ) {
             this.localPlayerService = localPlayerService;
         }
 
         public void Initialize() {
             Debug.Log("[InitializeGame] Initializing Tiến Lên game.");
+
             State = TienLenGameState.DealingCard;
             currentPlayerIndex = 0;
         }

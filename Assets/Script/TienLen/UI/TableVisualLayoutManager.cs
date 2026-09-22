@@ -2,6 +2,7 @@
 using Assets.Script.TienLen.Game;
 using Fusion;
 using NUnit.Framework;
+using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -41,51 +42,146 @@ namespace Assets.Script.TienLen.UI {
         private void HandlePlayerJoin( NetworkRunner runner ) {
             Debug.Log($"[TableLayout] HandlePlayerJoin fired. LocalPlayer Ref: {runner.LocalPlayer}");
 
+            NetworkDictionary<int, NetworkObject> kvps = seatProvider.GetOccupiedSeats();
             Dictionary<int, TienLenNetWorkPlayer> seatToPlayer = new();
-            var networkedPlayers  = lobbySessionController.NetworkedPlayers;
+
             int localSeatIndex = -1;
 
-            Debug.Log($"[TableLayout] NetworkPlayers count in LobbySessionController: {networkedPlayers.Count}");
+            Debug.Log($"[TableLayout] NetworkPlayers count in LobbySessionController: {kvps.Count}");
 
+
+            // find local player seat index and build seat to player mapping
+
+            foreach ( var kvp in kvps ) {
+                int seatIndex = kvp.Key;
+                NetworkObject netObj = kvp.Value;
+
+                if ( netObj == null ) continue;
+
+                var networkPlayer = netObj.GetComponent<TienLenNetWorkPlayer>();
+                if ( networkPlayer == null ) {
+                    Debug.LogWarning($"[TableLayout] TienLenNetWorkPlayer component is NULL for seat {seatIndex}");
+                    continue;
+                }
+
+                seatToPlayer[seatIndex] = networkPlayer;
+
+                if ( networkPlayer.PlayerRef == runner.LocalPlayer ) {
+                    localSeatIndex = seatIndex;
+                    Debug.Log($"[TableLayout] Found local player at seat {seatIndex}");
+                }
+            }
+
+            if ( localSeatIndex == -1 ) {
+                Debug.LogWarning($"[TableLayout] Local player {runner.LocalPlayer} not found in occupied seats.");
+                return;
+            }
+
+            for ( int i = 0; i < totalSeats; i++ ) {
+                playerSeats[i].BindNetworkPlayer(null);
+            }
+
+            foreach ( var (networkSeat, player) in seatToPlayer ) {
+                int visualSlotIndex = (networkSeat - localSeatIndex + totalSeats) % totalSeats;
+
+                Debug.Log($"[TableLayout] Network Seat {networkSeat} → Visual Slot {visualSlotIndex} (Player: {player.PlayerRef})");
+                playerSeats[visualSlotIndex].BindNetworkPlayer(player);
+            }
+
+            /*
+            for ( int i = 0; i < kvps.Count; i++ ) {
+                var kvp = kvps.Get(i);
+                var networkObj = kvp.GetComponent<TienLenNetWorkPlayer>();
+
+                if ( networkObj == null ) {
+                    Debug.LogWarning($"[TableLayout] TienLenNetWorkPlayer component is NULL for seat {kvp.Key}");
+                    continue;
+                }
+
+                seatToPlayer[i] = networkObj;
+
+                if ( networkObj.PlayerRef == runner.LocalPlayer ) {
+                    localSeatIndex = kvp.Key;
+                    Debug.Log($"[TableLayout] Found local player at seat {kvp.Key}");
+                }
+            }
+
+            if ( localSeatIndex == -1 ) {
+                Debug.LogWarning($"[TableLayout] Local player {runner.LocalPlayer} not found in occupied seats.");
+                return;
+            }
+
+            // Bind local player to visual slot 0
+            foreach ( var kvp in seatToPlayer ) {
+                int networkSeat = kvp.Key;
+                var player = kvp.Value;
+                if ( networkSeat == localSeatIndex )
+                    continue;
+                int visualSlotIndex = (networkSeat - localSeatIndex + totalSeats) % totalSeats;
+                Debug.Log($"[TableLayout] Network Seat {networkSeat} → Visual Slot {visualSlotIndex}");
+                playerSeats[visualSlotIndex].BindNetworkPlayer(player);
+            }
+            */
+
+            /*
+            for ( int i = 0; i < totalSeats; i++ ) {
+                var networkObj = playerSeats[i].GetComponent<TienLenNetWorkPlayer>();
+
+                if ( networkObj == null ) {
+                    Debug.LogWarning($"[TableLayout] TienLenNetWorkPlayer component is NULL for seat {i}");
+                    continue;
+                }
+
+                if ( networkObj.PlayerRef == runner.LocalPlayer ) {
+                    localSeatIndex = i;
+                    Debug.Log($"[TableLayout] Found local player at seat {i}");
+
+                    int j = i;
+                    while ( j > 0 ) {
+                        j--;
+
+                        if ( seatToPlayer.TryGetValue(localSeatIndex, out var localPlayer) ) {
+                            playerSeats[j].BindNetworkPlayer(localPlayer);
+                        }
+
+                    }
+                }
+                else {
+                    unassignedPlayers.Push(networkObj);
+                }
+
+            }
+
+            */
+
+
+            /*
             // --------------------------------------------------
             // 1. Build Seat -> Player mapping
             // --------------------------------------------------
 
-            foreach ( var kvp in networkedPlayers ) {
-                var networkObject = kvp.Value;
+            foreach ( var networkObj in networkedPlayers ) {
+                var player = networkObj.GetComponent<TienLenNetWorkPlayer>();
 
-                Debug.Log(
-                         $"[TableLayout] Entry: " +
-                         $"PlayerRef={kvp.Key}, " +
-                         $"NetworkObject={networkObject}, " +
-                         $"IsValid={networkObject != null && networkObject.IsValid}"
-                     );
-
-                if ( networkObject == null ) {
+                if ( player == null ) {
                     Debug.LogWarning(
-                        $"[TableLayout] NetworkObject is NULL for {kvp.Key}"
+                        $"[TableLayout] TienLenNetWorkPlayer component is NULL for {player.Id}"
                     );
-
                     continue;
                 }
 
-                var player = networkObject.GetComponent<TienLenNetWorkPlayer>();
-
-                Debug.Log(
-                    $"[TableLayout] GetComponent result: " +
-                    $"{player}"
-                );
+                Debug.Log($"[TableLayout] GetComponent result: " + $"{player}");
 
                 int seatIndex = player.PlayerSeatIndex;
 
                 Debug.Log(
-                    $"[TableLayout] Network Player: {kvp.Key} " +
+                    $"[TableLayout] Network Player: {networkObj.Key} " +
                     $"-> SeatIndex: {seatIndex}"
                 );
 
                 if ( seatIndex < 0 || seatIndex >= totalSeats ) {
                     Debug.LogWarning(
-                        $"[TableLayout] Player {kvp.Key} has invalid " +
+                        $"[TableLayout] Player {networkObj.Key} has invalid " +
                         $"PlayerSeatIndex: {seatIndex}"
                     );
 
@@ -95,7 +191,7 @@ namespace Assets.Script.TienLen.UI {
                 seatToPlayer[seatIndex] = player;
 
                 // Find myself
-                if ( kvp.Key == runner.LocalPlayer ) {
+                if ( networkObj.Key == runner.LocalPlayer ) {
                     localSeatIndex = seatIndex;
                 }
             }
@@ -162,6 +258,8 @@ namespace Assets.Script.TienLen.UI {
             Debug.Log(
                 "[TableLayout] Visual layout processing complete."
             );
+            */
+
         }
 
         private void HandlePlayerLeft( NetworkRunner runner ) {

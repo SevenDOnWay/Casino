@@ -12,11 +12,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using TMPro;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 using VContainer;
 
 namespace Assets.Script.TienLen.Game {
@@ -36,16 +33,15 @@ namespace Assets.Script.TienLen.Game {
 
         private IReadOnlyList<PlayerSeat> playerSeats;
         [SerializeField] private PlayerSeat tableCenterPosition; //TODO: change the name for better understanding
-
-        private bool lastRenderedGameStarted;
-
-        Dictionary<PlayerRef, TienLenPlayer> playerMap = new();
-        Dictionary<PlayerRef, NetworkObject> networkPlayerMap;
-
-        Dictionary<PlayerRef, TienLenNetWorkPlayer> NetworkPlayerMap;
-
         [SerializeField] TienLenSO tienLenSO;
 
+
+        //Dictionary<PlayerRef, TienLenNetWorkPlayer> NetworkPlayerMap;
+        NetworkDictionary<int, NetworkObject> occupiedSeats;
+        //Dictionary<int, TienLenPlayer> playerMap;
+
+
+        private bool lastRenderedGameStarted;
         Dictionary<(CardSuit, CardRank), Sprite> sprites = new Dictionary<(CardSuit, CardRank), Sprite>();
         Sprite cardBack;
 
@@ -80,13 +76,6 @@ namespace Assets.Script.TienLen.Game {
             lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
             lobbySessionController.OnGameStartedEvent -= HandleGameStarted;
         }
-
-        private void Initialize() {
-            //game.OnTurnChanged += HandleTurnChanged;
-            //game.OnCardsPlayed += HandleCardsPlayed;
-            game.OnPlayerWon += HandlePlayerWon;
-        }
-
 
         private void HandlePlayerJoined( NetworkRunner runner ) {
             //CheckPlayer();
@@ -142,12 +131,25 @@ namespace Assets.Script.TienLen.Game {
 
             CreateDeck();
 
+            Initialize();
+
+            RPCPlayDealAnimation();
+            OnRoundStarted?.Invoke();
+        }
+
+        private void Initialize() {
+            //game.OnTurnChanged += HandleTurnChanged;
+            //game.OnCardsPlayed += HandleCardsPlayed;
+            //game.OnPlayerWon += HandlePlayerWon;
+
+            occupiedSeats = seatProvider.OccupiedSeats;
+            
+
             game.Initialize();
             game.StartGame();
             turnManager.Initialize(game.Players);
 
-            RPCPlayDealAnimation();
-            OnRoundStarted?.Invoke();
+
         }
 
 
@@ -159,116 +161,116 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private async UniTask AnimateDealingRoutineAsync( CancellationToken ct ) {
-            int delayMs = 60;
+            const int delayMs = 60;
+            const int cardsPerPlayer = 13;
+            const int totalDeckSize = 52;
+
             TienLenPlayer localPlayer = localPlayerService.Player;
-            ct.ThrowIfCancellationRequested();
+            PlayerSeat[] occupiedPlayerSeats = seatProvider.GetAllOccupitedSeat();
 
-            Debug.Log($"[AnimateDealingRoutineAsync] Start. localPlayer={(localPlayer != null ? localPlayer.PlayerName : "NULL")}, players={game.Players.Count()}, delayMs={delayMs}", this);
-
-            // 1. Spawn 52 card backs in the center table position (deck stack)
-            Vector3 centerDeckPos = tableCenterPosition != null
-                ? tableCenterPosition.cardHolder.transform.position
-                : Vector3.zero;
-
-            Debug.Log($"[AnimateDealingRoutineAsync] centerDeckPos={centerDeckPos}", this);
-
-            Queue<CardView> deckStack = new Queue<CardView>(52);
-            for ( int i = 0; i < 52; i++ ) {
-                CardView backView = cardSpawner.SpawnCardBack(cardBack);
-                backView.transform.position = centerDeckPos;
-                // Keep inside controller's local hierarchy for Multi-Peer isolation
-                backView.transform.SetParent(transform, worldPositionStays: true);
-                deckStack.Enqueue(backView);
+            if ( occupiedPlayerSeats == null || occupiedPlayerSeats.Length == 0 ) {
+                Debug.LogWarning("[AnimateDealingRoutineAsync] No occupied seats found.");
+                return;
             }
 
-            // 2. Deal 13 rounds to all players
-            for ( int i = 0; i < 13; i++ ) {
-                Debug.Log($"[AnimateDealingRoutineAsync] DealingCard round {i + 1}/13. deckStackRemaining={deckStack.Count}", this);
+            Vector3 centerDeckPos = tableCenterPosition != null
+                                ? tableCenterPosition.cardHolder.transform.position
+                                : Vector3.zero;
 
-                foreach ( var player in game.Players ) { //TODO: hold a 
+            Queue<CardView> deckStack = new Queue<CardView>(totalDeckSize);
+
+            try {
+                // 1. Spawn deck stack
+                for ( int i = 0; i < totalDeckSize; i++ ) {
                     ct.ThrowIfCancellationRequested();
 
-                    if ( deckStack.Count == 0 ) {
-                        Debug.LogWarning("[AnimateDealingRoutineAsync] Deck stack ran out early!");
-                        break;
-                    }
+                    CardView backView = cardSpawner.SpawnCardBack(cardBack);
+                    backView.transform.position = centerDeckPos;
+                    backView.transform.SetParent(transform, worldPositionStays: true);
+                    deckStack.Enqueue(backView);
+                }
 
-                    CardView movingCardBack = deckStack.Dequeue();
-                    bool isLocal = (player.PlayerRef == Runner.LocalPlayer);
+                // 2. Deal cards round-by-round
+                for ( int round = 0; round < cardsPerPlayer; round++ ) {
+                    foreach ( var playerSeat in occupiedPlayerSeats ) {
+                        ct.ThrowIfCancellationRequested();
 
-                    Debug.Log($"[AnimateDealingRoutineAsync] DealingCard to player={player.PlayerName} ref={player.PlayerRef.PlayerId} isLocal={isLocal}", this);
+                        if ( deckStack.Count == 0 ) {
+                            Debug.LogWarning("[AnimateDealingRoutineAsync] Deck stack exhausted early!");
+                            break;
+                        }
 
-                    if ( isLocal ) {
-                        // Guard: Make sure hand data arrived
-                        if ( player.Hand?.Cards == null || player.Hand.Cards.Count <= i ) {
-                            Debug.LogError($"[AnimateDealingRoutineAsync] Hand data missing at index {i} for {player.PlayerName}! Destroying placeholder.", this);
-                            Destroy(movingCardBack.gameObject);
+                        CardView cardView = deckStack.Dequeue();
+                        TienLenPlayer player = playerSeat.tienLenPlayer;
+
+                        if ( player == null || player.CardHolder == null ) {
+                            Destroy(cardView.gameObject);
                             continue;
                         }
 
-                        Card cardData = player.Hand.Cards[i];
-                        Sprite cardSprite = sprites[(cardData.Suit, cardData.Rank)];
+                        bool isLocal = (player.PlayerRef == Runner.LocalPlayer);
 
-                        // Spawn actual face card
-                        CardView faceCardView = cardSpawner.SpawnCard(cardData, cardSprite);
-                        faceCardView.transform.position = movingCardBack.transform.position;
-                        faceCardView.transform.rotation = movingCardBack.transform.rotation;
-                        faceCardView.transform.SetParent(player.CardHolder.transform, worldPositionStays: true);
+                        if ( isLocal ) {
+                            if ( player.Hand?.Cards == null || player.Hand.Cards.Count <= round ) {
+                                Debug.LogError($"[AnimateDealingRoutineAsync] Missing card at index {round} for local player.");
+                                Destroy(cardView.gameObject);
+                                continue;
+                            }
 
-                        // Destroy placeholder back
-                        Destroy(movingCardBack.gameObject);
+                            Card cardData = player.Hand.Cards[round];
+                            Sprite cardSprite = sprites[(cardData.Suit, cardData.Rank)];
 
-                        // Animate card into holder
-                        player.CardHolder.AddCard(faceCardView, animate: true);
+                            // Reuse the existing view instance instead of Destroy + Spawn if your CardView supports it,
+                            // otherwise spawn face card and destroy the back placeholder:
+                            CardView faceCardView = cardSpawner.SpawnCard(cardData, cardSprite);
+                            faceCardView.transform.position = cardView.transform.position;
+                            faceCardView.transform.rotation = cardView.transform.rotation;
+                            faceCardView.transform.SetParent(player.CardHolder.transform, worldPositionStays: true);
+
+                            Destroy(cardView.gameObject);
+
+                            player.CardHolder.AddCard(faceCardView, animate: true);
+                        }
+                        else {
+                            cardView.transform.SetParent(player.CardHolder.transform, worldPositionStays: true);
+                            player.CardHolder.AddCard(cardView, animate: true);
+                        }
                     }
-                    else {
-                        // Opponent receives the card back
-                        movingCardBack.transform.SetParent(player.CardHolder.transform, worldPositionStays: true);
-                        player.CardHolder.AddCard(movingCardBack, animate: true);
-                    }
+
+                    await UniTask.Delay(delayMs, cancellationToken: ct);
                 }
 
-                Debug.Log($"[AnimateDealingRoutineAsync] Round {i + 1} waiting {delayMs}ms.", this);
-                await UniTask.Delay(delayMs, cancellationToken: ct);
+                // 3. Sort and fan local player hand
+                if ( localPlayer?.CardHolder != null ) {
+                    localPlayer.CardHolder.SortCards();
+                    localPlayer.CardHolder.ArrangeCards(animate: true);
+                }
             }
-
-            // 3. Clean up remaining unused cards OUTSIDE the loop (after all 13 rounds finish)
-            Debug.Log($"[AnimateDealingRoutineAsync] Cleaning up {deckStack.Count} remaining cards in deckStack.", this);
-            //while ( deckStack.Count > 0 ) {
-            //    CardView remaining = deckStack.Dequeue();
-            //    if ( remaining != null ) {
-            //        Destroy(remaining.gameObject);
-            //    }
-            //}
-
-            // 4. Sort and arrange local hand once all cards arrive
-            if ( localPlayer?.CardHolder != null ) {
-                localPlayer.CardHolder.SortCards();
-                localPlayer.CardHolder.ArrangeCards(animate: true);
+            finally {
+                // Guaranteed cleanup for remaining unused deck cards even if canceled
+                //while ( deckStack.Count > 0 ) {
+                //    CardView leftover = deckStack.Dequeue();
+                //    if ( leftover != null ) {
+                //        Destroy(leftover.gameObject);
+                //    }
+                //}
             }
-
-            Debug.Log("[AnimateDealingRoutineAsync] Completed.", this);
         }
 
 
         private TienLenPlayer GetPlayer( PlayerRef sender ) {
             if ( !sender.IsValid ) {
-                Debug.LogWarning($"[GetPlayer] Sender is invalid. sender={sender}, senderId={sender.PlayerId}, playerMapCount={playerMap.Count}");
+                Debug.LogWarning($"[GetPlayer] Sender is invalid. sender={sender}, senderId={sender.PlayerId}");
                 return null;
             }
 
-            if ( playerMap.Count == 0 ) {
-                Debug.LogWarning($"[GetPlayer] There is no localPlayer register in controller. sender={sender}, networkPlayerMapCount={networkPlayerMap.Count}");
-                return null;
+            foreach ( var player in seatProvider.GetAllOccupitedSeat() ) {
+                if ( player.tienLenPlayer.PlayerRef == sender ) {
+                    return player.tienLenPlayer;
+                }
             }
 
-            if ( playerMap.TryGetValue(sender, out TienLenPlayer player) ) {
-                Debug.Log($"[GetPlayer] Found player. sender={sender}, seatIndex={player.Id}, playerName={player.PlayerName}");
-                return player;
-            }
-
-            string knownPlayers = string.Join(", ", playerMap.Keys.Select(p => p.ToString()));
-            Debug.LogWarning($"[GetPlayer] No player found for sender={sender}, senderId={sender.PlayerId}. KnownPlayers=[{knownPlayers}]");
+            Debug.LogWarning($"[GetPlayer] No playerSeat found for sender={sender}, senderId={sender.PlayerId}]");
 
             return null;
         }
