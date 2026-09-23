@@ -166,7 +166,7 @@ namespace Assets.Script.TienLen.Game {
             const int totalDeckSize = 52;
 
             TienLenPlayer localPlayer = localPlayerService.Player;
-            PlayerSeat[] occupiedPlayerSeats = seatProvider.GetAllOccupitedSeat();
+            PlayerSeat[] occupiedPlayerSeats = seatProvider.GetAllOccupiedSeats();
 
             if ( occupiedPlayerSeats == null || occupiedPlayerSeats.Length == 0 ) {
                 Debug.LogWarning("[AnimateDealingRoutineAsync] No occupied seats found.");
@@ -264,7 +264,7 @@ namespace Assets.Script.TienLen.Game {
                 return null;
             }
 
-            foreach ( var player in seatProvider.GetAllOccupitedSeat() ) {
+            foreach ( var player in seatProvider.GetAllOccupiedSeats() ) {
                 if ( player.tienLenPlayer.PlayerRef == sender ) {
                     return player.tienLenPlayer;
                 }

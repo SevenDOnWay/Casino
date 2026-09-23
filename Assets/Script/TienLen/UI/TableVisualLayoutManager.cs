@@ -38,6 +38,11 @@ namespace Assets.Script.TienLen.UI {
             //lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
         }
 
+        public void Init() {
+            //lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoin;
+            //lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
+        }
+
 
         private void HandlePlayerJoin( NetworkRunner runner ) {
             Debug.Log($"[TableLayout] HandlePlayerJoin fired. LocalPlayer Ref: {runner.LocalPlayer}");

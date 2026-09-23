@@ -26,17 +26,11 @@ namespace Assets.Script.NetWorkScript {
         //lazy for now, but this could lead to null reference exceptions if the objects aren't present in the scene.
         private void Initialize() {
             Controller = Controller ?? FindFirstObjectByType<TienLenGameController>();
-            TableVisualLayoutManager = TableVisualLayoutManager ?? FindFirstObjectByType<TableVisualLayoutManager>();
 
             if ( Controller == null ) {
                 Debug.LogError("[TienLenNetWorkPlayer.Initialize] TienLenGameController not found in scene.");
             }
 
-            if ( TableVisualLayoutManager == null ) {
-                Debug.LogError("[TienLenNetWorkPlayer.Initialize] TableVisualLayoutManager not found in scene.");
-            }
-
-            TableVisualLayoutManager.RefreshLayout(Runner);
         }
 
 

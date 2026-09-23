@@ -62,11 +62,11 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void OnEnable() {
-            startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
+            startGameBtn.onClick.AddListener(RpcOnStartGameButtonClicked);
         }
 
         public void OnDisable() {
-            startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
+            startGameBtn.onClick.RemoveListener(RpcOnStartGameButtonClicked);
         }
 
         //TODO: Handle cases player join mid game
@@ -214,7 +214,9 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        private void OnStartGameButtonClicked() {
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RpcOnStartGameButtonClicked() {
 
             Debug.Log($"[StartGame] Start button clicked, IsGameStarted={IsGameStarted}, isGameStartable={isGameStartable}");
 
@@ -228,6 +230,8 @@ namespace Assets.Script.TienLen.Game {
 
             OnGameStartedEvent?.Invoke();
         }
+
+
 
         #endregion
 

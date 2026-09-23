@@ -3,15 +3,28 @@ using Fusion;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using VContainer;
 
 namespace Assets.Script.TienLen.Game {
     public class SeatProvider : NetworkBehaviour {
+        [SerializeField] TableVisualLayoutManager tableVisualLayoutManager;
+
         private const int TotalSeats = 4;
 
         [SerializeField] private PlayerSeat[] playerSeats = new PlayerSeat[TotalSeats];
 
+        /// <summary>
+        /// A networked dictionary that maps seat indices to the NetworkObject of the player occupying that seat.
+        /// Client will receive updates when players join or leave seats, allowing for real-time synchronization of seat occupancy across the network.
+        /// </summary>
         [Networked, Capacity(TotalSeats)] public NetworkDictionary<int, NetworkObject> OccupiedSeats => default;
 
+        public override void Spawned() {
+            base.Spawned();
+
+            tableVisualLayoutManager?.RefreshLayout(Runner);
+            tableVisualLayoutManager?.Init();
+        }
 
         public NetworkDictionary<int, NetworkObject> GetOccupiedSeats() {
             if ( !IsValid ) {
@@ -50,14 +63,16 @@ namespace Assets.Script.TienLen.Game {
             return playerSeats[index];
         }
 
-        public PlayerSeat[] GetAllOccupitedSeat() {
-            PlayerSeat[] occupiedSeats = new PlayerSeat[OccupiedSeats.Count];
-            for ( int i = 0; i < playerSeats.Length; i++ ) {
-                if ( playerSeats[i] != null && playerSeats[i].isOccupied ) {
-                    occupiedSeats.SetValue(playerSeats[i], i);
+        public PlayerSeat[] GetAllOccupiedSeats() {
+            List<PlayerSeat> result = new();
+
+            foreach ( PlayerSeat seat in playerSeats ) {
+                if ( seat != null && seat.isOccupied ) {
+                    result.Add(seat);
                 }
             }
-            return occupiedSeats;
+
+            return result.ToArray();
         }
 
         public PlayerSeat GetPreviousAvailableSeat( int index ) {
