@@ -120,7 +120,6 @@ namespace Assets.Script.TienLen.Game {
                                         onBeforeSpawned: (runner, obj) => {
                                             networkPlayer = obj.GetComponent<TienLenNetWorkPlayer>();
                                             networkPlayer.PlayerRef = player;
-                                            networkPlayer.PlayerSeatIndex = seatIndex;
                                             networkPlayer.PlayerName = $"Player {player.PlayerId + 1}";
                                         }
                                         );

@@ -73,7 +73,7 @@ namespace Assets.Script.TienLen.Game {
 
             //StartRound();
 
-            Debug.Log($"[StartGame] Starting game with {players.Count} players.");
+            //Debug.Log($"[StartGame] Starting game with {players.Count} players.");
         }
 
         public void StartRound() {

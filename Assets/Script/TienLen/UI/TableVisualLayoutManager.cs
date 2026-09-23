@@ -83,7 +83,7 @@ namespace Assets.Script.TienLen.UI {
             }
 
             for ( int i = 0; i < totalSeats; i++ ) {
-                playerSeats[i].BindNetworkPlayer(null);
+                playerSeats[i].ClearSeat();
             }
 
             foreach ( var (networkSeat, player) in seatToPlayer ) {

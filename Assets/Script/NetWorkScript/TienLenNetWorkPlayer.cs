@@ -14,7 +14,6 @@ namespace Assets.Script.NetWorkScript {
         private TableVisualLayoutManager TableVisualLayoutManager { get; set; }
 
         [Networked] public PlayerRef PlayerRef { get; set; }
-        [Networked] public int PlayerSeatIndex { get; set; }
         [Networked] public NetworkString<_16> PlayerName { get; set; }
 
         public override void Spawned() {

@@ -47,7 +47,7 @@ namespace Assets.Script.TienLen.Game {
             // Tag visual index order automatically
             for ( int i = 0; i < playerSeats.Length; i++ ) {
                 if ( playerSeats[i] != null ) {
-                    playerSeats[i].seatIndex = i;
+                    playerSeats[i].setSeatIndex(i);
                 }
             }
         }

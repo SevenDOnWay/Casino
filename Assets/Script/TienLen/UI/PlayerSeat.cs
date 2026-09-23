@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Assets.Script.TienLen.UI {
     [System.Serializable]
     public class PlayerSeat : MonoBehaviour {
-        public int seatIndex;
+        [SerializeField] private int seatIndex; // Visual index of the seat (0 to 3)
         public bool isOccupied;
         public TienLenPlayer tienLenPlayer;
 
@@ -15,21 +15,21 @@ namespace Assets.Script.TienLen.UI {
 
 
         public void BindNetworkPlayer( TienLenNetWorkPlayer player ) {
+            if ( player == null ) {
+                Debug.LogError("Cannot bind a null network player to the seat.");
+                return;
+            }
+
             isOccupied = true;
-            seatIndex = player.PlayerSeatIndex;
 
             // Additional logic to bind the player to this seat
             cardHolder.ChangeAvatar(true);
-        }
 
-        public void BindLogicPlayer( TienLenPlayer tienLenPlayer ) {
-            this.tienLenPlayer = tienLenPlayer;
-            tienLenPlayer.SetCardHolder(cardHolder);
+            Debug.Log($"Player has occupied seat {seatIndex}");
         }
 
         public void ClearSeat() {
             isOccupied = false;
-            seatIndex = -1;
             tienLenPlayer = null;
 
             if ( cardHolder != null ) {
@@ -37,6 +37,18 @@ namespace Assets.Script.TienLen.UI {
                 // Optionally clear cards: cardHolder.ClearCards();
             }
         }
+
+        public void BindLogicPlayer( TienLenPlayer tienLenPlayer ) {
+            this.tienLenPlayer = tienLenPlayer;
+            tienLenPlayer.SetCardHolder(cardHolder);
+        }
+
+
+        public void setSeatIndex(int index ) {
+            seatIndex = index;
+        }
+
+
     }
 }
 
