@@ -39,7 +39,8 @@ namespace Assets.Script.TienLen.Game {
         private const int totalSeats = 4;
         public bool isGameStartable { get; set; }
 
-        [Networked] public NetworkBool IsGameStarted { get; set; }
+        [Networked, OnChangedRender(nameof(UpdateStartButtonUI))] 
+        public NetworkBool IsGameStarted { get; set; }
 
 
         public event Action<NetworkRunner> OnPlayerJoinedEvent;
@@ -62,11 +63,11 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void OnEnable() {
-            startGameBtn.onClick.AddListener(RpcOnStartGameButtonClicked);
+            startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
         }
 
         public void OnDisable() {
-            startGameBtn.onClick.RemoveListener(RpcOnStartGameButtonClicked);
+            startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
         }
 
         //TODO: Handle cases player join mid game
@@ -214,8 +215,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
 
-        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-        private void RpcOnStartGameButtonClicked() {
+        private void OnStartGameButtonClicked() {
 
             Debug.Log($"[StartGame] Start button clicked, IsGameStarted={IsGameStarted}, isGameStartable={isGameStartable}");
 
