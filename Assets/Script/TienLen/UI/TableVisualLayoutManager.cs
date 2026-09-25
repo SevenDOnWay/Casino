@@ -54,6 +54,7 @@ namespace Assets.Script.TienLen.UI {
 
             Debug.Log($"[TableLayout] NetworkPlayers count in LobbySessionController: {kvps.Count}");
 
+            if ( kvps.Count == 0 ) return;
 
             // find local player seat index and build seat to player mapping
 
@@ -82,15 +83,17 @@ namespace Assets.Script.TienLen.UI {
                 return;
             }
 
-            for ( int i = 0; i < totalSeats; i++ ) {
-                playerSeats[i].ClearSeat();
-            }
 
             foreach ( var (networkSeat, player) in seatToPlayer ) {
+                if(player == null ) {
+                    Debug.LogWarning($"[TableLayout] Player is NULL for seat {networkSeat}");
+                    continue;
+                }
+
                 int visualSlotIndex = (networkSeat - localSeatIndex + totalSeats) % totalSeats;
 
                 Debug.Log($"[TableLayout] Network Seat {networkSeat} → Visual Slot {visualSlotIndex} (Player: {player.PlayerRef})");
-                playerSeats[visualSlotIndex].BindNetworkPlayer(player);
+                playerSeats[visualSlotIndex].assignSprite(true);
             }
 
             /*

@@ -21,7 +21,6 @@ namespace Assets.Script.TienLen.Game {
 
         //TODO: reduce this DI
         [Header("Dependencies")]
-        LobbySessionController lobbySessionController;
         CardSpawner cardSpawner;
         CardCombinationEvaluator cardCombinationEvaluator;
         LocalPlayerService localPlayerService;
@@ -49,14 +48,12 @@ namespace Assets.Script.TienLen.Game {
 
 
         [Inject]
-        void Construct( LobbySessionController lobbySessionController,
-            CardSpawner cardSpawner,
+        void Construct(CardSpawner cardSpawner,
             LocalPlayerService localPlayerService,
             TienLenGame game,
             TurnManager turnManager,
             CardCombinationEvaluator cardCombinationEvaluator,
             SeatProvider seatProvider ) {
-            this.lobbySessionController = lobbySessionController;
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
             this.game = game;
@@ -66,15 +63,20 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void OnEnable() {
-            lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
-            lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
-            lobbySessionController.OnGameStartedEvent += HandleGameStarted;
+            //lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
+            //lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
+            //lobbySessionController.OnGameStartedEvent += HandleGameStarted;
         }
 
         public void OnDisable() {
-            lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
-            lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
-            lobbySessionController.OnGameStartedEvent -= HandleGameStarted;
+            //lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
+            //lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
+            //lobbySessionController.OnGameStartedEvent -= HandleGameStarted;
+        }
+
+        private void Start() {
+            sprites = tienLenSO.GetLookUpTable();
+            cardBack = tienLenSO.GetCardBackSprite();
         }
 
         private void HandlePlayerJoined( NetworkRunner runner ) {
@@ -90,50 +92,76 @@ namespace Assets.Script.TienLen.Game {
 
 
 
-        private void CreateDeck() {
+        private Deck CreateDeck() {
             Debug.Log("[CreateDeck] Starting deck creation...", this);
 
             // 1. Check CardSpawner injection state
             if ( cardSpawner == null ) {
                 Debug.LogError("[CreateDeck] FAILED: 'cardSpawner' is NULL! (Construct might not have run yet, or execution order called CreateDeck too early in Awake)", this);
-                return;
+                return null;
             }
 
             // 2. Check ScriptableObject reference
             if ( tienLenSO == null ) {
                 Debug.LogError("[CreateDeck] FAILED: 'tienLenSO' field is NULL! (Assign it in the Inspector)", this);
-                return;
+                return null;
             }
 
             // 3. Check Lookup Table
-            sprites = tienLenSO.GetLookUpTable();
-            cardBack = tienLenSO.GetCardBackSprite();
+            
+
             if ( sprites == null ) {
                 Debug.LogError("[CreateDeck] FAILED: 'sprites' dictionary returned from tienLenSO.GetLookUpTable() is NULL! (Did you call Initialize() inside the SO?)", this);
-                return;
+                return null;
             }
             if ( cardBack == null ) {
                 Debug.LogError("[CreateDeck] FAILED: 'cardBack' sprite returned from tienLenSO.GetCardBackSprite() is NULL! (Did you assign a card back sprite in the SO?)", this);
-                return;
+                return null;
             }
 
             Debug.Log($"[CreateDeck] Retrieved sprites lookup table with {sprites.Count} items.");
 
             Deck deck = new Deck();
             deck.CreateDeck();
-            game.SetDeck(deck);
+
+            return deck;
+
+
+
+            //game.Initialize();
+            //game.StartGame();
+            //turnManager.Initialize(game.Players);
+
         }
 
-        private void HandleGameStarted() {
+        public void StartGame() {
             if ( !Object.HasStateAuthority ) return;
+
+            occupiedSeats = seatProvider.OccupiedSeats;
+            PlayerSeat[] occupiedPlayerSeats = seatProvider.GetAllOccupiedSeats();
+
+            List<TienLenNetWorkPlayer> networkPlayers = new();
+            List<TienLenPlayer> logicPlayers = new();
+
+
+            foreach (var kvp in occupiedSeats ) {
+                NetworkObject netObj = kvp.Value;
+                TienLenNetWorkPlayer networkPlayer = netObj.GetComponent<TienLenNetWorkPlayer>();
+
+                if ( networkPlayer != null )  networkPlayers.Add(networkPlayer);
+            }
+
+            
+
+
 
             //TODO: get network players 
 
-            CreateDeck();
+            Deck deck = CreateDeck();
+
+            DealCard(deck, occupiedPlayerSeats);
 
             Initialize();
-
-            RPCPlayDealAnimation();
             OnRoundStarted?.Invoke();
         }
 
@@ -142,36 +170,53 @@ namespace Assets.Script.TienLen.Game {
             //game.OnCardsPlayed += HandleCardsPlayed;
             //game.OnPlayerWon += HandlePlayerWon;
 
-            occupiedSeats = seatProvider.OccupiedSeats;
             
 
-            game.Initialize();
-            game.StartGame();
-            turnManager.Initialize(game.Players);
-
+           
 
         }
 
 
         #region Deal Cards
 
-        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-        private void RPCPlayDealAnimation() {
-            AnimateDealingRoutineAsync(destroyCancellationToken).Forget();
+        private void DealCard(Deck deck, PlayerSeat[] occupiedPlayerSeats ) {
+            var tempDeck = deck;
+            tempDeck.Shuffle();
+
+            List<TienLenPlayer> logicPlayers = new List<TienLenPlayer>();
+
+            foreach ( var seat in occupiedPlayerSeats ) {
+                TienLenPlayer logicPlayer = seat.tienLenPlayer;
+                if ( logicPlayer != null ) logicPlayers.Add(logicPlayer);
+            }
+
+            // Deal 13 cards to each player's data hand
+            for ( int i = 0; i < 13; i++ ) {
+                foreach ( var player in logicPlayers ) {
+                    var drawnCard = tempDeck.DrawCard();
+                    player.Hand.AddCard(drawnCard);
+                }
+            }
+
+
+            RPCPlayDealAnimation();
         }
 
-        private async UniTask AnimateDealingRoutineAsync( CancellationToken ct ) {
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+        private void RPCPlayDealAnimation(RpcInfo info = default ) {
+            AnimateDealingRoutineAsync(destroyCancellationToken).Forget();
+
+            Debug.Log($"[RPCPlayDealAnimation] Dealing animation started on all clients. Runner: {info.Source}");
+        }
+
+        private async UniTask AnimateDealingRoutineAsync(CancellationToken ct ) {
             const int delayMs = 60;
             const int cardsPerPlayer = 13;
             const int totalDeckSize = 52;
 
             TienLenPlayer localPlayer = localPlayerService.Player;
             PlayerSeat[] occupiedPlayerSeats = seatProvider.GetAllOccupiedSeats();
-
-            if ( occupiedPlayerSeats == null || occupiedPlayerSeats.Length == 0 ) {
-                Debug.LogWarning("[AnimateDealingRoutineAsync] No occupied seats found.");
-                return;
-            }
 
             Vector3 centerDeckPos = tableCenterPosition != null
                                 ? tableCenterPosition.cardHolder.transform.position
@@ -203,12 +248,37 @@ namespace Assets.Script.TienLen.Game {
                         CardView cardView = deckStack.Dequeue();
                         TienLenPlayer player = playerSeat.tienLenPlayer;
 
-                        if ( player == null || player.CardHolder == null ) {
+                        //if ( player == null || player.CardHolder == null ) {
+                        //    Debug.LogWarning($"[AnimateDealingRoutineAsync] Player or card holder is null for player {player?.Id ?? -1}");
+                        //    Destroy(cardView.gameObject);
+                        //    continue;
+                        //}
+
+                        if ( player == null ) {
+                            Debug.LogError(
+                                $"[Deal] Player is NULL. " +
+                                $"Seat={playerSeat?.GetSeatIndex() ?? -1}"
+                            );
+
+                            Destroy(cardView.gameObject);
+                            continue;
+                        }
+
+                        if ( player.CardHolder == null ) {
+                            Debug.LogError(
+                                $"[Deal] CardHolder is NULL. " +
+                                $"PlayerId={player.Id}, " +
+                                $"PlayerRef={player.PlayerRef}"
+                            );
+
                             Destroy(cardView.gameObject);
                             continue;
                         }
 
                         bool isLocal = (player.PlayerRef == Runner.LocalPlayer);
+
+                        Debug.Log($"[AnimateDealingRoutineAsync] Dealing card to player {player.Id} (local={isLocal}) at round {round}, " +
+                            $"runner: {Runner.LocalPlayer}. player {player.PlayerRef}");
 
                         if ( isLocal ) {
                             if ( player.Hand?.Cards == null || player.Hand.Cards.Count <= round ) {
@@ -230,6 +300,8 @@ namespace Assets.Script.TienLen.Game {
                             Destroy(cardView.gameObject);
 
                             player.CardHolder.AddCard(faceCardView, animate: true);
+
+                            Debug.Log($"[AnimateDealingRoutineAsync] Dealt card {cardData.Rank} of {cardData.Suit} to local player.");
                         }
                         else {
                             cardView.transform.SetParent(player.CardHolder.transform, worldPositionStays: true);

@@ -27,9 +27,7 @@ namespace Assets.Script {
 
             foreach ( CardSuit suit in suits ) {
                 for ( int rank = 3; rank <= 15; rank++ ) {
-                    cards.Add(
-                        new Card((CardRank)rank, suit)
-                    );
+                    cards.Add(new Card((CardRank)rank, suit));
                 }
             }
         }

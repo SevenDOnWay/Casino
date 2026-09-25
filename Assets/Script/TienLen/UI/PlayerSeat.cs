@@ -21,12 +21,21 @@ namespace Assets.Script.TienLen.UI {
             }
 
             isOccupied = true;
-
-            // Additional logic to bind the player to this seat
-            cardHolder.ChangeAvatar(true);
-
-            Debug.Log($"Player has occupied seat {seatIndex}");
         }
+
+        public void BindLogicPlayer( TienLenPlayer tienLenPlayer ) {
+            if( tienLenPlayer == null ) {
+                Debug.LogError("Cannot bind a null logic player to the seat.");
+                return;
+            }
+
+            this.tienLenPlayer = tienLenPlayer;
+            tienLenPlayer.SetCardHolder(cardHolder);
+
+            Debug.Log($"Logic player {tienLenPlayer.PlayerName} has been bound to seat {seatIndex}");
+        }
+
+
 
         public void ClearSeat() {
             isOccupied = false;
@@ -38,9 +47,10 @@ namespace Assets.Script.TienLen.UI {
             }
         }
 
-        public void BindLogicPlayer( TienLenPlayer tienLenPlayer ) {
-            this.tienLenPlayer = tienLenPlayer;
-            tienLenPlayer.SetCardHolder(cardHolder);
+        //TODO: Implement the logic to assign a sprite to the seat based on the player or other criteria.
+        //for now, it will be a placeholder method that can be expanded later.
+        public void assignSprite(bool isOccupied) {
+            cardHolder.ChangeAvatar(isOccupied);
         }
 
 
@@ -48,6 +58,9 @@ namespace Assets.Script.TienLen.UI {
             seatIndex = index;
         }
 
+        public int GetSeatIndex() {
+            return seatIndex;
+        }
 
     }
 }

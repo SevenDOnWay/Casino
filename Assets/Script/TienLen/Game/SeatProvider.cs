@@ -19,12 +19,6 @@ namespace Assets.Script.TienLen.Game {
         /// </summary>
         [Networked, Capacity(TotalSeats)] public NetworkDictionary<int, NetworkObject> OccupiedSeats => default;
 
-        public override void Spawned() {
-            base.Spawned();
-
-            tableVisualLayoutManager?.RefreshLayout(Runner);
-            tableVisualLayoutManager?.Init();
-        }
 
         public NetworkDictionary<int, NetworkObject> GetOccupiedSeats() {
             if ( !IsValid ) {
@@ -107,6 +101,7 @@ namespace Assets.Script.TienLen.Game {
 
         public void assignSeat( KeyValuePair<int, NetworkObject> kvp ) {
             OccupiedSeats.Add(kvp.Key, kvp.Value);
+            tableVisualLayoutManager?.RefreshLayout(Runner);
         }
 
 

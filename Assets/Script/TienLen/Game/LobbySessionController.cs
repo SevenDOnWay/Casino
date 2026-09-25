@@ -16,6 +16,7 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Dependencies")]
         private SeatProvider seatProvider;
+        private TienLenGameController tienLenGameController;
 
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
@@ -48,8 +49,10 @@ namespace Assets.Script.TienLen.Game {
         public event Action OnGameStartedEvent;
 
         [Inject]
-        void Construct( SeatProvider seatProvider ) {
+        void Construct( SeatProvider seatProvider, 
+            TienLenGameController tienLenGameController) {
             this.seatProvider = seatProvider;
+            this.tienLenGameController = tienLenGameController;
 
             playerSeats = seatProvider.AllSeats;
         }
@@ -58,7 +61,7 @@ namespace Assets.Script.TienLen.Game {
             Runner.AddCallbacks(this);
 
             if ( Object.HasStateAuthority ) {
-                RegisterExistingPlayers();
+                //RegisterExistingPlayers();s
             }
         }
 
@@ -121,7 +124,7 @@ namespace Assets.Script.TienLen.Game {
                                         onBeforeSpawned: (runner, obj) => {
                                             networkPlayer = obj.GetComponent<TienLenNetWorkPlayer>();
                                             networkPlayer.PlayerRef = player;
-                                            networkPlayer.PlayerName = $"Player {player.PlayerId + 1}";
+                                            networkPlayer.PlayerName = $"Player {player.PlayerId}";
                                         }
                                         );
 
@@ -129,6 +132,8 @@ namespace Assets.Script.TienLen.Game {
                 player,
                 "test"
                 );
+
+            Debug.Log($"[Lobby] Spawned network player object for {player.PlayerId} at seat {seatIndex}"); 
 
             networkedPlayers.Set(seatIndex, networkPlayerObject);
             seatProvider.assignSeat(new KeyValuePair<int, NetworkObject>(seatIndex, networkPlayerObject));
@@ -138,6 +143,8 @@ namespace Assets.Script.TienLen.Game {
                 if ( seat != null ) {
                     seat.BindNetworkPlayer(networkPlayer);
                     seat.BindLogicPlayer(tienLenPlayer);
+
+                    Debug.Log($"[Lobby] Assigned player {player.PlayerId} to seat {seatIndex}");
                 }
             }
 
@@ -227,7 +234,7 @@ namespace Assets.Script.TienLen.Game {
 
             IsGameStarted = true;
 
-            OnGameStartedEvent?.Invoke();
+            tienLenGameController.StartGame();
         }
 
 

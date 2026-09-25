@@ -33,7 +33,7 @@ namespace Assets.Script {
         public void OnPointerClick( PointerEventData eventData ) {
             if ( !interactable ) return;
 
-            Debug.Log($"[CardView] Card clicked: {card}");
+            //Debug.Log($"[CardView] Card clicked: {card}");
 
             OnClicked?.Invoke(this);
         }
