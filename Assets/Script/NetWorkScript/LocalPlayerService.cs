@@ -8,12 +8,12 @@ namespace Assets.Script.NetWorkScript {
         public TienLenPlayer Player { get; private set; }
         public TienLenNetWorkPlayer NetworkPlayer { get; private set; }
 
-        public void SetNetworkPlayer( TienLenNetWorkPlayer networkPlayer ) {
+        public void SetLocalNetworkPlayer( TienLenNetWorkPlayer networkPlayer ) {
             NetworkPlayer = networkPlayer;
         }
 
         public event Action<TienLenPlayer> OnLocalPlayerSet;
-        public void SetLocalPlayer( TienLenPlayer player ) {
+        public void SetLocalLogicPlayer( TienLenPlayer player ) {
             Player = player;
             OnLocalPlayerSet?.Invoke(player);
         }

@@ -44,7 +44,7 @@ namespace Assets.Script.TienLen.Game {
         Dictionary<(CardSuit, CardRank), Sprite> sprites = new Dictionary<(CardSuit, CardRank), Sprite>();
         Sprite cardBack;
 
-        public event Action OnRoundStarted;
+        //public event Action OnRoundStarted;
 
 
         [Inject]
@@ -162,7 +162,7 @@ namespace Assets.Script.TienLen.Game {
             DealCard(deck, occupiedPlayerSeats);
 
             Initialize();
-            OnRoundStarted?.Invoke();
+            //OnRoundStarted?.Invoke();
         }
 
         private void Initialize() {

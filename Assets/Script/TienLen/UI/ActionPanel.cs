@@ -62,12 +62,12 @@ namespace Assets.Script.TienLen.UI {
         public void OnEnable() {
             localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
             //game.OnRoundStarted += HandleStartRound;
-            gameController.OnRoundStarted += HandleStartRound;
+            //gameController.OnRoundStarted += HandleStartRound;
             turnManager.OnTurnChanged += HandleTurnChanged;
 
 
-            lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
-            lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
+            //lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
+            //lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
 
             if ( localPlayerService.Player != null ) {
                 HandleLocalPlayerSet(localPlayerService.Player);
@@ -77,10 +77,10 @@ namespace Assets.Script.TienLen.UI {
         public void OnDisable() {
             localPlayerService.OnLocalPlayerSet -= HandleLocalPlayerSet;
             //game.OnRoundStarted -= HandleStartRound;
-            gameController.OnRoundStarted -= HandleStartRound;
+            //gameController.OnRoundStarted -= HandleStartRound;
             turnManager.OnTurnChanged -= HandleTurnChanged;
-            lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
-            lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
+            //lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
+            //lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
         }
 
         private void HandleLocalPlayerSet( TienLenPlayer player ) {

@@ -17,6 +17,7 @@ namespace Assets.Script.TienLen.Game {
         [Header("Dependencies")]
         private SeatProvider seatProvider;
         private TienLenGameController tienLenGameController;
+        private LocalPlayerService localPlayerService;
 
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
@@ -40,7 +41,7 @@ namespace Assets.Script.TienLen.Game {
         private const int totalSeats = 4;
         public bool isGameStartable { get; set; }
 
-        [Networked, OnChangedRender(nameof(UpdateStartButtonUI))] 
+        [Networked, OnChangedRender(nameof(UpdateStartButtonUI))]
         public NetworkBool IsGameStarted { get; set; }
 
 
@@ -49,20 +50,18 @@ namespace Assets.Script.TienLen.Game {
         public event Action OnGameStartedEvent;
 
         [Inject]
-        void Construct( SeatProvider seatProvider, 
-            TienLenGameController tienLenGameController) {
+        void Construct( SeatProvider seatProvider,
+            TienLenGameController tienLenGameController,
+            LocalPlayerService localPlayerService ) {
             this.seatProvider = seatProvider;
             this.tienLenGameController = tienLenGameController;
+            this.localPlayerService = localPlayerService;
 
             playerSeats = seatProvider.AllSeats;
         }
 
         public override void Spawned() {
             Runner.AddCallbacks(this);
-
-            if ( Object.HasStateAuthority ) {
-                //RegisterExistingPlayers();s
-            }
         }
 
         public void OnEnable() {
@@ -97,11 +96,11 @@ namespace Assets.Script.TienLen.Game {
             RemovePlayer(player);
         }
 
-        private void RegisterExistingPlayers() {
-            foreach ( var player in Runner.ActivePlayers ) {
-                SpawnNetworkPlayer(player);
-            }
-        }
+        //private void RegisterExistingPlayers() {
+        //    foreach ( var player in Runner.ActivePlayers ) {
+        //        SpawnNetworkPlayer(player);
+        //    }
+        //}
 
 
         //TODO: Handle cases player join mid game
@@ -133,7 +132,7 @@ namespace Assets.Script.TienLen.Game {
                 "test"
                 );
 
-            Debug.Log($"[Lobby] Spawned network player object for {player.PlayerId} at seat {seatIndex}"); 
+            Debug.Log($"[Lobby] Spawned network player object for {player.PlayerId} at seat {seatIndex}");
 
             networkedPlayers.Set(seatIndex, networkPlayerObject);
             seatProvider.assignSeat(new KeyValuePair<int, NetworkObject>(seatIndex, networkPlayerObject));
@@ -146,6 +145,11 @@ namespace Assets.Script.TienLen.Game {
 
                     Debug.Log($"[Lobby] Assigned player {player.PlayerId} to seat {seatIndex}");
                 }
+            }
+
+            if ( Runner.LocalPlayer == player ) {
+                localPlayerService.SetLocalLogicPlayer(tienLenPlayer);
+                localPlayerService.SetLocalNetworkPlayer(networkPlayer);
             }
 
             Debug.Log($"[Lobby] Spawned network player for {player.PlayerId}");
