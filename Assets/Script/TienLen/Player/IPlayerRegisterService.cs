@@ -6,6 +6,6 @@ namespace Assets.Script.TienLen.Player {
     public interface IPlayerRegisterService {
         public IReadOnlyList<TienLenNetWorkPlayer> GetNetworkPlayer();
         public IReadOnlyDictionary<int, TienLenNetWorkPlayer> GetNetworkPlayerMap();
-        public IReadOnlyList<PlayerSeat> GetPlayerSeats();
+        public IReadOnlyList<PlayerSeat> GetOccupiedPlayerSeats();
     }
 }

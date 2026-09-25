@@ -57,7 +57,7 @@ namespace Assets.Script.TienLen.Game {
             this.tienLenGameController = tienLenGameController;
             this.localPlayerService = localPlayerService;
 
-            playerSeats = seatProvider.AllSeats;
+            //playerSeats = seatProvider.AllSeats;
         }
 
         public override void Spawned() {

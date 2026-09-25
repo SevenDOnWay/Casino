@@ -24,7 +24,7 @@ namespace Assets.Script.TienLen.UI {
             this.lobbySessionController = lobbySessionController;
             this.seatProvider = seatProvider;
 
-            playerSeats = seatProvider.AllSeats;
+            //playerSeats = seatProvider.AllSeats;
         }
 
         private void OnEnable() {
@@ -47,7 +47,7 @@ namespace Assets.Script.TienLen.UI {
         private void HandlePlayerJoin( NetworkRunner runner ) {
             Debug.Log($"[TableLayout] HandlePlayerJoin fired. LocalPlayer Ref: {runner.LocalPlayer}");
 
-            NetworkDictionary<int, NetworkObject> kvps = seatProvider.GetOccupiedSeats();
+            NetworkDictionary<int, NetworkObject> kvps = seatProvider.GetNetworkOccupiedSeats();
             Dictionary<int, TienLenNetWorkPlayer> seatToPlayer = new();
 
             int localSeatIndex = -1;

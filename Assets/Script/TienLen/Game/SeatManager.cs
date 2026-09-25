@@ -20,7 +20,7 @@ namespace Assets.Script.TienLen.Game {
         /// A networked dictionary that maps seat indices to the NetworkObject of the player occupying that seat.
         /// Client will receive updates when players join or leave seats, allowing for real-time synchronization of seat occupancy across the network.
         /// </summary>
-        [Networked, Capacity(TotalSeats)] public NetworkDictionary<int, NetworkObject> OccupiedSeats => default;
+        [Networked, Capacity(TotalSeats)] public NetworkDictionary<int, NetworkObject> networkOccupiedSeats => default;
 
         [Inject]
         void Construct(SeatProvider seatProvider) {
@@ -29,19 +29,19 @@ namespace Assets.Script.TienLen.Game {
             playerSeats = seatProvider.GetPlayerSeats();
         }
 
-        public NetworkDictionary<int, NetworkObject> GetOccupiedSeats() {
-            return OccupiedSeats;
+        public NetworkDictionary<int, NetworkObject> GetNetworkOccupiedSeats() {
+            return networkOccupiedSeats;
         }
 
         public void RegisterPlayer( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
             if ( !CheckPlayerRegistered(tienLenNetWorkPlayer) ) return;
             if ( FindAvailableSeat(out int seatIndex) == -1 ) return;
 
-            OccupiedSeats.Add(seatIndex, tienLenNetWorkPlayer.Object);
+            networkOccupiedSeats.Add(seatIndex, tienLenNetWorkPlayer.Object);
         }
 
         private bool CheckPlayerRegistered( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
-            if ( OccupiedSeats.ContainsValue(tienLenNetWorkPlayer.Object) ) {
+            if ( networkOccupiedSeats.ContainsValue(tienLenNetWorkPlayer.Object) ) {
                 Debug.LogWarning($"[SeatManager] Player {tienLenNetWorkPlayer.PlayerRef} is already registered in a seat.");
                 return false;
             }
@@ -76,22 +76,12 @@ namespace Assets.Script.TienLen.Game {
             return playerSeats[index];
         }
 
-        public PlayerSeat[] GetAllOccupiedSeats() { 
-            List<PlayerSeat> result = new();
 
-            foreach ( PlayerSeat seat in playerSeats ) {
-                if ( seat != null && seat.isOccupied ) {
-                    result.Add(seat);
-                }
-            }
-
-            return result.ToArray();
-        }
-
+        #region interface
         public IReadOnlyList<TienLenNetWorkPlayer> GetNetworkPlayer() {
             List<TienLenNetWorkPlayer> result = new();
 
-            foreach ( var kvp in OccupiedSeats ) {
+            foreach ( var kvp in networkOccupiedSeats ) {
                 if ( kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out var player) ) {
                     result.Add(player);
                 }
@@ -103,7 +93,7 @@ namespace Assets.Script.TienLen.Game {
         public IReadOnlyDictionary<int, TienLenNetWorkPlayer> GetNetworkPlayerMap() {
             Dictionary<int, TienLenNetWorkPlayer> result = new();
 
-            foreach ( var kvp in OccupiedSeats ) {
+            foreach ( var kvp in networkOccupiedSeats ) {
                 if ( kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out var player) ) {
                     result.Add(kvp.Key, player);
                 }
@@ -112,7 +102,7 @@ namespace Assets.Script.TienLen.Game {
             return result;
         }
 
-        public IReadOnlyList<PlayerSeat> GetPlayerSeats() {
+        public IReadOnlyList<PlayerSeat> GetOccupiedPlayerSeats() {
             List<PlayerSeat> result = new();
 
             foreach ( var seat in playerSeats ) {
@@ -123,5 +113,6 @@ namespace Assets.Script.TienLen.Game {
 
             return result;
         }
+        #endregion
     }
 }

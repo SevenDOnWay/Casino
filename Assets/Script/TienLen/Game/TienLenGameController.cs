@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Fusion;
 using Fusion.Sockets;
+using Photon.Realtime;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace Assets.Script.TienLen.Game {
         LocalPlayerService localPlayerService;
         TienLenGame game;
         TurnManager turnManager;
-        SeatManager seatProvider;
+        IPlayerRegisterService playerRegisterService;
 
         private const int totalSeats = 4;
 
@@ -36,8 +37,8 @@ namespace Assets.Script.TienLen.Game {
 
 
         //Dictionary<PlayerRef, TienLenNetWorkPlayer> NetworkPlayerMap;
-        NetworkDictionary<int, NetworkObject> occupiedSeats;
         //Dictionary<int, TienLenPlayer> playerMap;
+        IReadOnlyDictionary<int, TienLenNetWorkPlayer> occupiedSeats;
 
 
         private bool lastRenderedGameStarted;
@@ -53,13 +54,13 @@ namespace Assets.Script.TienLen.Game {
             TienLenGame game,
             TurnManager turnManager,
             CardCombinationEvaluator cardCombinationEvaluator,
-            SeatManager seatProvider ) {
+            IPlayerRegisterService playerRegisterService ) {
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
             this.game = game;
             this.turnManager = turnManager;
             this.cardCombinationEvaluator = cardCombinationEvaluator;
-            this.seatProvider = seatProvider;
+            this.playerRegisterService = playerRegisterService;
         }
 
         public void OnEnable() {
@@ -79,79 +80,33 @@ namespace Assets.Script.TienLen.Game {
             cardBack = tienLenSO.GetCardBackSprite();
         }
 
-        private void HandlePlayerJoined( NetworkRunner runner ) {
-            //CheckPlayer();
-            //UpdateStartButtonUI();
-        }
-
-        private void HandlePlayerLeft( NetworkRunner runner ) {
-            //CheckPlayer();
-            //UpdateStartButtonUI();
-        }
-
-
-
-
         private Deck CreateDeck() {
-            Debug.Log("[CreateDeck] Starting deck creation...", this);
-
-            // 1. Check CardSpawner injection state
-            if ( cardSpawner == null ) {
-                Debug.LogError("[CreateDeck] FAILED: 'cardSpawner' is NULL! (Construct might not have run yet, or execution order called CreateDeck too early in Awake)", this);
-                return null;
-            }
-
-            // 2. Check ScriptableObject reference
-            if ( tienLenSO == null ) {
-                Debug.LogError("[CreateDeck] FAILED: 'tienLenSO' field is NULL! (Assign it in the Inspector)", this);
-                return null;
-            }
-
-            // 3. Check Lookup Table
-            
-
-            if ( sprites == null ) {
-                Debug.LogError("[CreateDeck] FAILED: 'sprites' dictionary returned from tienLenSO.GetLookUpTable() is NULL! (Did you call Initialize() inside the SO?)", this);
-                return null;
-            }
-            if ( cardBack == null ) {
-                Debug.LogError("[CreateDeck] FAILED: 'cardBack' sprite returned from tienLenSO.GetCardBackSprite() is NULL! (Did you assign a card back sprite in the SO?)", this);
-                return null;
-            }
-
             Debug.Log($"[CreateDeck] Retrieved sprites lookup table with {sprites.Count} items.");
 
             Deck deck = new Deck();
             deck.CreateDeck();
 
             return deck;
-
-
-
-            //game.Initialize();
-            //game.StartGame();
-            //turnManager.Initialize(game.Players);
-
         }
 
         public void StartGame() {
             if ( !Object.HasStateAuthority ) return;
 
-            occupiedSeats = seatProvider.OccupiedSeats;
-            PlayerSeat[] occupiedPlayerSeats = seatProvider.GetAllOccupiedSeats();
+            occupiedSeats = playerRegisterService.GetNetworkPlayerMap();
+            IReadOnlyList<PlayerSeat> occupiedPlayerSeats = playerRegisterService.GetOccupiedPlayerSeats();
 
-            List<TienLenNetWorkPlayer> networkPlayers = new();
-            List<TienLenPlayer> logicPlayers = new();
+            //List<TienLenNetWorkPlayer> networkPlayers = new();
+            //List<TienLenPlayer> logicPlayers = new();
 
 
-            foreach (var kvp in occupiedSeats ) {
-                NetworkObject netObj = kvp.Value;
-                TienLenNetWorkPlayer networkPlayer = netObj.GetComponent<TienLenNetWorkPlayer>();
+            //foreach (var kvp in occupiedSeats ) {
+            //    NetworkObject netObj = kvp.Value;
+            //    TienLenNetWorkPlayer networkPlayer = netObj.GetComponent<TienLenNetWorkPlayer>();
 
-                if ( networkPlayer != null )  networkPlayers.Add(networkPlayer);
-            }
+            //    if ( networkPlayer != null )  networkPlayers.Add(networkPlayer);
+            //}
 
-            
+
 
 
 
@@ -179,7 +134,7 @@ namespace Assets.Script.TienLen.Game {
 
         #region Deal Cards
 
-        private void DealCard(Deck deck, PlayerSeat[] occupiedPlayerSeats ) {
+        private void DealCard(Deck deck, IReadOnlyList<PlayerSeat> occupiedPlayerSeats ) {
             var tempDeck = deck;
             tempDeck.Shuffle();
 
@@ -216,7 +171,7 @@ namespace Assets.Script.TienLen.Game {
             const int totalDeckSize = 52;
 
             TienLenPlayer localPlayer = localPlayerService.Player;
-            PlayerSeat[] occupiedPlayerSeats = seatProvider.GetAllOccupiedSeats();
+            IReadOnlyList<PlayerSeat> occupiedPlayerSeats = playerRegisterService.GetOccupiedPlayerSeats();
 
             Vector3 centerDeckPos = tableCenterPosition != null
                                 ? tableCenterPosition.cardHolder.transform.position
@@ -336,7 +291,7 @@ namespace Assets.Script.TienLen.Game {
                 return null;
             }
 
-            foreach ( var player in seatProvider.GetAllOccupiedSeats() ) {
+            foreach ( var player in playerRegisterService.GetOccupiedPlayerSeats() ) {
                 if ( player.tienLenPlayer.PlayerRef == sender ) {
                     return player.tienLenPlayer;
                 }
