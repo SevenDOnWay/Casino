@@ -15,7 +15,7 @@ namespace Assets.Script.TienLen.Game {
     public class LobbySessionController : NetworkBehaviour, INetworkRunnerCallbacks {
 
         [Header("Dependencies")]
-        private SeatProvider seatProvider;
+        private SeatManager seatProvider;
         private TienLenGameController tienLenGameController;
         private LocalPlayerService localPlayerService;
 
@@ -29,7 +29,7 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Player Seats")]
         private IReadOnlyList<PlayerSeat> playerSeats;
-
+            
 
         [Header("Network Players")]
         [Networked, Capacity(4)]
@@ -50,7 +50,7 @@ namespace Assets.Script.TienLen.Game {
         public event Action OnGameStartedEvent;
 
         [Inject]
-        void Construct( SeatProvider seatProvider,
+        void Construct( SeatManager seatProvider,
             TienLenGameController tienLenGameController,
             LocalPlayerService localPlayerService ) {
             this.seatProvider = seatProvider;
@@ -74,23 +74,18 @@ namespace Assets.Script.TienLen.Game {
 
         //TODO: Handle cases player join mid game
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
-            UpdateStartButtonUI();
+            //UpdateStartButtonUI();
 
             if ( !Object.HasStateAuthority ) return;
 
-            if ( Runner.ActivePlayers.Count() > totalSeats ) {
-                Debug.LogWarning($"Player {player.PlayerId} tried to join, but the lobby is full.");
-                return;
-            }
+            TienLenNetWorkPlayer networkPlayer = SpawnNetworkPlayer(player);
+            seatProvider.RegisterPlayer(networkPlayer);
 
-            SpawnNetworkPlayer(player);
-            RpcPlayerJoined(player);
+            //RpcPlayerJoined(player);
         }
 
         //TODO: Handle cases player leave mid game
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
-            Debug.Log($"[Lobby] OnPlayerLeft: {player}");
-
             if ( !Object.HasStateAuthority ) return;
 
             RemovePlayer(player);
@@ -104,18 +99,10 @@ namespace Assets.Script.TienLen.Game {
 
 
         //TODO: Handle cases player join mid game
-        private void SpawnNetworkPlayer( PlayerRef player ) {
+        private TienLenNetWorkPlayer SpawnNetworkPlayer( PlayerRef player ) {
             TienLenNetWorkPlayer networkPlayer = null;
 
-            bool flowControl = CheckPlayerExist(player);
-            if ( !flowControl ) return;
-
-            int seatIndex = FindAvailableSeat();
-            if ( seatIndex == -1 ) {
-                Debug.LogWarning($"Lobby is full. Cannot seat {player.PlayerId}");
-                return;
-            }
-
+            //TODO: assign this for now later we use database 
             var networkPlayerObject = Runner.Spawn(networkPlayerPrefab,
                                         Vector3.zero,
                                         Quaternion.identity,
@@ -127,34 +114,35 @@ namespace Assets.Script.TienLen.Game {
                                         }
                                         );
 
-            var tienLenPlayer = new TienLenPlayer(player.PlayerId,
-                player,
-                "test"
-                );
+            //var tienLenPlayer = new TienLenPlayer(player.PlayerId,
+            //    player,
+            //    "test"
+            //    );
 
-            Debug.Log($"[Lobby] Spawned network player object for {player.PlayerId} at seat {seatIndex}");
+            //Debug.Log($"[Lobby] Spawned network player object for {player.PlayerId} at seat {seatIndex}");
 
-            networkedPlayers.Set(seatIndex, networkPlayerObject);
-            seatProvider.assignSeat(new KeyValuePair<int, NetworkObject>(seatIndex, networkPlayerObject));
+            //networkedPlayers.Set(seatIndex, networkPlayerObject);
+            //seatProvider.assignSeat(new KeyValuePair<int, NetworkObject>(seatIndex, networkPlayerObject));
 
-            if ( seatProvider != null ) {
-                var seat = seatProvider.GetSeat(seatIndex);
-                if ( seat != null ) {
-                    seat.BindNetworkPlayer(networkPlayer);
-                    seat.BindLogicPlayer(tienLenPlayer);
+            //if ( seatProvider != null ) {
+            //    var seat = seatProvider.GetSeat(seatIndex);
+            //    if ( seat != null ) {
+            //        seat.BindNetworkPlayer(networkPlayer);
+            //        seat.BindLogicPlayer(tienLenPlayer);
 
-                    Debug.Log($"[Lobby] Assigned player {player.PlayerId} to seat {seatIndex}");
-                }
-            }
+            //        Debug.Log($"[Lobby] Assigned player {player.PlayerId} to seat {seatIndex}");
+            //    }
+            //}
 
-            if ( Runner.LocalPlayer == player ) {
-                localPlayerService.SetLocalLogicPlayer(tienLenPlayer);
-                localPlayerService.SetLocalNetworkPlayer(networkPlayer);
-            }
+            //if ( Runner.LocalPlayer == player ) {
+            //    localPlayerService.SetLocalLogicPlayer(tienLenPlayer);
+            //    localPlayerService.SetLocalNetworkPlayer(networkPlayer);
+            //}
 
-            Debug.Log($"[Lobby] Spawned network player for {player.PlayerId}");
+            //Debug.Log($"[Lobby] Spawned network player for {player.PlayerId}");
 
-            CheckPlayer();
+            return networkPlayer;
+
         }
 
         private bool CheckPlayerExist( PlayerRef player ) {
@@ -245,14 +233,7 @@ namespace Assets.Script.TienLen.Game {
 
         #endregion
 
-        private int FindAvailableSeat() {
-            for ( int i = 0; i < totalSeats; i++ ) {
-                if ( playerSeats[i].isOccupied ) continue;
-                return i;
-            }
-
-            return -1;
-        }
+       
 
         private void CheckPlayer() {
             int currentConnectedPlayers = Runner.ActivePlayers.Count();

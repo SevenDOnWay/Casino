@@ -13,10 +13,10 @@ using VContainer;
 using VContainer.Unity;
 
 namespace Assets.Script.TienLen.LifeTimeScope {
-    public class TienLenLifeTimeScope : LifetimeScope{
+    public class TienLenLifeTimeScope : LifetimeScope {
 
         [SerializeField] private CardHolder[] cardHolders;
-        [SerializeField] private TienLenNetWorkPlayer prefab; 
+        [SerializeField] private TienLenNetWorkPlayer prefab;
 
         protected override void Configure( IContainerBuilder builder ) {
             builder.Register<LocalPlayerService>(Lifetime.Singleton);
@@ -36,9 +36,13 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
             builder.RegisterComponentInHierarchy<SeatProvider>();
 
+            builder.Register<SeatManager>(Lifetime.Singleton)
+                                        .As<IPlayerRegisterService>();
+
+
             builder.Register<TienLenGame>(Lifetime.Singleton);
             builder.Register<TurnManager>(Lifetime.Singleton);
-            
+
 
 
 

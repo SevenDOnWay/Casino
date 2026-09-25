@@ -26,7 +26,7 @@ namespace Assets.Script.TienLen.Game {
         LocalPlayerService localPlayerService;
         TienLenGame game;
         TurnManager turnManager;
-        SeatProvider seatProvider;
+        SeatManager seatProvider;
 
         private const int totalSeats = 4;
 
@@ -53,7 +53,7 @@ namespace Assets.Script.TienLen.Game {
             TienLenGame game,
             TurnManager turnManager,
             CardCombinationEvaluator cardCombinationEvaluator,
-            SeatProvider seatProvider ) {
+            SeatManager seatProvider ) {
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
             this.game = game;

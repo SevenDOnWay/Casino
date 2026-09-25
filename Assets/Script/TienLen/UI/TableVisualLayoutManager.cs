@@ -11,7 +11,7 @@ using VContainer;
 namespace Assets.Script.TienLen.UI {
     public class TableVisualLayoutManager : MonoBehaviour {
         [Header("Dependencies")]
-        private SeatProvider seatProvider;
+        private SeatManager seatProvider;
         private LobbySessionController lobbySessionController;
 
 
@@ -20,7 +20,7 @@ namespace Assets.Script.TienLen.UI {
         private IReadOnlyList<PlayerSeat> playerSeats;
 
         [Inject]
-        void Construct( LobbySessionController lobbySessionController, SeatProvider seatProvider ) {
+        void Construct( LobbySessionController lobbySessionController, SeatManager seatProvider ) {
             this.lobbySessionController = lobbySessionController;
             this.seatProvider = seatProvider;
 
