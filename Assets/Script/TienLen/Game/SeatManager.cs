@@ -11,7 +11,7 @@ namespace Assets.Script.TienLen.Game {
         [Header("Dependencies")]
         SeatProvider seatProvider;
 
-        PlayerSeat[] playerSeats;
+        PlayerSeat[] playerSeats = new PlayerSeat[4];
 
         private const int TotalSeats = 4;
 
@@ -20,13 +20,17 @@ namespace Assets.Script.TienLen.Game {
         /// A networked dictionary that maps seat indices to the NetworkObject of the player occupying that seat.
         /// Client will receive updates when players join or leave seats, allowing for real-time synchronization of seat occupancy across the network.
         /// </summary>
-        [Networked, Capacity(TotalSeats)] public NetworkDictionary<int, NetworkObject> networkOccupiedSeats => default;
+        [Networked, Capacity(TotalSeats), OnChangedRender(nameof(OnOccupiedSeatsChanged))] public NetworkDictionary<int, NetworkObject> networkOccupiedSeats => default;
 
         [Inject]
-        void Construct(SeatProvider seatProvider) {
+        void Construct( SeatProvider seatProvider ) {
             this.seatProvider = seatProvider;
 
             playerSeats = seatProvider.GetPlayerSeats();
+        }
+
+        public override void Spawned() {
+            base.Spawned();
         }
 
         public NetworkDictionary<int, NetworkObject> GetNetworkOccupiedSeats() {
@@ -49,20 +53,23 @@ namespace Assets.Script.TienLen.Game {
             return true;
         }
 
-        private int FindAvailableSeat(out int seatIndex) {
+        private int FindAvailableSeat( out int seatIndex ) {
+            var seats = seatProvider.GetPlayerSeats();
             for ( int i = 0; i < TotalSeats; i++ ) {
-                if ( playerSeats[i].isOccupied ) continue;
-                seatIndex = i;
-                return seatIndex;
+                if ( i >= seats.Length || seats[i] == null ) continue;
+                if ( seats[i].isOccupied ) continue;
+                seatIndex = i; return i;
             }
 
-            Debug.LogWarning($"[SeatManager] No available seats for player");
-            seatIndex = -1;
-            return -1;
+            seatIndex = -1; return -1;
         }
 
 
+        private void OnOccupiedSeatsChanged() {
+            // Handle changes to the networked occupied seats
 
+
+        }
 
 
         /// <summary>

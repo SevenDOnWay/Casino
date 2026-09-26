@@ -15,7 +15,7 @@ namespace Assets.Script.TienLen.Game {
     public class LobbySessionController : NetworkBehaviour, INetworkRunnerCallbacks {
 
         [Header("Dependencies")]
-        private SeatManager seatProvider;
+        private IPlayerRegisterService seatManager;
         private TienLenGameController tienLenGameController;
         private LocalPlayerService localPlayerService;
 
@@ -50,10 +50,10 @@ namespace Assets.Script.TienLen.Game {
         public event Action OnGameStartedEvent;
 
         [Inject]
-        void Construct( SeatManager seatProvider,
+        void Construct( IPlayerRegisterService seatManager,
             TienLenGameController tienLenGameController,
             LocalPlayerService localPlayerService ) {
-            this.seatProvider = seatProvider;
+            this.seatManager = seatManager;
             this.tienLenGameController = tienLenGameController;
             this.localPlayerService = localPlayerService;
 
@@ -79,7 +79,7 @@ namespace Assets.Script.TienLen.Game {
             if ( !Object.HasStateAuthority ) return;
 
             TienLenNetWorkPlayer networkPlayer = SpawnNetworkPlayer(player);
-            seatProvider.RegisterPlayer(networkPlayer);
+            seatManager.RegisterPlayer(networkPlayer);
 
             //RpcPlayerJoined(player);
         }

@@ -2542,6 +2542,7 @@ GameObject:
   - component: {fileID: 2034101243}
   - component: {fileID: 2034101244}
   - component: {fileID: 2034101245}
+  - component: {fileID: 2034101246}
   m_Layer: 0
   m_Name: Seat
   m_TagString: Untagged
@@ -2580,13 +2581,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d6abe6c34f91384ca8edcc7fe256c0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.SeatProvider
-  tableVisualLayoutManager: {fileID: 1611512765}
-  playerSeats:
-  - {fileID: 829906684}
-  - {fileID: 654509019}
-  - {fileID: 87784264}
-  - {fileID: 764129595}
-  _OccupiedSeats:
+  _networkOccupiedSeats:
     _items: []
 --- !u!114 &2034101245
 MonoBehaviour:
@@ -2608,6 +2603,23 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 2034101244}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &2034101246
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2034101242}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16043264866f8d34c9b3a2d8141206bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.SeatProvider
+  playerSeats:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
 --- !u!1 &2035977413
 GameObject:
   m_ObjectHideFlags: 0

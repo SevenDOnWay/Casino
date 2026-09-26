@@ -3,6 +3,7 @@ using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Fusion;
+using Photon.Realtime;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -13,7 +14,7 @@ namespace Assets.Script.TienLen.UI {
     public class ActionPanel : MonoBehaviour {
         [Header("Dependencies")]
         private LobbySessionController lobbySessionController;
-        private LocalPlayerService localPlayerService;
+        private ILocalPlayerService localPlayerService;
         private TienLenRuleValidator validator;
         private CardCombinationEvaluator combinationEvaluator;
         private TurnManager turnManager;
@@ -36,7 +37,7 @@ namespace Assets.Script.TienLen.UI {
 
         [Inject]
         void Construct( LobbySessionController lobbySessionController,
-            LocalPlayerService localPlayerService,
+            ILocalPlayerService localPlayerService,
             TienLenRuleValidator validator,
             CardCombinationEvaluator combinationEvaluator,
             TurnManager turnManager,
@@ -49,6 +50,14 @@ namespace Assets.Script.TienLen.UI {
             this.turnManager = turnManager;
             this.game = game;
             this.gameController = gameController;
+
+            Debug.Log("[ActionPanel] Dependencies injected successfully.");
+
+            if(localPlayerService == null) {
+                Debug.LogError("[ActionPanel] localPlayerService is null after injection.");
+            }
+
+            SubcribeEvent();
         }
 
         public void Start() {
@@ -60,27 +69,34 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void OnEnable() {
-            localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
+            //localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
             //game.OnRoundStarted += HandleStartRound;
             //gameController.OnRoundStarted += HandleStartRound;
-            turnManager.OnTurnChanged += HandleTurnChanged;
+            //turnManager.OnTurnChanged += HandleTurnChanged;
 
 
             //lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
             //lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
 
-            if ( localPlayerService.Player != null ) {
-                HandleLocalPlayerSet(localPlayerService.Player);
-            }
         }
 
         public void OnDisable() {
-            localPlayerService.OnLocalPlayerSet -= HandleLocalPlayerSet;
+            //localPlayerService.OnLocalPlayerSet -= HandleLocalPlayerSet;
             //game.OnRoundStarted -= HandleStartRound;
             //gameController.OnRoundStarted -= HandleStartRound;
-            turnManager.OnTurnChanged -= HandleTurnChanged;
+            //turnManager.OnTurnChanged -= HandleTurnChanged;
             //lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
             //lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
+        }
+
+        private void SubcribeEvent() {
+            //localPlayerService.OnLocalPlayerSet += HandleLocalPlayerSet;
+            //game.OnRoundStarted += HandleStartRound;
+            //gameController.OnRoundStarted += HandleStartRound;
+            turnManager.OnTurnChanged += HandleTurnChanged;
+
+            //lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
+            //lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
         }
 
         private void HandleLocalPlayerSet( TienLenPlayer player ) {
@@ -152,9 +168,9 @@ namespace Assets.Script.TienLen.UI {
                 .Select(card => new NetworkCard { Rank = (byte)card.Rank, Suit = (byte)card.Suit })
                 .ToArray();
 
-            var networkPlayer = localPlayerService.NetworkPlayer;
+            var networkPlayer = localPlayerService.GetLocalNetworkPlayer();
             if ( networkPlayer == null ) {
-                Debug.LogWarning("[ActionPanel] Cannot call RPCRequestPlayCard because NetworkPlayer is null.");
+                Debug.LogWarning("[ActionPanel] Cannot call RPCRequestPlaysCard because NetworkPlayer is null.");
                 return;
             }
 
@@ -191,7 +207,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         void OnPassBtnClick() {
-            var networkPlayer = localPlayerService.NetworkPlayer;
+            var networkPlayer = localPlayerService.GetLocalNetworkPlayer();
             if ( networkPlayer == null ) {
                 Debug.LogWarning("[ActionPanel] Cannot call RPCRequestPass because NetworkPlayer is null.");
                 return;
