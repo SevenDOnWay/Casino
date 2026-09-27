@@ -1,15 +1,15 @@
-﻿using Assets.Script.TienLen.Game;
+﻿using Assets.Script.NetWorkScript;
+using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.UI;
-using Fusion;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Script.TienLen.Player {
     public class TienLenPlayer {
         public int Id { get; }
-        public PlayerRef PlayerRef { get; }
         public string PlayerName { get; }
         public PlayerHand Hand { get; }
         public CardHolder CardHolder { get; private set; }
@@ -19,15 +19,21 @@ namespace Assets.Script.TienLen.Player {
 
         public TienLenPlayer(
             int id,
-            PlayerRef playerRef,
             string playerName,
             bool isHuman = true ) {
             Id = id;
-            PlayerRef = playerRef;
             PlayerName = playerName;
             IsHuman = isHuman;
 
             Hand = new PlayerHand();
+        }
+
+        public TienLenPlayer(TienLenNetWorkPlayer tienLenNetWorkPlayer) {
+            Id = tienLenNetWorkPlayer.PlayerRef.PlayerId;
+            PlayerName = (String)tienLenNetWorkPlayer.PlayerName;
+            //TODO: support additional player data from network player
+
+
         }
 
         public void SetCardHolder( CardHolder cardHolder ) {

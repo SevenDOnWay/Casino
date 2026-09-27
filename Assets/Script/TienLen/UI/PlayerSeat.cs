@@ -13,6 +13,8 @@ namespace Assets.Script.TienLen.UI {
         public CardHolder cardHolder;
         public Transform cardHolderPosition; //might not be needed if we use cardholder position directly
 
+        [Header("Avatar")]
+        [SerializeField] private SpriteRenderer spriteRenderer;
 
         public void BindNetworkPlayer( TienLenNetWorkPlayer player ) {
             if ( player == null ) {
@@ -21,6 +23,9 @@ namespace Assets.Script.TienLen.UI {
             }
 
             isOccupied = true;
+
+            //TODO: Implement logic to bind network player to the avatar
+            ChangeAvatar(true);
         }
 
         public void BindLogicPlayer( TienLenPlayer tienLenPlayer ) {
@@ -35,24 +40,27 @@ namespace Assets.Script.TienLen.UI {
             Debug.Log($"Logic player {tienLenPlayer.PlayerName} has been bound to seat {seatIndex}");
         }
 
+        public void BindPlayer(TienLenPlayer tienLenPlayer) {
+            if( tienLenPlayer == null ) {
+                Debug.LogError("Cannot bind a null player to the seat.");
+                return;
+            }
+
+            this.tienLenPlayer = tienLenPlayer;
+
+            tienLenPlayer.SetCardHolder(cardHolder);
+            isOccupied = true;
+
+        }
+
 
 
         public void ClearSeat() {
             isOccupied = false;
             tienLenPlayer = null;
 
-            if ( cardHolder != null ) {
-                cardHolder.ChangeAvatar(false);
-                // Optionally clear cards: cardHolder.ClearCards();
-            }
+            ChangeAvatar(false);
         }
-
-        //TODO: Implement the logic to assign a sprite to the seat based on the player or other criteria.
-        //for now, it will be a placeholder method that can be expanded later.
-        public void assignSprite(bool isOccupied) {
-            cardHolder.ChangeAvatar(isOccupied);
-        }
-
 
         public void setSeatIndex(int index ) {
             seatIndex = index;
@@ -60,6 +68,10 @@ namespace Assets.Script.TienLen.UI {
 
         public int GetSeatIndex() {
             return seatIndex;
+        }
+
+        public void ChangeAvatar( bool isAvatarVisible ) {
+            spriteRenderer.gameObject.SetActive(isAvatarVisible); //TODO: Change into configurable sprite or avatar.
         }
 
     }

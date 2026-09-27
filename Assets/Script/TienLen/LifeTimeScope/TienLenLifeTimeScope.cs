@@ -45,7 +45,8 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.Register<TienLenGame>(Lifetime.Singleton);
             builder.Register<TurnManager>(Lifetime.Singleton);
 
-
+            builder.RegisterComponentInHierarchy<UiManager>();
+            builder.RegisterComponentInHierarchy<StartGameUI>();
 
 
 

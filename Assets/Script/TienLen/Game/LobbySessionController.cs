@@ -41,8 +41,7 @@ namespace Assets.Script.TienLen.Game {
         private const int totalSeats = 4;
         public bool isGameStartable { get; set; }
 
-        [Networked, OnChangedRender(nameof(UpdateStartButtonUI))]
-        public NetworkBool IsGameStarted { get; set; }
+
 
 
         public event Action<NetworkRunner> OnPlayerJoinedEvent;
@@ -64,13 +63,13 @@ namespace Assets.Script.TienLen.Game {
             Runner.AddCallbacks(this);
         }
 
-        public void OnEnable() {
-            startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
-        }
+        //public void OnEnable() {
+        //    startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
+        //}
 
-        public void OnDisable() {
-            startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
-        }
+        //public void OnDisable() {
+        //    startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
+        //}
 
         //TODO: Handle cases player join mid game
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
@@ -174,60 +173,60 @@ namespace Assets.Script.TienLen.Game {
         }
 
         #region Start Game Button Logic
-        private void UpdateStartButtonUI() {
-            Debug.Log(
-                    $"[StartUI] " +
-                    $"Runner={Runner.name}, " +
-                    $"LocalPlayer={Runner.LocalPlayer}, " +
-                    $"IsServer={Runner.IsServer}, " +
-                    $"HasStateAuthority={Object.HasStateAuthority}, " +
-                    $"IsGameStarted={IsGameStarted}"
-                );
+        //private void UpdateStartButtonUI() {
+        //    Debug.Log(
+        //            $"[StartUI] " +
+        //            $"Runner={Runner.name}, " +
+        //            $"LocalPlayer={Runner.LocalPlayer}, " +
+        //            $"IsServer={Runner.IsServer}, " +
+        //            $"HasStateAuthority={Object.HasStateAuthority}, " +
+        //            $"IsGameStarted={IsGameStarted}"
+        //        );
 
-            if ( startGameBtn == null ) return;
+        //    if ( startGameBtn == null ) return;
 
-            // Hide the button for everyone once the game has started
-            if ( IsGameStarted ) {
-                startGameBtn.gameObject.SetActive(false);
-                return;
-            }
+        //    // Hide the button for everyone once the game has started
+        //    if ( IsGameStarted ) {
+        //        startGameBtn.gameObject.SetActive(false);
+        //        return;
+        //    }
 
-            // Keep visible for everyone before the match starts
-            startGameBtn.gameObject.SetActive(true);
+        //    // Keep visible for everyone before the match starts
+        //    startGameBtn.gameObject.SetActive(true);
 
-            // ONLY the host can click it, and ONLY if enough players joined
-            bool isHost = Runner.IsServer;
-            startGameBtn.interactable = isHost && isGameStartable;
+        //    // ONLY the host can click it, and ONLY if enough players joined
+        //    bool isHost = Runner.IsServer;
+        //    startGameBtn.interactable = isHost && isGameStartable;
 
-            // Optional: Provide visual feedback text
-            if ( startBtnText != null ) {
-                if ( !isHost ) {
-                    startBtnText.text = "Waiting for Host to start...";
-                }
-                else if ( !isGameStartable ) {
-                    startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more to start";
-                }
-                else {
-                    startBtnText.text = "Start Game";
-                }
-            }
-        }
+        //    // Optional: Provide visual feedback text
+        //    if ( startBtnText != null ) {
+        //        if ( !isHost ) {
+        //            startBtnText.text = "Waiting for Host to start...";
+        //        }
+        //        else if ( !isGameStartable ) {
+        //            startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more to start";
+        //        }
+        //        else {
+        //            startBtnText.text = "Start Game";
+        //        }
+        //    }
+        //}
 
 
-        private void OnStartGameButtonClicked() {
+        //private void OnStartGameButtonClicked() {
 
-            Debug.Log($"[StartGame] Start button clicked, IsGameStarted={IsGameStarted}, isGameStartable={isGameStartable}");
+        //    Debug.Log($"[StartGame] Start button clicked, IsGameStarted={IsGameStarted}, isGameStartable={isGameStartable}");
 
-            if ( !Object.HasStateAuthority ) return;
-            if ( !isGameStartable ) return;
-            if ( IsGameStarted ) return;
+        //    if ( !Object.HasStateAuthority ) return;
+        //    if ( !isGameStartable ) return;
+        //    if ( IsGameStarted ) return;
 
-            Debug.Log("[StartGame] Host starting authoritative game state.");
+        //    Debug.Log("[StartGame] Host starting authoritative game state.");
 
-            IsGameStarted = true;
+        //    IsGameStarted = true;
 
-            tienLenGameController.StartGame();
-        }
+        //    tienLenGameController.StartGame();
+        //}
 
 
 
@@ -249,7 +248,7 @@ namespace Assets.Script.TienLen.Game {
                 isGameStartable = false;
             }
 
-            UpdateStartButtonUI();
+            //UpdateStartButtonUI();
         }
 
         public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }

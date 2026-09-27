@@ -28,11 +28,34 @@ namespace Assets.Script.TienLen.Game {
         TienLenGame game;
         TurnManager turnManager;
         IPlayerRegisterService playerRegisterService;
+        [SerializeField] UiManager uiManager;
 
         private const int totalSeats = 4;
+        private const int minPlayersToStart = 2;
+
+        [Networked] public NetworkBool IsGameStarted { get; set; }
+
+        /// <summary>
+        /// Returns true when enough registered network players (each carries
+        /// its PlayerRef) have joined and the game hasn't started yet.
+        /// Uses the replicated seat dictionary, so host + clients agree.
+        /// Runner.ActivePlayers is NOT used — it is unreliable before
+        /// spawn / during host migration.
+        /// </summary>
+        public int RegisteredPlayerCount =>
+            playerRegisterService != null ? playerRegisterService.GetNetworkPlayer().Count : 0;
+
+        public bool CanStartGame() {
+            if ( Object == null || !Object.IsValid ) return false;
+            if ( IsGameStarted ) return false;
+            if ( playerRegisterService == null ) return false;
+
+            return RegisteredPlayerCount >= minPlayersToStart;
+        }
+
 
         private IReadOnlyList<PlayerSeat> playerSeats;
-        [SerializeField] private PlayerSeat tableCenterPosition; //TODO: change the name for better understanding
+        [SerializeField] private CardHolder tableCenterPosition; //TODO: change the name for better understanding
         [SerializeField] TienLenSO tienLenSO;
 
 
@@ -47,9 +70,10 @@ namespace Assets.Script.TienLen.Game {
 
         //public event Action OnRoundStarted;
 
+        public event Action OnLobbyChanged;
 
         [Inject]
-        void Construct(CardSpawner cardSpawner,
+        void Construct( CardSpawner cardSpawner,
             LocalPlayerService localPlayerService,
             TienLenGame game,
             TurnManager turnManager,
@@ -75,6 +99,24 @@ namespace Assets.Script.TienLen.Game {
             //lobbySessionController.OnGameStartedEvent -= HandleGameStarted;
         }
 
+
+        public override void Spawned() {
+            base.Spawned();
+
+
+            uiManager.Init();
+
+            playerRegisterService.OnSeatsChanged += HandleSeatsChanged;
+        }
+
+        public override void Despawned( NetworkRunner runner, bool hasState ) {
+            playerRegisterService.OnSeatsChanged -= HandleSeatsChanged;
+            base.Despawned(runner, hasState);
+        }
+
+        private void HandleSeatsChanged() {
+            OnLobbyChanged?.Invoke();
+        }
         private void Start() {
             sprites = tienLenSO.GetLookUpTable();
             cardBack = tienLenSO.GetCardBackSprite();
@@ -91,6 +133,10 @@ namespace Assets.Script.TienLen.Game {
 
         public void StartGame() {
             if ( !Object.HasStateAuthority ) return;
+            if ( !CanStartGame() ) return;
+            if ( IsGameStarted ) return;
+
+            IsGameStarted = true;
 
             occupiedSeats = playerRegisterService.GetNetworkPlayerMap();
             IReadOnlyList<PlayerSeat> occupiedPlayerSeats = playerRegisterService.GetOccupiedPlayerSeats();
@@ -125,16 +171,16 @@ namespace Assets.Script.TienLen.Game {
             //game.OnCardsPlayed += HandleCardsPlayed;
             //game.OnPlayerWon += HandlePlayerWon;
 
-            
 
-           
+
+
 
         }
 
 
         #region Deal Cards
 
-        private void DealCard(Deck deck, IReadOnlyList<PlayerSeat> occupiedPlayerSeats ) {
+        private void DealCard( Deck deck, IReadOnlyList<PlayerSeat> occupiedPlayerSeats ) {
             var tempDeck = deck;
             tempDeck.Shuffle();
 
@@ -159,22 +205,23 @@ namespace Assets.Script.TienLen.Game {
 
 
         [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
-        private void RPCPlayDealAnimation(RpcInfo info = default ) {
+        private void RPCPlayDealAnimation( RpcInfo info = default ) {
             AnimateDealingRoutineAsync(destroyCancellationToken).Forget();
 
             Debug.Log($"[RPCPlayDealAnimation] Dealing animation started on all clients. Runner: {info.Source}");
         }
 
-        private async UniTask AnimateDealingRoutineAsync(CancellationToken ct ) {
+        private async UniTask AnimateDealingRoutineAsync( CancellationToken ct ) {
             const int delayMs = 60;
             const int cardsPerPlayer = 13;
             const int totalDeckSize = 52;
 
             TienLenPlayer localPlayer = localPlayerService.Player;
             IReadOnlyList<PlayerSeat> occupiedPlayerSeats = playerRegisterService.GetOccupiedPlayerSeats();
+            IReadOnlyDictionary<int, TienLenNetWorkPlayer> seatOwners = playerRegisterService.GetNetworkPlayerMap();
 
             Vector3 centerDeckPos = tableCenterPosition != null
-                                ? tableCenterPosition.cardHolder.transform.position
+                                ? tableCenterPosition.transform.position
                                 : Vector3.zero;
 
             Queue<CardView> deckStack = new Queue<CardView>(totalDeckSize);
@@ -203,6 +250,13 @@ namespace Assets.Script.TienLen.Game {
                         CardView cardView = deckStack.Dequeue();
                         TienLenPlayer player = playerSeat.tienLenPlayer;
 
+                        // TienLenPlayer carries no network identity, so resolve
+                        // this seat's owner (which has the PlayerRef) via the seat map.
+                        PlayerRef seatOwner = seatOwners.TryGetValue(playerSeat.GetSeatIndex(), out TienLenNetWorkPlayer seatNetPlayer)
+                            && seatNetPlayer != null
+                            ? seatNetPlayer.PlayerRef
+                            : default;
+
                         //if ( player == null || player.CardHolder == null ) {
                         //    Debug.LogWarning($"[AnimateDealingRoutineAsync] Player or card holder is null for player {player?.Id ?? -1}");
                         //    Destroy(cardView.gameObject);
@@ -223,17 +277,17 @@ namespace Assets.Script.TienLen.Game {
                             Debug.LogError(
                                 $"[Deal] CardHolder is NULL. " +
                                 $"PlayerId={player.Id}, " +
-                                $"PlayerRef={player.PlayerRef}"
+                                $"Seat={playerSeat?.GetSeatIndex() ?? -1}"
                             );
 
                             Destroy(cardView.gameObject);
                             continue;
                         }
 
-                        bool isLocal = (player.PlayerRef == Runner.LocalPlayer);
+                        bool isLocal = (seatOwner == Runner.LocalPlayer);
 
                         Debug.Log($"[AnimateDealingRoutineAsync] Dealing card to player {player.Id} (local={isLocal}) at round {round}, " +
-                            $"runner: {Runner.LocalPlayer}. player {player.PlayerRef}");
+                            $"runner: {Runner.LocalPlayer}. player {seatOwner}");
 
                         if ( isLocal ) {
                             if ( player.Hand?.Cards == null || player.Hand.Cards.Count <= round ) {
@@ -291,9 +345,15 @@ namespace Assets.Script.TienLen.Game {
                 return null;
             }
 
-            foreach ( var player in playerRegisterService.GetOccupiedPlayerSeats() ) {
-                if ( player.tienLenPlayer.PlayerRef == sender ) {
-                    return player.tienLenPlayer;
+            // TienLenPlayer carries no network identity, so resolve the sender
+            // through the seat map: seat index -> network player (has PlayerRef).
+            IReadOnlyDictionary<int, TienLenNetWorkPlayer> seatMap = playerRegisterService.GetNetworkPlayerMap();
+
+            foreach ( var seat in playerRegisterService.GetOccupiedPlayerSeats() ) {
+                if ( seat == null || seat.tienLenPlayer == null ) continue;
+                if ( seatMap.TryGetValue(seat.GetSeatIndex(), out TienLenNetWorkPlayer netPlayer) &&
+                     netPlayer != null && netPlayer.PlayerRef == sender ) {
+                    return seat.tienLenPlayer;
                 }
             }
 
@@ -320,7 +380,7 @@ namespace Assets.Script.TienLen.Game {
                 return;
             }
             // Notify all clients that this pass was accepted.
-            RPCPassAccepted(player.PlayerRef);
+            RPCPassAccepted(sender);
         }
 
         [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
@@ -335,7 +395,7 @@ namespace Assets.Script.TienLen.Game {
         #endregion
 
         #region Play handle
-        public void HandleAcceptedPlay( TienLenPlayer player, List<Card> playedCards ) {
+        public void HandleAcceptedPlay( PlayerRef sender, TienLenPlayer player, List<Card> playedCards ) {
             if ( player == null ) {
                 Debug.LogError("Cannot handle accepted play: localPlayer is null.");
                 return;
@@ -350,7 +410,7 @@ namespace Assets.Script.TienLen.Game {
 
             // Notify all clients that this play was accepted.
             RPCPlayAccepted(
-                player.PlayerRef,
+                sender,
                 playedCards.Select(card => new NetworkCard(card)).ToArray()
             );
         }
@@ -380,7 +440,7 @@ namespace Assets.Script.TienLen.Game {
             // etc.
 
             CardHolder hand = player.CardHolder;
-            CardHolder table = tableCenterPosition.cardHolder;
+            CardHolder table = tableCenterPosition;
 
             StartCoroutine(AnimatePlayedCards(hand, table, playedCards));
 
@@ -495,7 +555,7 @@ namespace Assets.Script.TienLen.Game {
             }
 
             // Accepted.
-            HandleAcceptedPlay(player, requestedCards);
+            HandleAcceptedPlay(sender, player, requestedCards);
         }
 
         #endregion

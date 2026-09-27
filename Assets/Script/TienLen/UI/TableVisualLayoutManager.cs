@@ -1,41 +1,38 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Game;
+using Assets.Script.TienLen.Player;
 using Fusion;
 using NUnit.Framework;
 using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using UnityEngine;
 using VContainer;
 
 namespace Assets.Script.TienLen.UI {
     public class TableVisualLayoutManager : MonoBehaviour {
         [Header("Dependencies")]
-        private SeatManager seatProvider;
+        private SeatProvider seatProvider;
+        private SeatManager seatManager;
         private LobbySessionController lobbySessionController;
-
+        private ILocalPlayerService localPlayerService;
 
         private const int totalSeats = 4;
 
         private IReadOnlyList<PlayerSeat> playerSeats;
 
         [Inject]
-        void Construct( LobbySessionController lobbySessionController, SeatManager seatProvider ) {
+        void Construct( SeatProvider seatProvider,
+            SeatManager seatManager,
+            LobbySessionController lobbySessionController,
+            ILocalPlayerService localPlayerService ) {
             this.lobbySessionController = lobbySessionController;
-            this.seatProvider = seatProvider;
+            this.seatManager = seatManager;
+            this.localPlayerService = localPlayerService;
 
             //playerSeats = seatProvider.AllSeats;
-        }
-
-        private void OnEnable() {
-            //lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoin;
-            //lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
-        }
-
-
-        private void OnDisable() {
-            //lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoin;
-            //lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
         }
 
         public void Init() {
@@ -44,230 +41,60 @@ namespace Assets.Script.TienLen.UI {
         }
 
 
-        private void HandlePlayerJoin( NetworkRunner runner ) {
-            Debug.Log($"[TableLayout] HandlePlayerJoin fired. LocalPlayer Ref: {runner.LocalPlayer}");
 
-            NetworkDictionary<int, NetworkObject> kvps = seatProvider.GetNetworkOccupiedSeats();
-            Dictionary<int, TienLenNetWorkPlayer> seatToPlayer = new();
+        private async Task HandlePlayerJoin() {
+            Debug.Log($"[TableLayout] HandlePlayerJoin fired.");
 
-            int localSeatIndex = -1;
+            NetworkDictionary<int, NetworkObject> networkDictionary = seatManager.GetNetworkOccupiedSeats();
+            Dictionary<int, TienLenNetWorkPlayer> seatToPlayer = new Dictionary<int, TienLenNetWorkPlayer>();
+            playerSeats ??= await seatProvider.GetPlayerSeatsAsync();
 
-            Debug.Log($"[TableLayout] NetworkPlayers count in LobbySessionController: {kvps.Count}");
+            Debug.Log($"[TableLayout] NetworkPlayers count in LobbySessionController: {networkDictionary.Count}");
 
-            if ( kvps.Count == 0 ) return;
-
-            // find local player seat index and build seat to player mapping
-
-            foreach ( var kvp in kvps ) {
-                int seatIndex = kvp.Key;
-                NetworkObject netObj = kvp.Value;
-
-                if ( netObj == null ) continue;
-
-                var networkPlayer = netObj.GetComponent<TienLenNetWorkPlayer>();
-                if ( networkPlayer == null ) {
-                    Debug.LogWarning($"[TableLayout] TienLenNetWorkPlayer component is NULL for seat {seatIndex}");
-                    continue;
-                }
-
-                seatToPlayer[seatIndex] = networkPlayer;
-
-                if ( networkPlayer.PlayerRef == runner.LocalPlayer ) {
-                    localSeatIndex = seatIndex;
-                    Debug.Log($"[TableLayout] Found local player at seat {seatIndex}");
-                }
-            }
+            FindLocalSeatIndex(networkDictionary, seatToPlayer, out int localSeatIndex);
 
             if ( localSeatIndex == -1 ) {
-                Debug.LogWarning($"[TableLayout] Local player {runner.LocalPlayer} not found in occupied seats.");
+                Debug.LogWarning($"[TableLayout] Local player {localPlayerService.GetLocalNetworkPlayer().PlayerRef} not found in occupied seats.");
                 return;
             }
 
+            BindToLocalSeat(seatToPlayer, localSeatIndex);
+        }
 
+        private void BindToLocalSeat( Dictionary<int, TienLenNetWorkPlayer> seatToPlayer, int localSeatIndex ) {
             foreach ( var (networkSeat, player) in seatToPlayer ) {
-                if(player == null ) {
+                if ( player == null ) {
                     Debug.LogWarning($"[TableLayout] Player is NULL for seat {networkSeat}");
                     continue;
                 }
 
                 int visualSlotIndex = (networkSeat - localSeatIndex + totalSeats) % totalSeats;
 
+                var tienlenPlayer = new TienLenPlayer(player);
+
                 Debug.Log($"[TableLayout] Network Seat {networkSeat} → Visual Slot {visualSlotIndex} (Player: {player.PlayerRef})");
-                playerSeats[visualSlotIndex].assignSprite(true);
+                playerSeats[visualSlotIndex].BindPlayer(tienlenPlayer);
             }
+        }
 
-            /*
-            for ( int i = 0; i < kvps.Count; i++ ) {
-                var kvp = kvps.Get(i);
-                var networkObj = kvp.GetComponent<TienLenNetWorkPlayer>();
+        private int FindLocalSeatIndex( NetworkDictionary<int, NetworkObject> networkDictionary, Dictionary<int, TienLenNetWorkPlayer> seatToPlayer, out int localSeatIndex ) {
+            localSeatIndex = -1;
+            foreach ( var kvp in networkDictionary ) {
+                int seatIndex = kvp.Key;
+                NetworkObject netObj = kvp.Value;
 
-                if ( networkObj == null ) {
-                    Debug.LogWarning($"[TableLayout] TienLenNetWorkPlayer component is NULL for seat {kvp.Key}");
-                    continue;
-                }
+                var networkPlayer = netObj.GetComponent<TienLenNetWorkPlayer>();
+                if ( networkPlayer == null ) continue;
 
-                seatToPlayer[i] = networkObj;
+                seatToPlayer[seatIndex] = networkPlayer;
 
-                if ( networkObj.PlayerRef == runner.LocalPlayer ) {
-                    localSeatIndex = kvp.Key;
-                    Debug.Log($"[TableLayout] Found local player at seat {kvp.Key}");
-                }
-            }
-
-            if ( localSeatIndex == -1 ) {
-                Debug.LogWarning($"[TableLayout] Local player {runner.LocalPlayer} not found in occupied seats.");
-                return;
-            }
-
-            // Bind local player to visual slot 0
-            foreach ( var kvp in seatToPlayer ) {
-                int networkSeat = kvp.Key;
-                var player = kvp.Value;
-                if ( networkSeat == localSeatIndex )
-                    continue;
-                int visualSlotIndex = (networkSeat - localSeatIndex + totalSeats) % totalSeats;
-                Debug.Log($"[TableLayout] Network Seat {networkSeat} → Visual Slot {visualSlotIndex}");
-                playerSeats[visualSlotIndex].BindNetworkPlayer(player);
-            }
-            */
-
-            /*
-            for ( int i = 0; i < totalSeats; i++ ) {
-                var networkObj = playerSeats[i].GetComponent<TienLenNetWorkPlayer>();
-
-                if ( networkObj == null ) {
-                    Debug.LogWarning($"[TableLayout] TienLenNetWorkPlayer component is NULL for seat {i}");
-                    continue;
-                }
-
-                if ( networkObj.PlayerRef == runner.LocalPlayer ) {
-                    localSeatIndex = i;
-                    Debug.Log($"[TableLayout] Found local player at seat {i}");
-
-                    int j = i;
-                    while ( j > 0 ) {
-                        j--;
-
-                        if ( seatToPlayer.TryGetValue(localSeatIndex, out var localPlayer) ) {
-                            playerSeats[j].BindNetworkPlayer(localPlayer);
-                        }
-
-                    }
-                }
-                else {
-                    unassignedPlayers.Push(networkObj);
-                }
-
-            }
-
-            */
-
-
-            /*
-            // --------------------------------------------------
-            // 1. Build Seat -> Player mapping
-            // --------------------------------------------------
-
-            foreach ( var networkObj in networkedPlayers ) {
-                var player = networkObj.GetComponent<TienLenNetWorkPlayer>();
-
-                if ( player == null ) {
-                    Debug.LogWarning(
-                        $"[TableLayout] TienLenNetWorkPlayer component is NULL for {player.Id}"
-                    );
-                    continue;
-                }
-
-                Debug.Log($"[TableLayout] GetComponent result: " + $"{player}");
-
-                int seatIndex = player.PlayerSeatIndex;
-
-                Debug.Log(
-                    $"[TableLayout] Network Player: {networkObj.Key} " +
-                    $"-> SeatIndex: {seatIndex}"
-                );
-
-                if ( seatIndex < 0 || seatIndex >= totalSeats ) {
-                    Debug.LogWarning(
-                        $"[TableLayout] Player {networkObj.Key} has invalid " +
-                        $"PlayerSeatIndex: {seatIndex}"
-                    );
-
-                    continue;
-                }
-
-                seatToPlayer[seatIndex] = player;
-
-                // Find myself
-                if ( networkObj.Key == runner.LocalPlayer ) {
+                if ( networkPlayer.PlayerRef == localPlayerService.GetLocalNetworkPlayer().PlayerRef ) {
                     localSeatIndex = seatIndex;
+                    Debug.Log($"[TableLayout] Found local player at seat {seatIndex}");
                 }
             }
 
-            // --------------------------------------------------
-            // 2. Make sure local player exists
-            // --------------------------------------------------
-
-            if ( localSeatIndex == -1 ) {
-                Debug.LogWarning(
-                    $"[TableLayout] Local player {runner.LocalPlayer} " +
-                    $"not found in NetworkedPlayers."
-                );
-
-                return;
-            }
-
-            Debug.Log(
-                $"[TableLayout] Local player seat resolved to: " +
-                $"{localSeatIndex}"
-            );
-
-
-            // --------------------------------------------------
-            // 3. Local player → Visual Slot 0
-            // --------------------------------------------------
-
-            if ( seatToPlayer.TryGetValue(
-                    localSeatIndex,
-                    out var localPlayer) ) {
-                Debug.Log(
-                    $"[TableLayout] Binding Local Player " +
-                    $"Network Seat {localSeatIndex} → Visual Slot 0"
-                );
-
-                playerSeats[0].BindNetworkPlayer(localPlayer);
-            }
-
-            // --------------------------------------------------
-            // 4. Calculate every other player's local slot
-            // --------------------------------------------------
-
-            foreach ( var kvp in seatToPlayer ) {
-                int networkSeat = kvp.Key;
-                var player = kvp.Value;
-
-                // Skip local player
-                if ( networkSeat == localSeatIndex )
-                    continue;
-
-                int visualSlotIndex =
-            (networkSeat - localSeatIndex + totalSeats)
-            % totalSeats;
-
-                Debug.Log(
-                    $"[TableLayout] Network Seat {networkSeat} " +
-                    $"→ Visual Slot {visualSlotIndex}"
-                );
-
-                playerSeats[visualSlotIndex]
-                    .BindNetworkPlayer(player);
-            }
-
-            Debug.Log(
-                "[TableLayout] Visual layout processing complete."
-            );
-            */
-
+            return localSeatIndex;
         }
 
         private void HandlePlayerLeft( NetworkRunner runner ) {
@@ -278,8 +105,10 @@ namespace Assets.Script.TienLen.UI {
 
         }
 
-        public void RefreshLayout( NetworkRunner runner ) {
-            HandlePlayerJoin(runner);
+
+        //TODO: This method shuold handle both player join and leave events, and update the visual layout accordingly.
+        public void RefreshLayout() {
+            HandlePlayerJoin();
         }
 
     }

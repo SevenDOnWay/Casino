@@ -61,7 +61,7 @@ namespace Assets.Script.TienLen.Game {
         public void RemovePlayer( PlayerRef playerRef ) {
             Debug.Log($"[RemovePlayer] Removing localPlayer with PlayerRef: {playerRef}");
 
-            players.RemoveAll(p => p.PlayerRef == playerRef);
+            players.RemoveAll(p => p.Id == playerRef.PlayerId);
         }
 
         

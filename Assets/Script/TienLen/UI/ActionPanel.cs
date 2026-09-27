@@ -106,15 +106,15 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void HandlePlayerJoined( NetworkRunner runner ) {
-            if ( runner.LocalPlayer == localPlayer?.PlayerRef ) {
-                actionPanel.SetActive(true);
-            }
+            //if ( runner.LocalPlayer == localPlayer?.PlayerRef ) {
+            //    actionPanel.SetActive(true);
+            //}
         }
 
         private void HandlePlayerLeft( NetworkRunner runner ) {
-            if ( runner.LocalPlayer == localPlayer?.PlayerRef ) {
-                actionPanel.SetActive(false);
-            }
+            //if ( runner.LocalPlayer == localPlayer?.PlayerRef ) {
+            //    actionPanel.SetActive(false);
+            //}
         }
 
         private void HandleStartRound() {

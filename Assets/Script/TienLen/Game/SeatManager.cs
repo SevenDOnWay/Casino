@@ -2,7 +2,9 @@
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.UI;
 using Fusion;
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using VContainer;
 
@@ -20,13 +22,15 @@ namespace Assets.Script.TienLen.Game {
         /// A networked dictionary that maps seat indices to the NetworkObject of the player occupying that seat.
         /// Client will receive updates when players join or leave seats, allowing for real-time synchronization of seat occupancy across the network.
         /// </summary>
-        [Networked, Capacity(TotalSeats), OnChangedRender(nameof(OnOccupiedSeatsChanged))] public NetworkDictionary<int, NetworkObject> networkOccupiedSeats => default;
+        [Networked, Capacity(TotalSeats), OnChangedRender(nameof(OnOccupiedSeatsChanged))]
+        public NetworkDictionary<int, NetworkObject> networkOccupiedSeats => default;
+
+
+        public event Action OnSeatsChanged;
 
         [Inject]
         void Construct( SeatProvider seatProvider ) {
             this.seatProvider = seatProvider;
-
-            playerSeats = seatProvider.GetPlayerSeats();
         }
 
         public override void Spawned() {
@@ -38,8 +42,19 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void RegisterPlayer( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
+            _ = RegisterPlayerAsync(tienLenNetWorkPlayer);
+        }
+
+        public async Task RegisterPlayerAsync( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
+
+            if ( tienLenNetWorkPlayer == null ) return;
             if ( !CheckPlayerRegistered(tienLenNetWorkPlayer) ) return;
-            if ( FindAvailableSeat(out int seatIndex) == -1 ) return;
+
+            int seatIndex = await FindAvailableSeat();
+            if ( seatIndex == -1 ) {
+                Debug.LogWarning("[SeatManager] No available seat for " + tienLenNetWorkPlayer.PlayerRef);
+                return;
+            }
 
             networkOccupiedSeats.Add(seatIndex, tienLenNetWorkPlayer.Object);
         }
@@ -53,22 +68,45 @@ namespace Assets.Script.TienLen.Game {
             return true;
         }
 
-        private int FindAvailableSeat( out int seatIndex ) {
-            var seats = seatProvider.GetPlayerSeats();
+        private async Task<int> FindAvailableSeat() {
+            var seats = await seatProvider.GetPlayerSeatsAsync();
+
             for ( int i = 0; i < TotalSeats; i++ ) {
+                if ( networkOccupiedSeats.ContainsKey(i) ) continue;
                 if ( i >= seats.Length || seats[i] == null ) continue;
                 if ( seats[i].isOccupied ) continue;
-                seatIndex = i; return i;
+
+                return i;
             }
 
-            seatIndex = -1; return -1;
+            return -1;
         }
 
 
         private void OnOccupiedSeatsChanged() {
-            // Handle changes to the networked occupied seats
+            _ = OnOccupiedSeatsChangedAsync();
+        }
 
+        private async Task OnOccupiedSeatsChangedAsync() {
+            // Sync visual seats from the replicated dictionary so every
+            // peer (host + clients) sees the same occupancy. Each entry's
+            // TienLenNetWorkPlayer carries its PlayerRef.
+            playerSeats ??= await seatProvider.GetPlayerSeatsAsync();
 
+            for ( int i = 0; i < playerSeats.Length; i++ ) {
+                if ( playerSeats[i] == null ) continue;
+                if ( playerSeats[i].isOccupied ) continue;
+
+                if ( playerSeats[i].tienLenPlayer == null ) {
+                    var tienLenPlayer = new TienLenPlayer(i, name);
+                    playerSeats[i].BindLogicPlayer(tienLenPlayer);
+                }
+                else {
+                    playerSeats[i].ClearSeat();
+                }
+            }
+
+            OnSeatsChanged?.Invoke();
         }
 
 
@@ -88,6 +126,8 @@ namespace Assets.Script.TienLen.Game {
         public IReadOnlyList<TienLenNetWorkPlayer> GetNetworkPlayer() {
             List<TienLenNetWorkPlayer> result = new();
 
+            if ( Object == null || !Object.IsValid ) return result;
+
             foreach ( var kvp in networkOccupiedSeats ) {
                 if ( kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out var player) ) {
                     result.Add(player);
@@ -99,6 +139,8 @@ namespace Assets.Script.TienLen.Game {
 
         public IReadOnlyDictionary<int, TienLenNetWorkPlayer> GetNetworkPlayerMap() {
             Dictionary<int, TienLenNetWorkPlayer> result = new();
+
+            if ( Object == null || !Object.IsValid ) return result;
 
             foreach ( var kvp in networkOccupiedSeats ) {
                 if ( kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out var player) ) {
@@ -112,9 +154,15 @@ namespace Assets.Script.TienLen.Game {
         public IReadOnlyList<PlayerSeat> GetOccupiedPlayerSeats() {
             List<PlayerSeat> result = new();
 
-            foreach ( var seat in playerSeats ) {
-                if ( seat != null ) {
-                    result.Add(seat);
+            if ( Object == null || !Object.IsValid ) return result;
+
+            var seats = seatProvider != null ? seatProvider.GetPlayerSeats() : playerSeats;
+            if ( seats == null ) return result;
+
+            foreach ( var kvp in networkOccupiedSeats ) {
+                int seatIndex = kvp.Key;
+                if ( seatIndex >= 0 && seatIndex < seats.Length && seats[seatIndex] != null ) {
+                    result.Add(seats[seatIndex]);
                 }
             }
 

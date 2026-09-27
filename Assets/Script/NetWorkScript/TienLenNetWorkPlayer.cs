@@ -16,6 +16,10 @@ namespace Assets.Script.NetWorkScript {
         [Networked] public PlayerRef PlayerRef { get; set; }
         [Networked] public NetworkString<_16> PlayerName { get; set; }
 
+        //TODO:support player data like avatar, score, etc. in the future.
+
+
+
         public override void Spawned() {
             Initialize();
         }

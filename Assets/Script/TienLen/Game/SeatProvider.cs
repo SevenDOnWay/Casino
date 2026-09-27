@@ -1,5 +1,6 @@
 ﻿using Assets.Script.TienLen.UI;
 using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Assets.Script.TienLen.Game {
@@ -9,22 +10,38 @@ namespace Assets.Script.TienLen.Game {
         [SerializeField, Header("Player Seat"), Tooltip("This is for debugging purposes only do not assign in the inspector.")]
         private PlayerSeat[] playerSeats = new PlayerSeat[TotalSeats];
 
+        private TaskCompletionSource<PlayerSeat[]> _initTcs;
+
         private void Awake() {
-            // Automatically cache children if not wired in the inspector
+            EnsureInitialized();
+        }
+
+        private PlayerSeat[] EnsureInitialized() {
             if ( playerSeats == null || playerSeats.Length == 0 || playerSeats[0] == null ) {
-                playerSeats = GetComponentsInChildren<PlayerSeat>();
+                playerSeats = GetComponentsInChildren<PlayerSeat>(true);
             }
 
-            // Tag visual index order automatically
             for ( int i = 0; i < playerSeats.Length; i++ ) {
                 if ( playerSeats[i] != null ) {
                     playerSeats[i].setSeatIndex(i);
                 }
             }
+
+            return playerSeats;
         }
 
         public PlayerSeat[] GetPlayerSeats() {
-            return playerSeats;
+            return EnsureInitialized();
+        }
+
+        public Task<PlayerSeat[]> GetPlayerSeatsAsync() {
+            // If already cached/set up, return immediately
+            if ( playerSeats != null && playerSeats.Length > 0 && playerSeats[0] != null ) {
+                return Task.FromResult(playerSeats);
+            }
+
+            // Initialize and return
+            return Task.FromResult(EnsureInitialized());
         }
     }
 }
