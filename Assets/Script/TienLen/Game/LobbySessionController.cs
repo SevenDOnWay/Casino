@@ -77,10 +77,21 @@ namespace Assets.Script.TienLen.Game {
 
             if ( !Object.HasStateAuthority ) return;
 
+            Debug.Log($"[Lobby] Player joined: {player.PlayerId}");
+
             TienLenNetWorkPlayer networkPlayer = SpawnNetworkPlayer(player);
             seatManager.RegisterPlayer(networkPlayer);
 
-            //RpcPlayerJoined(player);
+            Debug.Log($"[Lobby] Spawned network player '{networkPlayer?.PlayerName}' for {player.PlayerId}");
+
+            if ( Runner != null && Runner.LocalPlayer == player ) {
+                if ( localPlayerService != null ) {
+                    localPlayerService.SetLocalNetworkPlayer(networkPlayer);
+                }
+            }
+
+            RpcPlayerJoined(player);
+            OnPlayerJoinedEvent?.Invoke(runner);
         }
 
         //TODO: Handle cases player leave mid game
@@ -165,11 +176,22 @@ namespace Assets.Script.TienLen.Game {
 
         //TODO: Handle cases player leave mid game
         private void RemovePlayer( PlayerRef player ) {
-            //if ( networkedPlayers.TryGet(player, out var networkPlayer) ) {
-            //    Runner.Despawn(networkPlayer);
-            //    networkedPlayers.Remove(player);
-            //    OnPlayerLeftEvent?.Invoke(Runner);
-            //}
+            if ( !Object.HasStateAuthority ) return;
+            if ( Runner == null ) return;
+
+            Debug.Log($"[Lobby] Player left: {player.PlayerId}");
+
+            foreach ( var netObj in networkedPlayers ) {
+                if ( netObj != null && netObj.TryGetComponent<TienLenNetWorkPlayer>(out var netPlayer) ) {
+                    if ( netPlayer.PlayerRef == player ) {
+                        Runner.Despawn(netObj);
+                        Debug.Log($"[Lobby] Despawned network player '{netPlayer.PlayerName}' for {player.PlayerId}");
+                        break;
+                    }
+                }
+            }
+
+            OnPlayerLeftEvent?.Invoke(Runner);
         }
 
         #region Start Game Button Logic
