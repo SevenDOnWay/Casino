@@ -277,7 +277,7 @@ MonoBehaviour:
   isOccupied: 0
   cardHolder: {fileID: 87784263}
   cardHolderPosition: {fileID: 87784262}
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 889437778}
 --- !u!1 &107600210
 GameObject:
   m_ObjectHideFlags: 0
@@ -1148,7 +1148,7 @@ MonoBehaviour:
   isOccupied: 0
   cardHolder: {fileID: 654509018}
   cardHolderPosition: {fileID: 654509017}
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 1364561763}
 --- !u!1 &671960060
 GameObject:
   m_ObjectHideFlags: 0
@@ -1307,7 +1307,7 @@ MonoBehaviour:
   isOccupied: 0
   cardHolder: {fileID: 764129594}
   cardHolderPosition: {fileID: 764129593}
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 55481598}
 --- !u!1 &767955854
 GameObject:
   m_ObjectHideFlags: 0
@@ -1529,7 +1529,7 @@ MonoBehaviour:
   isOccupied: 0
   cardHolder: {fileID: 829906683}
   cardHolderPosition: {fileID: 829906682}
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 671960062}
 --- !u!1 &889437776
 GameObject:
   m_ObjectHideFlags: 0
@@ -2559,6 +2559,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.UiManager
   tienLenGameController: {fileID: 183374122}
+  lobbySessionController: {fileID: 1937543990}
+  seatManager: {fileID: 2034101244}
   actionPanel: {fileID: 1967596346}
   sessionDisplayUI: {fileID: 1967596341}
   startGameUI: {fileID: 1967596347}

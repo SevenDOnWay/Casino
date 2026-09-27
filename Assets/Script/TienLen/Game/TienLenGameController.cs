@@ -104,7 +104,7 @@ namespace Assets.Script.TienLen.Game {
             base.Spawned();
 
             if ( uiManager != null ) {
-                uiManager.Init();
+                //uiManager.Init();
             }
 
             if ( playerRegisterService != null ) {

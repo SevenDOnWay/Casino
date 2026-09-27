@@ -14,6 +14,7 @@ namespace Assets.Script.TienLen.UI {
         [Header("Dependencies")]
         [SerializeField] private TienLenGameController tienLenGameController;
         [SerializeField] private LobbySessionController lobbySessionController;
+        [SerializeField] private SeatManager seatManager;
 
         [Space(5)]
         [Header("UI Elements")]
@@ -42,25 +43,28 @@ namespace Assets.Script.TienLen.UI {
                 lobbySessionController = FindFirstObjectByType<LobbySessionController>();
             }
 
-            Unsubscribe();
-            if ( tienLenGameController != null ) {
-                tienLenGameController.OnLobbyChanged += HandleLobbyChanged;
+            RefreshLobby(LobbyChangeReason.Initialized);
+        }
+
+        private void OnEnable() {
+            if ( seatManager == null ) {
+                seatManager = FindFirstObjectByType<SeatManager>();
+            }
+            if ( seatManager != null ) {
+                seatManager.OnSeatsChanged += HandleLobbyChanged;
+            }
+            if ( lobbySessionController == null ) {
+                lobbySessionController = FindFirstObjectByType<LobbySessionController>();
             }
             if ( lobbySessionController != null ) {
                 lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
                 lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
             }
-
-            RefreshLobby(LobbyChangeReason.Initialized);
         }
 
-        private void OnDestroy() {
-            Unsubscribe();
-        }
-
-        private void Unsubscribe() {
-            if ( tienLenGameController != null ) {
-                tienLenGameController.OnLobbyChanged -= HandleLobbyChanged;
+        private void OnDisable() {
+            if ( seatManager != null ) {
+                seatManager.OnSeatsChanged -= HandleLobbyChanged;
             }
             if ( lobbySessionController != null ) {
                 lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;

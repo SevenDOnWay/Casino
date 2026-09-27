@@ -13,7 +13,7 @@ namespace Assets.Script.TienLen.Game {
         [Header("Dependencies")]
         SeatProvider seatProvider;
 
-        PlayerSeat[] playerSeats = new PlayerSeat[4];
+        PlayerSeat[] playerSeats;
 
         private const int TotalSeats = 4;
 
@@ -43,6 +43,42 @@ namespace Assets.Script.TienLen.Game {
 
         public void RegisterPlayer( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
             _ = RegisterPlayerAsync(tienLenNetWorkPlayer);
+        }
+
+        public void UnregisterPlayer( PlayerRef player ) {
+            if ( !Object.HasStateAuthority ) return;
+
+            int foundSeat = -1;
+            foreach ( var kvp in networkOccupiedSeats ) {
+                if ( kvp.Value != null && kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out var netPlayer) ) {
+                    if ( netPlayer.PlayerRef == player ) {
+                        foundSeat = kvp.Key;
+                        break;
+                    }
+                }
+            }
+
+            if ( foundSeat != -1 ) {
+                networkOccupiedSeats.Remove(foundSeat);
+                Debug.Log($"[SeatManager] Unregistered seat {foundSeat} for {player.PlayerId}");
+                return;
+            }
+
+            Debug.LogWarning($"[SeatManager] No seat found for leaving player {player.PlayerId}");
+        }
+
+        public bool TryGetSeat( PlayerRef player, out int seatIndex ) {
+            foreach ( var kvp in networkOccupiedSeats ) {
+                if ( kvp.Value != null && kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out var netPlayer) ) {
+                    if ( netPlayer.PlayerRef == player ) {
+                        seatIndex = kvp.Key;
+                        return true;
+                    }
+                }
+            }
+
+            seatIndex = -1;
+            return false;
         }
 
         public async Task RegisterPlayerAsync( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
@@ -89,27 +125,25 @@ namespace Assets.Script.TienLen.Game {
 
         private async Task OnOccupiedSeatsChangedAsync() {
             // Sync visual seats from the replicated dictionary so every
-            // peer (host + clients) sees the same occupancy. Each entry's
-            // TienLenNetWorkPlayer carries its PlayerRef.
-            if ( seatProvider == null ) {
-                Debug.LogWarning("[SeatManager] seatProvider is null, skipping seat sync.");
-                return;
-            }
-            playerSeats ??= await seatProvider.GetPlayerSeatsAsync();
+            // peer (host + clients) sees the same occupancy.
+            playerSeats = await seatProvider.GetPlayerSeatsAsync();
+
             if ( playerSeats == null ) {
                 Debug.LogWarning("[SeatManager] playerSeats is null, skipping seat sync.");
                 return;
             }
 
+            // Clear seats that are no longer occupied, then (re)bind occupied ones.
             for ( int i = 0; i < playerSeats.Length; i++ ) {
                 if ( playerSeats[i] == null ) continue;
-                if ( playerSeats[i].isOccupied ) continue;
 
-                if ( playerSeats[i].tienLenPlayer == null ) {
-                    var tienLenPlayer = new TienLenPlayer(i, name);
-                    playerSeats[i].BindLogicPlayer(tienLenPlayer);
+                if ( networkOccupiedSeats.TryGet(i, out var netObj)
+                    && netObj != null
+                    && netObj.TryGetComponent<TienLenNetWorkPlayer>(out var netPlayer) ) {
+                    var logicPlayer = new TienLenPlayer(netPlayer);
+                    playerSeats[i].BindPlayer(logicPlayer);
                 }
-                else {
+                else if ( playerSeats[i].isOccupied ) {
                     playerSeats[i].ClearSeat();
                 }
             }

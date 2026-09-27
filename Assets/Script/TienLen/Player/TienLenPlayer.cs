@@ -17,6 +17,8 @@ namespace Assets.Script.TienLen.Player {
 
         public bool HasWon => Hand.Count == 0;
 
+        public TienLenPlayer() { }
+
         public TienLenPlayer(
             int id,
             string playerName,
@@ -28,11 +30,12 @@ namespace Assets.Script.TienLen.Player {
             Hand = new PlayerHand();
         }
 
-        public TienLenPlayer(TienLenNetWorkPlayer tienLenNetWorkPlayer) {
+        public TienLenPlayer( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
             Id = tienLenNetWorkPlayer.PlayerRef.PlayerId;
             PlayerName = (String)tienLenNetWorkPlayer.PlayerName;
             //TODO: support additional player data from network player
 
+            Hand = new PlayerHand();
 
         }
 
