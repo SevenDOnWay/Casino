@@ -54,7 +54,6 @@ namespace Assets.Script.TienLen.Game {
         }
 
 
-        private IReadOnlyList<PlayerSeat> playerSeats;
         [SerializeField] private CardHolder tableCenterPosition; //TODO: change the name for better understanding
         [SerializeField] TienLenSO tienLenSO;
 
@@ -132,11 +131,10 @@ namespace Assets.Script.TienLen.Game {
             IsGameStarted = true;
 
             occupiedSeats = playerRegisterService.GetNetworkPlayerMap();
-            IReadOnlyList<PlayerSeat> occupiedPlayerSeats = playerRegisterService.GetOccupiedPlayerSeats();
 
             Deck deck = CreateDeck();
 
-            DealCard(deck, occupiedPlayerSeats);
+            DealCard(deck);
 
             Initialize();
             //OnRoundStarted?.Invoke();
@@ -164,20 +162,15 @@ namespace Assets.Script.TienLen.Game {
 
         #region Deal Cards
 
-        private void DealCard( Deck deck, IReadOnlyList<PlayerSeat> occupiedPlayerSeats ) {
+        private void DealCard( Deck deck ) {
             var tempDeck = deck;
             tempDeck.Shuffle();
 
-            List<TienLenPlayer> logicPlayers = new List<TienLenPlayer>();
-
-            foreach ( var seat in occupiedPlayerSeats ) {
-                TienLenPlayer logicPlayer = seat.tienLenPlayer;
-                if ( logicPlayer != null ) logicPlayers.Add(logicPlayer);
-            }
+            var seatedPlayers = playerRegisterService.GetSeatedPlayers();
 
             // Deal 13 cards to each player's data hand
             for ( int i = 0; i < 13; i++ ) {
-                foreach ( var player in logicPlayers ) {
+                foreach ( var player in seatedPlayers.Values ) {
                     var drawnCard = tempDeck.DrawCard();
                     player.Hand.AddCard(drawnCard);
                 }
@@ -201,14 +194,20 @@ namespace Assets.Script.TienLen.Game {
             const int totalDeckSize = 52;
 
             TienLenPlayer localPlayer = localPlayerService.Player;
-            IReadOnlyList<PlayerSeat> occupiedPlayerSeats = playerRegisterService.GetOccupiedPlayerSeats();
-            IReadOnlyDictionary<int, TienLenNetWorkPlayer> seatOwners = playerRegisterService.GetNetworkPlayerMap();
+            var seatedPlayers = playerRegisterService.GetSeatedPlayers();
+            var networkPlayerMap = playerRegisterService.GetNetworkPlayerMap();
 
             Vector3 centerDeckPos = tableCenterPosition != null
                                 ? tableCenterPosition.transform.position
                                 : Vector3.zero;
 
             Queue<CardView> deckStack = new Queue<CardView>(totalDeckSize);
+
+            // Order the seated players by network seat index for consistent dealing order.
+            var orderedPlayers = seatedPlayers
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => kvp.Value)
+                .ToList();
 
             try {
                 // 1. Spawn deck stack
@@ -223,7 +222,8 @@ namespace Assets.Script.TienLen.Game {
 
                 // 2. Deal cards round-by-round
                 for ( int round = 0; round < cardsPerPlayer; round++ ) {
-                    foreach ( var playerSeat in occupiedPlayerSeats ) {
+                    for ( int playerIdx = 0; playerIdx < orderedPlayers.Count; playerIdx++ ) {
+                        var player = orderedPlayers[playerIdx];
                         ct.ThrowIfCancellationRequested();
 
                         if ( deckStack.Count == 0 ) {
@@ -232,14 +232,24 @@ namespace Assets.Script.TienLen.Game {
                         }
 
                         CardView cardView = deckStack.Dequeue();
-                        TienLenPlayer player = playerSeat.tienLenPlayer;
 
-                        // TienLenPlayer carries no network identity, so resolve
-                        // this seat's owner (which has the PlayerRef) via the seat map.
-                        PlayerRef seatOwner = seatOwners.TryGetValue(playerSeat.GetSeatIndex(), out TienLenNetWorkPlayer seatNetPlayer)
-                            && seatNetPlayer != null
-                            ? seatNetPlayer.PlayerRef
-                            : default;
+                        // Resolve the owner of this player via the network player map.
+                        // We find the network player that corresponds to this logic player.
+                        PlayerRef seatOwner = default;
+                        int seatIndex = -1;
+                        foreach ( var kvp in networkPlayerMap ) {
+                            var netPlayer = kvp.Value;
+                            if ( netPlayer != null ) {
+                                // The logic player was created from this network player
+                                // (or was reused from a previous bind of the same network player).
+                                // Compare by PlayerRef since that's the stable identity.
+                                if ( playerRegisterService.GetLogicPlayer(netPlayer.PlayerRef) == player ) {
+                                    seatOwner = netPlayer.PlayerRef;
+                                    seatIndex = kvp.Key;
+                                    break;
+                                }
+                            }
+                        }
 
                         //if ( player == null || player.CardHolder == null ) {
                         //    Debug.LogWarning($"[AnimateDealingRoutineAsync] Player or card holder is null for player {player?.Id ?? -1}");
@@ -250,7 +260,7 @@ namespace Assets.Script.TienLen.Game {
                         if ( player == null ) {
                             Debug.LogError(
                                 $"[Deal] Player is NULL. " +
-                                $"Seat={playerSeat?.GetSeatIndex() ?? -1}"
+                                $"Seat={seatIndex}"
                             );
 
                             Destroy(cardView.gameObject);
@@ -261,7 +271,7 @@ namespace Assets.Script.TienLen.Game {
                             Debug.LogError(
                                 $"[Deal] CardHolder is NULL. " +
                                 $"PlayerId={player.Id}, " +
-                                $"Seat={playerSeat?.GetSeatIndex() ?? -1}"
+                                $"Seat={seatIndex}"
                             );
 
                             Destroy(cardView.gameObject);

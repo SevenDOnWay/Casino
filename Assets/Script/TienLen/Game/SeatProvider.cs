@@ -23,7 +23,7 @@ namespace Assets.Script.TienLen.Game {
 
             for ( int i = 0; i < playerSeats.Length; i++ ) {
                 if ( playerSeats[i] != null ) {
-                    playerSeats[i].setSeatIndex(i);
+                    playerSeats[i].setVisualIndex(i);
                 }
             }
 

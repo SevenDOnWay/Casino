@@ -13,7 +13,7 @@ namespace Assets.Script.TienLen.UI.Strategy {
             context.SetVisible( context.SessionDisplayUI, true );
             context.SetVisible( context.StartGameUI, true );
 
-            context.TableLayoutManager?.RefreshLayout();
+            _ = context.TableLayoutManager?.RefreshLayoutAsync();
         }
 
         public void OnRefresh( LobbyChangeReason reason, UiStrategyContext context ) {
@@ -24,7 +24,7 @@ namespace Assets.Script.TienLen.UI.Strategy {
             }
 
             context.StartGameUI?.RefreshStartButton();
-            context.TableLayoutManager?.RefreshLayout();
+            _ = context.TableLayoutManager?.RefreshLayoutAsync();
         }
 
         public void OnExit() {

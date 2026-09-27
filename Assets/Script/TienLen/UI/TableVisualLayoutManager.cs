@@ -2,11 +2,8 @@
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Fusion;
-using NUnit.Framework;
-using Photon.Realtime;
-using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using VContainer;
@@ -18,9 +15,13 @@ namespace Assets.Script.TienLen.UI {
         private SeatManager seatManager;
         private ILocalPlayerService localPlayerService;
 
-        private const int totalSeats = 4;
+        private const int TotalSeats = 4;
 
-        private IReadOnlyList<PlayerSeat> playerSeats;
+        [Header("Configuration")]
+        [Tooltip("Visual slot index that corresponds to the local player (bottom). Default 0 matches current scene hierarchy.")]
+        [SerializeField] private int localAnchorIndex = 0;
+
+        private PlayerSeat[] visualSlots;
 
         [Inject]
         void Construct( SeatProvider seatProvider,
@@ -31,110 +32,120 @@ namespace Assets.Script.TienLen.UI {
             this.localPlayerService = localPlayerService;
         }
 
-        public void Init() {
+        private void OnEnable() {
+            seatManager.OnSeatsChanged += OnSeatsChanged;
         }
 
+        private void OnDisable() {
+            seatManager.OnSeatsChanged -= OnSeatsChanged;
+        }
 
+        private void OnSeatsChanged() {
+            _ = RefreshLayoutAsync();
+        }
 
-        private async Task HandlePlayerJoin() {
-            Debug.Log($"[TableLayout] HandlePlayerJoin fired.");
+        /// <summary>
+        /// Rebuilds the visual assignment from the network-indexed model.
+        /// Uses a diff so unchanged slots are not re-bound.
+        /// </summary>
+        public async Task RefreshLayoutAsync() {
+            visualSlots ??= await seatProvider.GetPlayerSeatsAsync();
 
-            NetworkDictionary<int, NetworkObject> networkDictionary = seatManager.GetNetworkOccupiedSeats();
-            Dictionary<int, TienLenNetWorkPlayer> seatToPlayer = new Dictionary<int, TienLenNetWorkPlayer>();
-            playerSeats ??= await seatProvider.GetPlayerSeatsAsync();
-
-
-            if ( playerSeats == null || playerSeats.Count == 0 ) {
-                Debug.LogWarning("[TableLayout] playerSeats is null or empty, skipping layout refresh.");
+            if ( visualSlots == null || visualSlots.Length == 0 ) {
+                Debug.LogWarning("[TableLayout] visualSlots is null or empty, skipping layout refresh.");
                 return;
             }
 
-            Debug.Log($"[TableLayout] NetworkPlayers count in LobbySessionController: {networkDictionary.Count}");
+            var seatedPlayers = seatManager.GetSeatedPlayers();
+            var networkPlayerMap = seatManager.GetNetworkPlayerMap();
 
-            FindLocalSeatIndex(networkDictionary, seatToPlayer, out int localSeatIndex);
+            // Resolve local anchor (network seat index of the local player).
+            int localSeatIndex = ResolveLocalSeatIndex(networkPlayerMap);
 
-            if ( localSeatIndex == -1 ) {
-                Debug.LogWarning($"[TableLayout] Local seat not found. Falling back to unrotated bind for avatar rendering.");
-            }
+            // Build target mapping: visualSlotIndex -> (networkSeatIndex, TienLenPlayer)
+            var targetAssignments = new Dictionary<int, (int netSeat, TienLenPlayer player)>();
 
-            BindToLocalSeat(seatToPlayer, localSeatIndex);
-        }
-
-        private void BindToLocalSeat( Dictionary<int, TienLenNetWorkPlayer> seatToPlayer, int localSeatIndex ) {
-            // Clear-first: drop stale occupants so slots left by departed
-            // players do not keep showing old avatars.
-            var occupiedSlots = new HashSet<int>();
-            foreach ( var (networkSeat, player) in seatToPlayer ) {
-                if ( player == null ) continue;
-                int slot = localSeatIndex == -1
-                    ? networkSeat
-                    : (networkSeat - localSeatIndex + totalSeats) % totalSeats;
-                occupiedSlots.Add(slot);
-            }
-            for ( int i = 0; i < playerSeats.Count; i++ ) {
-                if ( !occupiedSlots.Contains(i) && playerSeats[i] != null ) {
-                    playerSeats[i].ClearSeat();
-                }
-            }
-
-            foreach ( var (networkSeat, player) in seatToPlayer ) {
-                if ( player == null ) {
-                    Debug.LogWarning($"[TableLayout] Player is NULL for seat {networkSeat}");
-                    continue;
-                }
+            foreach ( var kvp in seatedPlayers ) {
+                int netSeat = kvp.Key;
+                var logicPlayer = kvp.Value;
 
                 int visualSlotIndex = localSeatIndex == -1
-                    ? networkSeat
-                    : (networkSeat - localSeatIndex + totalSeats) % totalSeats;
+                    ? netSeat
+                    : (netSeat - localSeatIndex + TotalSeats) % TotalSeats;
 
-                var tienlenPlayer = new TienLenPlayer(player);
-
-                if ( visualSlotIndex < 0 || visualSlotIndex >= playerSeats.Count || playerSeats[visualSlotIndex] == null ) {
-                    Debug.LogWarning($"[TableLayout] Visual slot {visualSlotIndex} out of range or null, skipping.");
+                if ( visualSlotIndex < 0 || visualSlotIndex >= visualSlots.Length ) {
+                    Debug.LogWarning($"[TableLayout] Visual slot {visualSlotIndex} out of range for net seat {netSeat}, skipping.");
                     continue;
                 }
-                playerSeats[visualSlotIndex].BindPlayer(tienlenPlayer);
+
+                targetAssignments[visualSlotIndex] = (netSeat, logicPlayer);
             }
-        }
 
-        private int FindLocalSeatIndex( NetworkDictionary<int, NetworkObject> networkDictionary, Dictionary<int, TienLenNetWorkPlayer> seatToPlayer, out int localSeatIndex ) {
-            localSeatIndex = -1;
+            // Diff: only touch slots that actually changed.
+            for ( int i = 0; i < visualSlots.Length; i++ ) {
+                var slot = visualSlots[i];
+                if ( slot == null ) continue;
 
-            var localNetworkPlayer = localPlayerService?.GetLocalNetworkPlayer();
-            bool hasLocal = localNetworkPlayer != null;
-            foreach ( var kvp in networkDictionary ) {
-                int seatIndex = kvp.Key;
-                NetworkObject netObj = kvp.Value;
-                if ( netObj == null ) continue;
-
-                var networkPlayer = netObj.GetComponent<TienLenNetWorkPlayer>();
-                if ( networkPlayer == null ) continue;
-
-                seatToPlayer[seatIndex] = networkPlayer;
-
-                if ( hasLocal && networkPlayer.PlayerRef == localNetworkPlayer.PlayerRef ) {
-                    localSeatIndex = seatIndex;
-                    Debug.Log($"[TableLayout] Found local player at seat {seatIndex}");
+                if ( targetAssignments.TryGetValue(i, out var assignment) ) {
+                    // This slot should show this network seat.
+                    if ( slot.BoundSeatIndex != assignment.netSeat ) {
+                        // Different occupant (or first bind) -> bind.
+                        slot.BindPlayer(assignment.player, assignment.netSeat);
+                    }
+                    // else: already shows the correct player -> no-op.
+                }
+                else {
+                    // No occupant for this visual slot -> clear.
+                    if ( slot.IsOccupied ) {
+                        slot.ClearSeat();
+                    }
                 }
             }
 
-            return localSeatIndex;
+            Debug.Log($"[TableLayout] Layout refreshed. Local anchor seat={localSeatIndex}, assigned={targetAssignments.Count}");
         }
 
-        private void HandlePlayerLeft( NetworkRunner runner ) {
-            // Update the visual layout to reflect the player leaving
-            Debug.Log("Player left. Updating table layout.");
-            RefreshLayout();
+        /// <summary>
+        /// Finds the network seat index of the local player, if any.
+        /// </summary>
+        private int ResolveLocalSeatIndex( IReadOnlyDictionary<int, TienLenNetWorkPlayer> networkPlayerMap ) {
+            var localNetworkPlayer = localPlayerService?.GetLocalNetworkPlayer();
+            if ( localNetworkPlayer == null ) return -1;
+
+            foreach ( var kvp in networkPlayerMap ) {
+                if ( kvp.Value != null && kvp.Value.PlayerRef == localNetworkPlayer.PlayerRef ) {
+                    return kvp.Key;
+                }
+            }
+
+            return -1;
         }
 
-
-        //TODO: This method shuold handle both player join and leave events, and update the visual layout accordingly.
-        // Note: HandlePlayerJoin returns Task (not async void) so this fire-and-forget
-        // call is intentional; failures are logged inside HandlePlayerJoin.
-        public void RefreshLayout() {
-            Debug.Log("[TableLayout] RefreshLayout called.");
-            _ = HandlePlayerJoin();
+#if UNITY_EDITOR
+        private void OnValidate() {
+            if ( localAnchorIndex < 0 || localAnchorIndex >= TotalSeats ) {
+                Debug.LogWarning($"[TableLayout] localAnchorIndex {localAnchorIndex} out of range [0, {TotalSeats - 1}]");
+            }
         }
 
+        private void OnDrawGizmosSelected() {
+            if ( visualSlots == null || visualSlots.Length != TotalSeats ) return;
+
+            var positions = new Vector3[TotalSeats];
+            for ( int i = 0; i < TotalSeats; i++ ) {
+                var slot = visualSlots[i];
+                if ( slot != null ) positions[i] = slot.transform.position;
+            }
+
+            // Warn if slots are not in clockwise-from-bottom order.
+            // (Heuristic: bottom should have lowest y, right highest x, top highest y, left lowest x)
+            if ( positions[localAnchorIndex].y > positions[(localAnchorIndex + 2) % TotalSeats].y ) {
+                Debug.LogWarning("[TableLayout] Visual slot order may not be clockwise from bottom. " +
+                    $"Slot {localAnchorIndex} (anchor) y={positions[localAnchorIndex].y}, " +
+                    $"opposite y={positions[(localAnchorIndex + 2) % TotalSeats].y}. " +
+                    "Check hierarchy order or adjust localAnchorIndex.");
+            }
+        }
+#endif
     }
 }

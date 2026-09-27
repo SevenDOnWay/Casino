@@ -1,5 +1,5 @@
 ﻿using Assets.Script.NetWorkScript;
-using Assets.Script.TienLen.UI;
+using Assets.Script.TienLen.Player;
 using Fusion;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,14 @@ namespace Assets.Script.TienLen.Player {
 
         public IReadOnlyList<TienLenNetWorkPlayer> GetNetworkPlayer();
         public IReadOnlyDictionary<int, TienLenNetWorkPlayer> GetNetworkPlayerMap();
-        public IReadOnlyList<PlayerSeat> GetOccupiedPlayerSeats();
+
+        /// <summary>
+        /// Returns the stable logic player instances keyed by their **network seat
+        /// index**. This is the single source of truth for "who sits where" in
+        /// network terms. Presenters (e.g. TableVisualLayoutManager) read this and
+        /// apply their own visual re-indexing.
+        /// </summary>
+        public IReadOnlyDictionary<int, TienLenPlayer> GetSeatedPlayers();
 
         /// <summary>
         /// Resolves the logic player sitting in the seat owned by

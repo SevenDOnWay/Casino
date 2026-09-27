@@ -1,6 +1,5 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
-using Assets.Script.TienLen.UI;
 using Fusion;
 using Fusion.Sockets;
 using System;
@@ -23,10 +22,6 @@ namespace Assets.Script.TienLen.Game {
         [Header("Start Game Button")]
         [SerializeField] private Button startGameBtn;
         [SerializeField] private TMP_Text startBtnText;
-
-
-        [Header("Player Seats")]
-        private IReadOnlyList<PlayerSeat> playerSeats;
 
 
         private const int minPlayerToStart = 2;

@@ -11,7 +11,7 @@ namespace Assets.Script.TienLen.UI.Strategy {
             context.SetVisible( context.StartGameUI, false );
 
             context.ActionPanel?.EnterGame();
-            context.TableLayoutManager?.RefreshLayout();
+            _ = context.TableLayoutManager?.RefreshLayoutAsync();
         }
 
         public void OnRefresh( LobbyChangeReason reason, UiStrategyContext context ) {
@@ -24,6 +24,7 @@ namespace Assets.Script.TienLen.UI.Strategy {
             // Keep the panel visible and its buttons in sync with the
             // current selection / turn.
             context.ActionPanel?.EnterGame();
+            _ = context.TableLayoutManager?.RefreshLayoutAsync();
         }
 
         public void OnExit() {
