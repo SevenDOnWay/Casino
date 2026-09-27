@@ -16,8 +16,6 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Dependencies")]
         private IPlayerRegisterService seatManager;
-        private TienLenGameController tienLenGameController;
-        private LocalPlayerService localPlayerService;
 
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
@@ -29,12 +27,6 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Player Seats")]
         private IReadOnlyList<PlayerSeat> playerSeats;
-            
-
-        [Header("Network Players")]
-        [Networked, Capacity(4)]
-        private NetworkArray<NetworkObject> networkedPlayers => default;
-        public NetworkArray<NetworkObject> NetworkedPlayers => networkedPlayers;
 
 
         private const int minPlayerToStart = 2;
@@ -49,12 +41,8 @@ namespace Assets.Script.TienLen.Game {
         public event Action OnGameStartedEvent;
 
         [Inject]
-        void Construct( IPlayerRegisterService seatManager,
-            TienLenGameController tienLenGameController,
-            LocalPlayerService localPlayerService ) {
+        void Construct( IPlayerRegisterService seatManager ) {
             this.seatManager = seatManager;
-            this.tienLenGameController = tienLenGameController;
-            this.localPlayerService = localPlayerService;
 
             //playerSeats = seatProvider.AllSeats;
         }
@@ -63,30 +51,23 @@ namespace Assets.Script.TienLen.Game {
             Runner.AddCallbacks(this);
         }
 
-        //public void OnEnable() {
-        //    startGameBtn.onClick.AddListener(OnStartGameButtonClicked);
-        //}
-
-        //public void OnDisable() {
-        //    startGameBtn.onClick.RemoveListener(OnStartGameButtonClicked);
-        //}
-
         //TODO: Handle cases player join mid game
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
-            //UpdateStartButtonUI();
-
             if ( !Object.HasStateAuthority ) return;
+
+            Debug.Log($"[Lobby] Player joined: {player.PlayerId}");
+
+            if ( !CheckPlayerExist(player) ) return;
 
             TienLenNetWorkPlayer networkPlayer = SpawnNetworkPlayer(player);
             seatManager.RegisterPlayer(networkPlayer);
 
-            //RpcPlayerJoined(player);
+            Debug.Log($"[Lobby] Spawned network player '{networkPlayer?.PlayerName}' for {player.PlayerId}");
         }
 
         //TODO: Handle cases player leave mid game
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
             if ( !Object.HasStateAuthority ) return;
-
             RemovePlayer(player);
         }
 
@@ -113,63 +94,48 @@ namespace Assets.Script.TienLen.Game {
                                         }
                                         );
 
-            //var tienLenPlayer = new TienLenPlayer(player.PlayerId,
-            //    player,
-            //    "test"
-            //    );
-
-            //Debug.Log($"[Lobby] Spawned network player object for {player.PlayerId} at seat {seatIndex}");
-
-            //networkedPlayers.Set(seatIndex, networkPlayerObject);
-            //seatProvider.assignSeat(new KeyValuePair<int, NetworkObject>(seatIndex, networkPlayerObject));
-
-            //if ( seatProvider != null ) {
-            //    var seat = seatProvider.GetSeat(seatIndex);
-            //    if ( seat != null ) {
-            //        seat.BindNetworkPlayer(networkPlayer);
-            //        seat.BindLogicPlayer(tienLenPlayer);
-
-            //        Debug.Log($"[Lobby] Assigned player {player.PlayerId} to seat {seatIndex}");
-            //    }
-            //}
-
-            //if ( Runner.LocalPlayer == player ) {
-            //    localPlayerService.SetLocalLogicPlayer(tienLenPlayer);
-            //    localPlayerService.SetLocalNetworkPlayer(networkPlayer);
-            //}
-
-            //Debug.Log($"[Lobby] Spawned network player for {player.PlayerId}");
-
             return networkPlayer;
 
         }
 
         private bool CheckPlayerExist( PlayerRef player ) {
-            foreach ( var existingPlayer in networkedPlayers ) {
-                if ( existingPlayer != null && existingPlayer.TryGetComponent<TienLenNetWorkPlayer>(out var existingNetworkPlayer) ) {
-                    if ( existingNetworkPlayer.PlayerRef == player ) {
-                        Debug.LogWarning($"Player {player.PlayerId} already has a network player object. Skipping spawn.");
-                        return false;
-                    }
-                }
+            if ( seatManager.TryGetSeat(player, out _) ) {
+                Debug.LogWarning($"Player {player.PlayerId} already has a network player object. Skipping spawn.");
+                return false;
             }
 
             return true;
         }
 
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        public void RpcPlayerJoined( PlayerRef player ) {
-            Debug.Log($"[Lobby] RpcPlayerJoined: {player.PlayerId}");
-            OnPlayerJoinedEvent?.Invoke(Runner);
-        }
 
         //TODO: Handle cases player leave mid game
         private void RemovePlayer( PlayerRef player ) {
-            //if ( networkedPlayers.TryGet(player, out var networkPlayer) ) {
-            //    Runner.Despawn(networkPlayer);
-            //    networkedPlayers.Remove(player);
-            //    OnPlayerLeftEvent?.Invoke(Runner);
-            //}
+            if ( !Object.HasStateAuthority ) return;
+            if ( Runner == null ) return;
+
+            Debug.Log($"[Lobby] Player left: {player.PlayerId}");
+
+            NetworkObject netObj = null;
+            foreach ( var kvp in seatManager.GetNetworkPlayerMap() ) {
+                if ( kvp.Value != null && kvp.Value.PlayerRef == player ) {
+                    netObj = kvp.Value.Object;
+                    break;
+                }
+            }
+
+            seatManager.UnregisterPlayer(player);
+
+            if ( netObj != null ) {
+                Runner.Despawn(netObj);
+                Debug.Log($"[Lobby] Despawned network player for {player.PlayerId}");
+            }
+
+            RpcPlayerLeft();
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RpcPlayerLeft() {
+            OnPlayerLeftEvent?.Invoke(Runner);
         }
 
         #region Start Game Button Logic
@@ -232,7 +198,7 @@ namespace Assets.Script.TienLen.Game {
 
         #endregion
 
-       
+
 
         private void CheckPlayer() {
             int currentConnectedPlayers = Runner.ActivePlayers.Count();

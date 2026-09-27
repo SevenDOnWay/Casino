@@ -51,12 +51,6 @@ namespace Assets.Script.TienLen.UI {
             this.game = game;
             this.gameController = gameController;
 
-            Debug.Log("[ActionPanel] Dependencies injected successfully.");
-
-            if(localPlayerService == null) {
-                Debug.LogError("[ActionPanel] localPlayerService is null after injection.");
-            }
-
             SubcribeEvent();
         }
 

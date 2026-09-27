@@ -103,18 +103,24 @@ namespace Assets.Script.TienLen.Game {
         public override void Spawned() {
             base.Spawned();
 
+            if ( uiManager != null ) {
+                //uiManager.Init();
+            }
 
-            uiManager.Init();
-
-            playerRegisterService.OnSeatsChanged += HandleSeatsChanged;
+            if ( playerRegisterService != null ) {
+                playerRegisterService.OnSeatsChanged += HandleSeatsChanged;
+            }
         }
 
         public override void Despawned( NetworkRunner runner, bool hasState ) {
-            playerRegisterService.OnSeatsChanged -= HandleSeatsChanged;
+            if ( playerRegisterService != null ) {
+                playerRegisterService.OnSeatsChanged -= HandleSeatsChanged;
+            }
             base.Despawned(runner, hasState);
         }
 
         private void HandleSeatsChanged() {
+            Debug.Log("[Lobby] Seats changed");
             OnLobbyChanged?.Invoke();
         }
         private void Start() {

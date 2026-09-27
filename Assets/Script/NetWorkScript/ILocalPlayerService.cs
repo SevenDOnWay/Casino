@@ -8,6 +8,8 @@ namespace Assets.Script.NetWorkScript {
 
         public TienLenNetWorkPlayer GetLocalNetworkPlayer();
         public TienLenPlayer GetLocalLogicPlayer();
+        public void SetLocalNetworkPlayer( TienLenNetWorkPlayer networkPlayer );
+        public void SetLocalLogicPlayer( TienLenPlayer player );
         public string GetID();
         public string GetName();
 
