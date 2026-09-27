@@ -91,7 +91,15 @@ namespace Assets.Script.TienLen.Game {
             // Sync visual seats from the replicated dictionary so every
             // peer (host + clients) sees the same occupancy. Each entry's
             // TienLenNetWorkPlayer carries its PlayerRef.
+            if ( seatProvider == null ) {
+                Debug.LogWarning("[SeatManager] seatProvider is null, skipping seat sync.");
+                return;
+            }
             playerSeats ??= await seatProvider.GetPlayerSeatsAsync();
+            if ( playerSeats == null ) {
+                Debug.LogWarning("[SeatManager] playerSeats is null, skipping seat sync.");
+                return;
+            }
 
             for ( int i = 0; i < playerSeats.Length; i++ ) {
                 if ( playerSeats[i] == null ) continue;
@@ -107,6 +115,7 @@ namespace Assets.Script.TienLen.Game {
             }
 
             OnSeatsChanged?.Invoke();
+            Debug.Log($"[SeatManager] Seats changed, count={playerSeats.Length}");
         }
 
 

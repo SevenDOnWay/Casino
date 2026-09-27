@@ -36,6 +36,8 @@ namespace Assets.Script.TienLen.UI {
 
             this.tienLenPlayer = tienLenPlayer;
             tienLenPlayer.SetCardHolder(cardHolder);
+            isOccupied = true;
+            ChangeAvatar(true);
 
             Debug.Log($"Logic player {tienLenPlayer.PlayerName} has been bound to seat {seatIndex}");
         }
@@ -50,6 +52,7 @@ namespace Assets.Script.TienLen.UI {
 
             tienLenPlayer.SetCardHolder(cardHolder);
             isOccupied = true;
+            ChangeAvatar(true);
 
         }
 
@@ -71,6 +74,14 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void ChangeAvatar( bool isAvatarVisible ) {
+            if ( spriteRenderer == null ) {
+                Debug.LogWarning($"[PlayerSeat {seatIndex}] spriteRenderer is null, cannot change avatar visibility.");
+                return;
+            }
+            if ( spriteRenderer.gameObject == null ) {
+                Debug.LogWarning($"[PlayerSeat {seatIndex}] avatar gameObject is null, cannot change avatar visibility.");
+                return;
+            }
             spriteRenderer.gameObject.SetActive(isAvatarVisible); //TODO: Change into configurable sprite or avatar.
         }
 
