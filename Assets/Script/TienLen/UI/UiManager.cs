@@ -1,5 +1,6 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Game;
+using Fusion;
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -12,6 +13,7 @@ namespace Assets.Script.TienLen.UI {
     public class UiManager : MonoBehaviour {
         [Header("Dependencies")]
         [SerializeField] private TienLenGameController tienLenGameController;
+        [SerializeField] private LobbySessionController lobbySessionController;
 
         [Space(5)]
         [Header("UI Elements")]
@@ -33,7 +35,49 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void Init() {
+            if ( tienLenGameController == null ) {
+                tienLenGameController = FindFirstObjectByType<TienLenGameController>();
+            }
+            if ( lobbySessionController == null ) {
+                lobbySessionController = FindFirstObjectByType<LobbySessionController>();
+            }
+
+            Unsubscribe();
+            if ( tienLenGameController != null ) {
+                tienLenGameController.OnLobbyChanged += HandleLobbyChanged;
+            }
+            if ( lobbySessionController != null ) {
+                lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
+                lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
+            }
+
             RefreshLobby(LobbyChangeReason.Initialized);
+        }
+
+        private void OnDestroy() {
+            Unsubscribe();
+        }
+
+        private void Unsubscribe() {
+            if ( tienLenGameController != null ) {
+                tienLenGameController.OnLobbyChanged -= HandleLobbyChanged;
+            }
+            if ( lobbySessionController != null ) {
+                lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
+                lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
+            }
+        }
+
+        private void HandleLobbyChanged() {
+            RefreshLobby(LobbyChangeReason.SeatsChanged);
+        }
+
+        private void HandlePlayerJoined( NetworkRunner runner ) {
+            RefreshLobby(LobbyChangeReason.PlayerJoined);
+        }
+
+        private void HandlePlayerLeft( NetworkRunner runner ) {
+            RefreshLobby(LobbyChangeReason.PlayerLeft);
         }
 
         public void RefreshLobby(LobbyChangeReason reason) {

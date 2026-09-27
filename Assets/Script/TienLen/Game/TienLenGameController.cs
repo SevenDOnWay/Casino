@@ -103,7 +103,9 @@ namespace Assets.Script.TienLen.Game {
         public override void Spawned() {
             base.Spawned();
 
-            uiManager.Init();
+            if ( uiManager != null ) {
+                uiManager.Init();
+            }
 
             if ( playerRegisterService != null ) {
                 playerRegisterService.OnSeatsChanged += HandleSeatsChanged;

@@ -65,10 +65,6 @@ namespace Assets.Script.TienLen.UI {
             }
 
             NetworkDictionary<int, NetworkObject> networkDictionary = seatManager.GetNetworkOccupiedSeats();
-            if ( networkDictionary == null ) {
-                Debug.LogWarning("[TableLayout] Network occupied seats dictionary is null.");
-                return;
-            }
             Dictionary<int, TienLenNetWorkPlayer> seatToPlayer = new Dictionary<int, TienLenNetWorkPlayer>();
             playerSeats ??= await seatProvider.GetPlayerSeatsAsync();
             if ( playerSeats == null || playerSeats.Count == 0 ) {
@@ -133,8 +129,8 @@ namespace Assets.Script.TienLen.UI {
 
         private int FindLocalSeatIndex( NetworkDictionary<int, NetworkObject> networkDictionary, Dictionary<int, TienLenNetWorkPlayer> seatToPlayer, out int localSeatIndex ) {
             localSeatIndex = -1;
-            if ( networkDictionary == null || seatToPlayer == null ) {
-                Debug.LogWarning("[TableLayout] FindLocalSeatIndex: null dictionary or map.");
+            if ( seatToPlayer == null ) {
+                Debug.LogWarning("[TableLayout] FindLocalSeatIndex: null map.");
                 return localSeatIndex;
             }
             if ( localPlayerService == null ) {
