@@ -211,6 +211,19 @@ namespace Assets.Script.TienLen.Game {
 
             return result;
         }
+
+        public TienLenPlayer GetLogicPlayer( PlayerRef player ) {
+            if ( !player.IsValid ) return null;
+            if ( !TryGetSeat( player, out int seatIndex ) ) return null;
+
+            foreach ( PlayerSeat seat in GetOccupiedPlayerSeats() ) {
+                if ( seat != null && seat.GetSeatIndex() == seatIndex ) {
+                    return seat.tienLenPlayer;
+                }
+            }
+
+            return null;
+        }
         #endregion
     }
 }

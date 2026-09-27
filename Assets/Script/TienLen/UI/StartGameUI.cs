@@ -47,15 +47,12 @@ namespace Assets.Script.TienLen.UI {
                 return;
             }
 
-            startBtnText.text = "Starting...";
             startBtn.interactable = false;
 
             tienLenGameController.StartGame();
         }
 
         private bool IsHost() {
-            if ( tienLenGameController == null || tienLenGameController.Object == null )
-                return false;
             return tienLenGameController.Object.HasStateAuthority;
         }
 
@@ -64,9 +61,6 @@ namespace Assets.Script.TienLen.UI {
         /// which counts registered TienLenNetWorkPlayers (each has a PlayerRef).
         /// </summary>
         private bool IsGameStartable() {
-            if ( tienLenGameController == null )
-                return false;
-
             return tienLenGameController.CanStartGame();
         }
 

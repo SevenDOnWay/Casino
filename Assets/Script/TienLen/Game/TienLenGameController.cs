@@ -33,7 +33,7 @@ namespace Assets.Script.TienLen.Game {
         private const int totalSeats = 4;
         private const int minPlayersToStart = 2;
 
-        [Networked] public NetworkBool IsGameStarted { get; set; }
+        [Networked, OnChangedRender(nameof(OnIsGameStartedChanged))] public NetworkBool IsGameStarted { get; set; }
 
         /// <summary>
         /// Returns true when enough registered network players (each carries
@@ -87,19 +87,6 @@ namespace Assets.Script.TienLen.Game {
             this.playerRegisterService = playerRegisterService;
         }
 
-        public void OnEnable() {
-            //lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
-            //lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
-            //lobbySessionController.OnGameStartedEvent += HandleGameStarted;
-        }
-
-        public void OnDisable() {
-            //lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
-            //lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
-            //lobbySessionController.OnGameStartedEvent -= HandleGameStarted;
-        }
-
-
         public override void Spawned() {
             base.Spawned();
 
@@ -147,29 +134,20 @@ namespace Assets.Script.TienLen.Game {
             occupiedSeats = playerRegisterService.GetNetworkPlayerMap();
             IReadOnlyList<PlayerSeat> occupiedPlayerSeats = playerRegisterService.GetOccupiedPlayerSeats();
 
-            //List<TienLenNetWorkPlayer> networkPlayers = new();
-            //List<TienLenPlayer> logicPlayers = new();
-
-
-            //foreach (var kvp in occupiedSeats ) {
-            //    NetworkObject netObj = kvp.Value;
-            //    TienLenNetWorkPlayer networkPlayer = netObj.GetComponent<TienLenNetWorkPlayer>();
-
-            //    if ( networkPlayer != null )  networkPlayers.Add(networkPlayer);
-            //}
-
-
-
-
-
-            //TODO: get network players 
-
             Deck deck = CreateDeck();
 
             DealCard(deck, occupiedPlayerSeats);
 
             Initialize();
             //OnRoundStarted?.Invoke();
+        }
+
+        private void OnIsGameStartedChanged() {
+            if ( !IsGameStarted ) return;
+
+            uiManager?.RefreshLobby(LobbyChangeReason.GameStarted);
+
+
         }
 
         private void Initialize() {
@@ -353,19 +331,13 @@ namespace Assets.Script.TienLen.Game {
 
             // TienLenPlayer carries no network identity, so resolve the sender
             // through the seat map: seat index -> network player (has PlayerRef).
-            IReadOnlyDictionary<int, TienLenNetWorkPlayer> seatMap = playerRegisterService.GetNetworkPlayerMap();
+            TienLenPlayer player = playerRegisterService.GetLogicPlayer( sender );
 
-            foreach ( var seat in playerRegisterService.GetOccupiedPlayerSeats() ) {
-                if ( seat == null || seat.tienLenPlayer == null ) continue;
-                if ( seatMap.TryGetValue(seat.GetSeatIndex(), out TienLenNetWorkPlayer netPlayer) &&
-                     netPlayer != null && netPlayer.PlayerRef == sender ) {
-                    return seat.tienLenPlayer;
-                }
+            if ( player == null ) {
+                Debug.LogWarning($"[GetPlayer] No playerSeat found for sender={sender}, senderId={sender.PlayerId}]");
             }
 
-            Debug.LogWarning($"[GetPlayer] No playerSeat found for sender={sender}, senderId={sender.PlayerId}]");
-
-            return null;
+            return player;
         }
 
 

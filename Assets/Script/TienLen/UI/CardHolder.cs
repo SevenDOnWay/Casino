@@ -97,6 +97,22 @@ namespace Assets.Script.TienLen.UI {
             cardsViews.Clear();
         }
 
+        /// <summary>
+        /// Drops the current selection without touching the cards. Listeners
+        /// are notified so they can re-evaluate their own state (e.g. the
+        /// action panel's play button).
+        /// </summary>
+        public void ClearSelection() {
+            foreach ( CardView card in selectedCards ) {
+                if ( card != null ) card.SetSelected( false );
+            }
+
+            if ( selectedCards.Count == 0 ) return;
+
+            selectedCards.Clear();
+            OnCardSelected?.Invoke( selectedCards );
+        }
+
         private void HandleCardClicked( CardView cardView ) {
 
             if ( selectedCards.Contains(cardView) ) {
