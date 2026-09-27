@@ -22,9 +22,6 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private float moveDuration = 0.25f;
         [SerializeField] private Ease moveEase = Ease.OutQuad;
 
-        [Header("Avatar")]
-        [SerializeField] private SpriteRenderer spriteRenderer;
-
         //TODO: Change into list of card.
         private readonly List<CardView> cardsViews = new();
         private readonly List<CardView> selectedCards = new();
@@ -193,11 +190,6 @@ namespace Assets.Script.TienLen.UI {
             }
 
             return res;
-        }
-
-
-        public void ChangeAvatar( bool isAvatarVisible ) {
-            spriteRenderer.gameObject.SetActive(isAvatarVisible); //TODO: Change into configurable sprite or avatar.
         }
 
 

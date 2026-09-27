@@ -1,10 +1,11 @@
 ﻿using Assets.Script.TienLen.Player;
+using Fusion;
 using System;
 using System.Collections;
 using UnityEngine;
 
 namespace Assets.Script.NetWorkScript {
-    public class LocalPlayerService : IPlayer {
+    public class LocalPlayerService : ILocalPlayerService {
         public TienLenPlayer Player { get; private set; }
         public TienLenNetWorkPlayer NetworkPlayer { get; private set; }
 
@@ -26,7 +27,12 @@ namespace Assets.Script.NetWorkScript {
             return Player?.PlayerName;
         }
 
+        public TienLenNetWorkPlayer GetLocalNetworkPlayer() {
+            return NetworkPlayer;
+        }
 
-
+        public TienLenPlayer GetLocalLogicPlayer() {
+            return Player;
+        }
     }
 }

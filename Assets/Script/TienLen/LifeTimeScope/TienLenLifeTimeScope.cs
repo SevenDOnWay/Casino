@@ -13,13 +13,14 @@ using VContainer;
 using VContainer.Unity;
 
 namespace Assets.Script.TienLen.LifeTimeScope {
-    public class TienLenLifeTimeScope : LifetimeScope{
+    public class TienLenLifeTimeScope : LifetimeScope {
 
-        [SerializeField] private CardHolder[] cardHolders;
-        [SerializeField] private TienLenNetWorkPlayer prefab; 
+        [SerializeField] private TienLenNetWorkPlayer prefab;
 
         protected override void Configure( IContainerBuilder builder ) {
-            builder.Register<LocalPlayerService>(Lifetime.Singleton);
+            builder.Register<LocalPlayerService>(Lifetime.Singleton)
+                                                .As<ILocalPlayerService>()
+                                                .AsSelf();
 
             builder.RegisterComponentInNewPrefab(prefab, Lifetime.Scoped);
 
@@ -36,18 +37,22 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
             builder.RegisterComponentInHierarchy<SeatProvider>();
 
+            builder.RegisterComponentInHierarchy<SeatManager>()
+                                        .As<IPlayerRegisterService>()
+                                        .AsSelf();
+
+
             builder.Register<TienLenGame>(Lifetime.Singleton);
             builder.Register<TurnManager>(Lifetime.Singleton);
-            
 
+            builder.RegisterComponentInHierarchy<UiManager>();
+            builder.RegisterComponentInHierarchy<StartGameUI>();
 
 
 
 
             builder.RegisterComponentInHierarchy<CardSpawner>();
             builder.RegisterComponentInHierarchy<ActionPanel>();
-
-            builder.RegisterInstance<IReadOnlyList<CardHolder>>(cardHolders);
 
 
         }

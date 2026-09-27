@@ -8,31 +8,26 @@ namespace Assets.Script.TienLen.UI {
     public class PlayerSeat : MonoBehaviour {
         [SerializeField] private int seatIndex; // Visual index of the seat (0 to 3)
         public bool isOccupied;
-        public TienLenPlayer tienLenPlayer;
+        public TienLenPlayer tienLenPlayer = new TienLenPlayer();
 
         public CardHolder cardHolder;
         public Transform cardHolderPosition; //might not be needed if we use cardholder position directly
 
+        [Header("Avatar")]
+        [SerializeField] private SpriteRenderer spriteRenderer;
 
-        public void BindNetworkPlayer( TienLenNetWorkPlayer player ) {
-            if ( player == null ) {
-                Debug.LogError("Cannot bind a null network player to the seat.");
-                return;
-            }
-
-            isOccupied = true;
-        }
-
-        public void BindLogicPlayer( TienLenPlayer tienLenPlayer ) {
+        public void BindPlayer(TienLenPlayer tienLenPlayer) {
             if( tienLenPlayer == null ) {
-                Debug.LogError("Cannot bind a null logic player to the seat.");
+                Debug.LogError("Cannot bind a null player to the seat.");
                 return;
             }
 
             this.tienLenPlayer = tienLenPlayer;
-            tienLenPlayer.SetCardHolder(cardHolder);
 
-            Debug.Log($"Logic player {tienLenPlayer.PlayerName} has been bound to seat {seatIndex}");
+            tienLenPlayer.SetCardHolder(cardHolder);
+            isOccupied = true;
+            ChangeAvatar(true);
+
         }
 
 
@@ -41,18 +36,8 @@ namespace Assets.Script.TienLen.UI {
             isOccupied = false;
             tienLenPlayer = null;
 
-            if ( cardHolder != null ) {
-                cardHolder.ChangeAvatar(false);
-                // Optionally clear cards: cardHolder.ClearCards();
-            }
+            ChangeAvatar(false);
         }
-
-        //TODO: Implement the logic to assign a sprite to the seat based on the player or other criteria.
-        //for now, it will be a placeholder method that can be expanded later.
-        public void assignSprite(bool isOccupied) {
-            cardHolder.ChangeAvatar(isOccupied);
-        }
-
 
         public void setSeatIndex(int index ) {
             seatIndex = index;
@@ -60,6 +45,18 @@ namespace Assets.Script.TienLen.UI {
 
         public int GetSeatIndex() {
             return seatIndex;
+        }
+
+        public void ChangeAvatar( bool isAvatarVisible ) {
+            if ( spriteRenderer == null ) {
+                Debug.LogWarning($"[PlayerSeat {seatIndex}] spriteRenderer is null, cannot change avatar visibility.");
+                return;
+            }
+            if ( spriteRenderer.gameObject == null ) {
+                Debug.LogWarning($"[PlayerSeat {seatIndex}] avatar gameObject is null, cannot change avatar visibility.");
+                return;
+            }
+            spriteRenderer.gameObject.SetActive(isAvatarVisible); //TODO: Change into configurable sprite or avatar.
         }
 
     }
