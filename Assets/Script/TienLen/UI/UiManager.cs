@@ -32,10 +32,11 @@ namespace Assets.Script.TienLen.UI {
         private NetworkBehaviour.ChangeDetector seatDetector;
         private NetworkBehaviour.ChangeDetector gameDetector;
 
-        // Last state actually pushed to the views. Compared every Render so
-        // the views converge even when a detector delta and the model rebuild
-        // land in different orders within the same frame.
-        private int lastRenderedSeatCount = -1;
+        // Last state actually pushed to the views. Keyed to the seat MODEL's
+        // revision (not the replicated dict count): the views render model
+        // data, so only a model change guarantees a re-render is worthwhile,
+        // and a late model catch-up always triggers one.
+        private int lastRenderedSeatRevision = -1;
         private bool lastRenderedStarted;
 
         private UiStrategyContext context;
@@ -92,20 +93,22 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public override void Render() {
-            seatDetector ??= TryCreateDetector(seatManager);
-            if ( seatDetector != null ) {
-                // Paint once: anything that changed between Spawned and
-                // detector creation is already baked into its snapshot.
-                RenderSeats();
-                RenderStartButton();
+            if ( seatDetector == null ) {
+                seatDetector = TryCreateDetector(seatManager);
+                if ( seatDetector != null ) {
+                    // Paint once: anything that changed between Spawned and
+                    // detector creation is already baked into its snapshot.
+                    RenderSeats();
+                    RenderStartButton();
+                }
             }
 
-
-
-            gameDetector ??= TryCreateDetector(tienLenGameController);
-            if ( gameDetector != null ) {
-                RenderStartButton();
-                RenderGamePhase();
+            if ( gameDetector == null ) {
+                gameDetector = TryCreateDetector(tienLenGameController);
+                if ( gameDetector != null ) {
+                    RenderStartButton();
+                    RenderGamePhase();
+                }
             }
 
             if ( seatDetector != null && seatManager != null ) {
@@ -132,16 +135,14 @@ namespace Assets.Script.TienLen.UI {
                 }
             }
 
-            // Refs can resolve locally with no further network change, which
-            // no detector reports. The resolvable count also covers the case
-            // where a detector delta and the model rebuild land in different
-            // orders within one frame: re-render whenever the pushed state
-            // no longer matches what the views show.
-            int resolvedCount = seatManager != null ? seatManager.ResolvedSeatCount : 0;
+            // Re-render whenever the pushed state no longer matches what the
+            // views show. Revision-based: fires exactly when the model the
+            // views read has caught up, regardless of callback ordering.
+            int seatRevision = seatManager != null ? seatManager.SeatRevision : -1;
             bool started = IsGameLogicReady() && tienLenGameController.IsGameStarted;
 
-            if ( resolvedCount != lastRenderedSeatCount || started != lastRenderedStarted ) {
-                lastRenderedSeatCount = resolvedCount;
+            if ( seatRevision != lastRenderedSeatRevision || started != lastRenderedStarted ) {
+                lastRenderedSeatRevision = seatRevision;
                 lastRenderedStarted = started;
                 RenderSeats();
                 RenderStartButton();
@@ -157,7 +158,7 @@ namespace Assets.Script.TienLen.UI {
             RenderStartButton();
             RenderGamePhase();
 
-            lastRenderedSeatCount = seatManager != null ? seatManager.ResolvedSeatCount : 0;
+            lastRenderedSeatRevision = seatManager != null ? seatManager.SeatRevision : -1;
             lastRenderedStarted = IsGameLogicReady() && tienLenGameController.IsGameStarted;
         }
 

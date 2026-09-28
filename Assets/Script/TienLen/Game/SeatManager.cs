@@ -1,6 +1,7 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
 using Fusion;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -216,14 +217,28 @@ namespace Assets.Script.TienLen.Game {
                 }
             }
 
-            var before = new HashSet<int>(seatedPlayers.Keys);
+            var before = new Dictionary<int, TienLenPlayer>(seatedPlayers);
 
             seatedPlayers.Clear();
             foreach ( var kvp in newSeatedPlayers ) {
                 seatedPlayers[kvp.Key] = kvp.Value;
             }
 
-            if ( !before.SetEquals(seatedPlayers.Keys) ) {
+            // Bump only on real content change: same keys but a replaced
+            // occupant (leave+rejoin in one snapshot) must count too, so
+            // compare instance identity, not just keys.
+            bool modelChanged = before.Count != seatedPlayers.Count;
+            if ( !modelChanged ) {
+                foreach ( var kvp in seatedPlayers ) {
+                    if ( !before.TryGetValue(kvp.Key, out var oldPlayer)
+                        || !ReferenceEquals(oldPlayer, kvp.Value) ) {
+                        modelChanged = true;
+                        break;
+                    }
+                }
+            }
+
+            if ( modelChanged ) {
                 SeatRevision++;
             }
 

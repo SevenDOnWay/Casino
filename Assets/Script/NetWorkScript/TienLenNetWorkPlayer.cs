@@ -46,10 +46,10 @@ namespace Assets.Script.NetWorkScript {
         }
 
         private void Update() {
-            // Retry a failed bind once the container/service becomes ready.op
-            //if ( localPlayerBound ) return;
-            //if ( Object == null || !Object.HasInputAuthority ) return;
-            //BindLocalPlayerService();
+            // Retry a failed bind once the container/service becomes ready.
+            if ( localPlayerBound ) return;
+            if ( Object == null || !Object.HasInputAuthority ) return;
+            BindLocalPlayerService();
         }
 
 

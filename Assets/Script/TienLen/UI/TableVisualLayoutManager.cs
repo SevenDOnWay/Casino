@@ -2,6 +2,7 @@
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Fusion;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -102,8 +103,11 @@ namespace Assets.Script.TienLen.UI {
                 if ( slot == null ) continue;
 
                 if ( targetAssignments.TryGetValue(i, out var assignment) ) {
-                    // This slot should show this network seat.
-                    if ( slot.BoundSeatIndex != assignment.netSeat ) {
+                    // This slot should show this network seat. Rebind when
+                    // the seat is new OR the occupant instance changed
+                    // (leave+rejoin can reuse the seat in one snapshot).
+                    if ( slot.BoundSeatIndex != assignment.netSeat ||
+                        !ReferenceEquals(slot.tienLenPlayer, assignment.player) ) {
                         // Different occupant (or first bind) -> bind.
                         slot.BindPlayer(assignment.player, assignment.netSeat);
                     }
