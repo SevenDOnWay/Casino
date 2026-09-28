@@ -160,8 +160,77 @@ namespace Assets.Script.TienLen.Game {
                 }
             }
 
+            // Hands are plain local objects: only the host has them.
+            // Push each hand out before triggering the deal animation.
+            BroadcastHands();
 
             RPCPlayDealAnimation();
+        }
+
+        /// <summary>
+        /// Host only. Sends every seated player's hand to all peers.
+        /// Reliable RPCs from one sender stay ordered, so hands always land
+        /// before <see cref="RPCPlayDealAnimation"/>.
+        /// </summary>
+        private void BroadcastHands() {
+            if ( !Object.HasStateAuthority ) return;
+
+            var networkMap = playerRegisterService.GetNetworkPlayerMap();
+            foreach ( var kvp in networkMap ) {
+                TienLenPlayer logicPlayer = playerRegisterService.GetLogicPlayer(kvp.Value.PlayerRef);
+                if ( logicPlayer?.Hand == null ) continue;
+
+                NetworkCard[] netCards = logicPlayer.Hand.Cards
+                    .Select(card => new NetworkCard(card))
+                    .ToArray();
+
+                RPCReceiveHand(kvp.Value.PlayerRef, netCards);
+            }
+        }
+
+        // Hands that arrived before the local seat model knew the player.
+        // Flushed once seats catch up (see Update).
+        private readonly Dictionary<PlayerRef, List<Card>> pendingHands = new();
+        private int lastSeenSeatRevision = -1;
+
+        private void Update() {
+            if ( pendingHands.Count == 0 ) return;
+            if ( playerRegisterService == null ) return;
+            if ( Object == null || !Object.IsValid ) return;
+
+            int revision = playerRegisterService.SeatRevision;
+            if ( revision == lastSeenSeatRevision ) return;
+            lastSeenSeatRevision = revision;
+
+            var owners = new List<PlayerRef>(pendingHands.Keys);
+            foreach ( var owner in owners ) {
+                if ( TryApplyHand(owner, pendingHands[owner]) ) {
+                    pendingHands.Remove(owner);
+                }
+            }
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCReceiveHand( PlayerRef owner, NetworkCard[] cards ) {
+            // Hidden info: clients only ever learn their own hand.
+            if ( !Object.HasStateAuthority && owner != Runner.LocalPlayer ) return;
+
+            List<Card> hand = cards.Select(card => card.ToCard()).ToList();
+
+            if ( !TryApplyHand(owner, hand) ) {
+                // Seat model not ready yet; retry when its revision advances.
+                pendingHands[owner] = hand;
+                Debug.Log($"[Deal] Buffered hand for {owner} until seats are ready.");
+            }
+        }
+
+        private bool TryApplyHand( PlayerRef owner, List<Card> hand ) {
+            TienLenPlayer player = playerRegisterService?.GetLogicPlayer(owner);
+            if ( player?.Hand == null ) return false;
+
+            player.Hand.Clear();
+            player.Hand.AddCard(hand);
+            return true;
         }
 
 
@@ -268,8 +337,19 @@ namespace Assets.Script.TienLen.Game {
                             $"runner: {Runner.LocalPlayer}. player {seatOwner}");
 
                         if ( isLocal ) {
+                            // The hand RPC is ordered before the animation RPC,
+                            // but the seat model may still be catching up:
+                            // wait briefly instead of failing immediately.
+                            const int handWaitMs = 5000;
+                            int waitedMs = 0;
+                            while ( (player.Hand?.Cards == null || player.Hand.Cards.Count <= round)
+                                && waitedMs < handWaitMs ) {
+                                await UniTask.Delay(50, cancellationToken: ct);
+                                waitedMs += 50;
+                            }
+
                             if ( player.Hand?.Cards == null || player.Hand.Cards.Count <= round ) {
-                                Debug.LogError($"[AnimateDealingRoutineAsync] Missing card at index {round} for local player.");
+                                Debug.LogError($"[AnimateDealingRoutineAsync] Hand still missing card at index {round} for local player after {handWaitMs}ms.");
                                 Destroy(cardView.gameObject);
                                 continue;
                             }
