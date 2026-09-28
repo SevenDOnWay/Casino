@@ -35,6 +35,15 @@ namespace Assets.Script.TienLen.Game {
 
         [Networked, OnChangedRender(nameof(OnIsGameStartedChanged))] public NetworkBool IsGameStarted { get; set; }
 
+        /// <summary>Network seat index whose turn it is. -1 = not started. Mirrored by the host from TurnManager.</summary>
+        [Networked] public int CurrentTurnSeat { get; set; }
+
+        /// <summary>Network seat index of the winner. -1 = no winner yet.</summary>
+        [Networked] public int WinnerSeat { get; set; }
+
+        /// <summary>Network seat index of the last accepted pass. -1 = none/cleared by a newer play.</summary>
+        [Networked] public int LastPassSeat { get; set; }
+
         /// <summary>
         /// Returns true when enough registered network players (each carries
         /// its PlayerRef) have joined and the game hasn't started yet.
@@ -87,6 +96,14 @@ namespace Assets.Script.TienLen.Game {
         public override void Spawned() {
             base.Spawned();
 
+            // Networked ints default to 0; -1 is our real "unset" sentinel
+            // (seat 0 is a valid seat). Host publishes, all peers replicate.
+            if ( Object.HasStateAuthority ) {
+                CurrentTurnSeat = -1;
+                WinnerSeat = -1;
+                LastPassSeat = -1;
+            }
+
             if ( uiManager != null ) {
                 //uiManager.Init();
             }
@@ -119,6 +136,8 @@ namespace Assets.Script.TienLen.Game {
 
             DealCard(deck);
 
+            InitializeTurns();
+
             Initialize();
             //OnRoundStarted?.Invoke();
         }
@@ -140,7 +159,54 @@ namespace Assets.Script.TienLen.Game {
 
 
 
+        }
 
+        /// <summary>
+        /// Host only. Seeds turn order from seats ascending and gives the
+        /// lead to the holder of the 3 of Spades (lowest seat on fallback).
+        /// Open lead: any valid combination may open (must-lead-3♠ is a
+        /// future rule tightening).
+        /// </summary>
+        private void InitializeTurns() {
+            if ( !Object.HasStateAuthority ) return;
+
+            List<TienLenPlayer> ordered = playerRegisterService.GetSeatedPlayers()
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => kvp.Value)
+                .ToList();
+
+            if ( ordered.Count == 0 ) return;
+
+            turnManager.Initialize(ordered);
+            turnManager.SetStartingPlayer(FindStartingSeatOrderIndex(ordered));
+            MirrorTurnSeat();
+        }
+
+        private int FindStartingSeatOrderIndex( List<TienLenPlayer> ordered ) {
+            for ( int i = 0; i < ordered.Count; i++ ) {
+                var cards = ordered[i]?.Hand?.Cards;
+                if ( cards == null ) continue;
+                foreach ( var card in cards ) {
+                    if ( card.Rank == CardRank.Three && card.Suit == CardSuit.Spades ) {
+                        return i;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        private int SeatOfPlayer( TienLenPlayer player ) {
+            foreach ( var kvp in playerRegisterService.GetSeatedPlayers() ) {
+                if ( ReferenceEquals(kvp.Value, player) ) return kvp.Key;
+            }
+            return -1;
+        }
+
+        private void MirrorTurnSeat() {
+            int seat = SeatOfPlayer(turnManager.CurrentPlayer);
+            if ( seat != -1 ) {
+                CurrentTurnSeat = seat;
+            }
         }
 
 
@@ -386,13 +452,14 @@ namespace Assets.Script.TienLen.Game {
                 }
             }
             finally {
-                // Guaranteed cleanup for remaining unused deck cards even if canceled
-                //while ( deckStack.Count > 0 ) {
-                //    CardView leftover = deckStack.Dequeue();
-                //    if ( leftover != null ) {
-                //        Destroy(leftover.gameObject);
-                //    }
-                //}
+                // Destroy leftover deck backs (e.g. 2-player game deals 26
+                // of 52). Without this they sit on the table forever.
+                while ( deckStack.Count > 0 ) {
+                    CardView leftover = deckStack.Dequeue();
+                    if ( leftover != null ) {
+                        Destroy(leftover.gameObject);
+                    }
+                }
             }
         }
 
@@ -422,6 +489,7 @@ namespace Assets.Script.TienLen.Game {
         //TODO: make it support as the new round begin, all the card from last round clear or turn down.
         public void HandlePassRequest( PlayerRef sender ) {
             Debug.Log($"[HandlePassRequest] sender={sender}, senderId={sender.PlayerId}");
+            if ( WinnerSeat != -1 ) return;
             TienLenPlayer player = GetPlayer(sender);
             if ( player == null ) {
                 Debug.LogWarning($"Cannot find localPlayer for {sender.PlayerId}.");
@@ -431,6 +499,8 @@ namespace Assets.Script.TienLen.Game {
                 Debug.LogWarning($"Player {player.Id} cannot pass at this time.");
                 return;
             }
+            MirrorTurnSeat();
+            LastPassSeat = SeatOfPlayer(player);
             // Notify all clients that this pass was accepted.
             RPCPassAccepted(sender);
         }
@@ -465,6 +535,16 @@ namespace Assets.Script.TienLen.Game {
                 sender,
                 playedCards.Select(card => new NetworkCard(card)).ToArray()
             );
+
+            MirrorTurnSeat();
+
+            // A newer play supersedes any pass note.
+            LastPassSeat = -1;
+
+            if ( player.Hand.Count == 0 ) {
+                WinnerSeat = SeatOfPlayer(player);
+                Debug.Log($"[Game] Player {player.Id} wins!");
+            }
         }
 
         [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
@@ -473,10 +553,22 @@ namespace Assets.Script.TienLen.Game {
             .Select(card => card.ToCard())
             .ToList();
 
+            // Host already removed these in HandleAcceptedPlay; every other
+            // peer removes them from its viewing hand so counts and local
+            // validation stay consistent.
+            if ( !Object.HasStateAuthority ) {
+                GetPlayer(playerRef)?.TryRemoveCards(playedCards);
+            }
+
             HandlePlayPresentation(playerRef, playedCards);
         }
 
         private void HandlePlayPresentation( PlayerRef playerRef, List<Card> playedCards ) {
+            // A new accepted play replaces whatever was on the table.
+            if ( tableCenterPosition != null ) {
+                tableCenterPosition.Clear();
+            }
+
             TienLenPlayer player = GetPlayer(playerRef);
 
             if ( player == null )
@@ -540,6 +632,18 @@ namespace Assets.Script.TienLen.Game {
                     continue;
                 }
 
+                // Reveal the face on every peer. The actor already holds
+                // face-up views, but viewers animated card backs — stamp the
+                // authoritative played data + sprite so the table shows faces.
+                if ( i < playedCards.Count && playedCards[i] != null ) {
+                    Card played = playedCards[i];
+                    view.Card = played;
+                    if ( sprites != null && sprites.TryGetValue((played.Suit, played.Rank), out Sprite faceSprite)
+                        && faceSprite != null ) {
+                        view.ChangeSprite(faceSprite);
+                    }
+                }
+
                 Debug.Log($"[AnimatePlayedCards] Animating card '{view.name}' at index {i}.");
 
                 Transform cardTransform = view.transform;
@@ -565,6 +669,10 @@ namespace Assets.Script.TienLen.Game {
                 table.AddCard(view);
             }
 
+            // Views now live on the table: drop them from the hand list so a
+            // later hand ArrangeCards does not pull them back.
+            cardHolder.RemoveCards(views, animate: false);
+
             Debug.Log("[AnimatePlayedCards] Animation setup completed.");
             yield return null;
         }
@@ -572,6 +680,8 @@ namespace Assets.Script.TienLen.Game {
 
         public void HandlePlayRequest( PlayerRef sender, NetworkCard[] cards ) {
             Debug.Log($"[HandlePlayRequest] sender={sender}, senderId={sender.PlayerId}, cards={cards?.Length ?? 0}");
+
+            if ( WinnerSeat != -1 ) return;
 
             TienLenPlayer player = GetPlayer(sender);
 

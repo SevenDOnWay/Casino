@@ -18,6 +18,7 @@ namespace Assets.Script.TienLen.Game {
 
         private int currentPlayerIndex;
         private int lastPlayerIndex;
+        private int lastPlayIndex;
         private int passedPlayers;
 
 
@@ -33,6 +34,14 @@ namespace Assets.Script.TienLen.Game {
             this.players = players;
 
             currentPlayerIndex = 0;
+            lastPlayerIndex = -1;
+            passedPlayers = 0;
+        }
+
+        /// <summary>Override which ordered-list index starts (e.g. ♠3 holder).</summary>
+        public void SetStartingPlayer( int orderIndex ) {
+            if ( players == null || players.Count == 0 ) return;
+            currentPlayerIndex = Mathf.Clamp(orderIndex, 0, players.Count - 1);
             lastPlayerIndex = -1;
             passedPlayers = 0;
         }
@@ -56,7 +65,10 @@ namespace Assets.Script.TienLen.Game {
             // The play is valid.
             validator.SetCurrentCombination(combination);
 
-            //passedPlayers = 0; 
+            // A new play resets the pass count and marks this player as the
+            // round leader if everyone else passes from here.
+            passedPlayers = 0;
+            lastPlayIndex = currentPlayerIndex;
 
             AdvanceTurn();
 
@@ -96,8 +108,9 @@ namespace Assets.Script.TienLen.Game {
 
             // The player who played the last valid combination
             // starts the new round.
-
+            currentPlayerIndex = lastPlayIndex;
             lastPlayerIndex = -1;
+            OnTurnChanged?.Invoke();
         }
 
     }

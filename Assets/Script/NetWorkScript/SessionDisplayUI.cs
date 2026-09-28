@@ -9,6 +9,8 @@ namespace Assets.Script.NetWorkScript {
     public class SessionDisplayUI : MonoBehaviour {
 
         [SerializeField] private TMP_Text sessionNameText;
+        [SerializeField, Tooltip("Optional. Assign a Text element to show announcements (e.g. winner).")]
+        private TMP_Text announcementText;
 
         public void RenderSession( string sessionName ) {
             if ( sessionNameText == null ) return;
@@ -16,6 +18,11 @@ namespace Assets.Script.NetWorkScript {
             sessionNameText.text = string.IsNullOrEmpty(sessionName)
                 ? "Room: ..."
                 : $"Room: {sessionName}";
+        }
+
+        public void RenderAnnouncement( string message ) {
+            if ( announcementText == null ) return;
+            announcementText.text = message ?? string.Empty;
         }
     }
 }

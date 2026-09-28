@@ -89,12 +89,18 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void Clear() {
+            // Selection references dying views: drop it first, then notify
+            // so dependents (e.g. action panel) re-evaluate on empty.
+            selectedCards.Clear();
+
             foreach ( CardView card in cardsViews ) {
-                if ( card != null )
-                    card.OnClicked -= HandleCardClicked;
+                if ( card == null ) continue;
+                card.OnClicked -= HandleCardClicked;
+                Destroy(card.gameObject);
             }
 
             cardsViews.Clear();
+            OnCardSelected?.Invoke(selectedCards);
         }
 
         /// <summary>
@@ -133,13 +139,18 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void SortCards() {
-            if ( cardComparer == null ) {
-                Debug.LogError("[CardHolder] Cannot sort cardsViews: 'cardComparer' is NULL! Falling back to raw Card comparison.", this);
-                cardsViews.Sort(( a, b ) => a.Card != null && b.Card != null ? a.Card.Rank.CompareTo(b.Card.Rank) : 0);
-                return;
-            }
+            // CardHolder is not container-injected in every scene, so the
+            // comparer may be null; CardComparer is stateless, so fall back
+            // to a local instance. Null cards (face-down backs) sort last.
+            cardComparer ??= new CardComparer();
 
-            cardsViews.Sort(( a, b ) => cardComparer.Compare(a.Card, b.Card));
+            cardsViews.Sort(( a, b ) => {
+                Card aCard = a?.Card;
+                Card bCard = b?.Card;
+                if ( aCard == null ) return bCard == null ? 0 : 1;
+                if ( bCard == null ) return -1;
+                return cardComparer.Compare(aCard, bCard);
+            });
         }
 
         public void ArrangeCards( bool animate = true ) {
@@ -193,15 +204,38 @@ namespace Assets.Script.TienLen.UI {
 
         public List<CardView> FindCards(List<Card> cards) {
             List<CardView> res = new();
+            if ( cards == null || cards.Count == 0 ) return res;
+
             Dictionary<Card, CardView> dic = new();
+            List<CardView> faceless = new();
 
             foreach(var cardView in cardsViews ) {
-                dic.Add(cardView.Card, cardView);
+                if ( cardView == null ) continue;
+                if ( cardView.Card == null ) {
+                    // Face-down back view (a non-local hand on a viewer):
+                    // no card data, so it can never match by value.
+                    faceless.Add(cardView);
+                    continue;
+                }
+                if ( !dic.ContainsKey(cardView.Card) ) {
+                    dic.Add(cardView.Card, cardView);
+                }
             }
 
             foreach ( var card in cards ) {
-                if ( dic.TryGetValue(card, out CardView cardView) ) {
+                if ( card != null && dic.TryGetValue(card, out CardView cardView) ) {
                     res.Add(cardView);
+                }
+            }
+
+            // Viewers hold only backs: fall back to any views so the play
+            // still animates to the table instead of vanishing.
+            // (Revealing faces here is a visual follow-up.)
+            for ( int i = res.Count; i < cards.Count && faceless.Count > 0; i++ ) {
+                CardView fallback = faceless[0];
+                faceless.RemoveAt(0);
+                if ( !res.Contains(fallback) ) {
+                    res.Add(fallback);
                 }
             }
 

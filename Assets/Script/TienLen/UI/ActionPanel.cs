@@ -37,6 +37,10 @@ namespace Assets.Script.TienLen.UI {
         private TienLenPlayer localPlayer;
         private GameObject panelRootObject;
 
+        // Last turn state pushed down by UiManager. Gates play/pass;
+        // the host still validates every request authoritatively.
+        private bool lastPushedIsTurn;
+
         private TienLenPlayer LocalPlayer {
             get {
                 if ( localPlayer == null ) {
@@ -127,6 +131,16 @@ namespace Assets.Script.TienLen.UI {
         /// <summary>Called by LobbyUiStrategy while waiting in the lobby.</summary>
         public void ReturnToLobby() {
             SetPanelVisible( false );
+        }
+
+        /// <summary>
+        /// Dumb entry point: UiManager pushes whether it is the local
+        /// player's turn. Play/pass enablement follows; selection changes
+        /// re-evaluate through <see cref="RefreshActionState"/>.
+        /// </summary>
+        public void RenderTurnState( bool isLocalTurn ) {
+            lastPushedIsTurn = isLocalTurn;
+            RefreshActionState();
         }
 
         private void SetPanelVisible( bool visible ) {
@@ -272,7 +286,7 @@ namespace Assets.Script.TienLen.UI {
         private void RefreshActionState() {
             SetSortInteractable( true );
 
-            bool canAct = !EnforceTurnOrder || IsLocalPlayerTurn;
+            bool canAct = lastPushedIsTurn;
             SetPlayInteractable( canAct && HasPlayableSelection() );
             SetPassInteractable( canAct );
         }

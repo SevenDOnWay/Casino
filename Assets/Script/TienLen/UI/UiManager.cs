@@ -1,9 +1,12 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Game;
+using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.UI.Strategy;
 using Fusion;
+using System;
 using UnityEngine;
 using UnityEngine.Serialization;
+using VContainer;
 
 namespace Assets.Script.TienLen.UI {
     public enum LobbyChangeReason { Initialized, PlayerJoined, PlayerLeft, SeatsChanged, GameStarted, TurnChanged }
@@ -31,6 +34,13 @@ namespace Assets.Script.TienLen.UI {
 
         private NetworkBehaviour.ChangeDetector seatDetector;
         private NetworkBehaviour.ChangeDetector gameDetector;
+
+        private ILocalPlayerService localPlayerService;
+
+        [Inject]
+        void Construct( ILocalPlayerService localPlayerService ) {
+            this.localPlayerService = localPlayerService;
+        }
 
         // Last state actually pushed to the views. Keyed to the seat MODEL's
         // revision (not the replicated dict count): the views render model
@@ -131,6 +141,18 @@ namespace Assets.Script.TienLen.UI {
                                 RenderGamePhase();
                                 break;
                             }
+                        case nameof(TienLenGameController.CurrentTurnSeat): {
+                                RenderTurn();
+                                break;
+                            }
+                        case nameof(TienLenGameController.WinnerSeat): {
+                                RenderGameOver();
+                                break;
+                            }
+                        case nameof(TienLenGameController.LastPassSeat): {
+                                RenderPassNote();
+                                break;
+                            }
                     }
                 }
             }
@@ -157,6 +179,8 @@ namespace Assets.Script.TienLen.UI {
             RenderSeats();
             RenderStartButton();
             RenderGamePhase();
+            RenderTurn();
+            RenderPassNote();
 
             lastRenderedSeatRevision = seatManager != null ? seatManager.SeatRevision : -1;
             lastRenderedStarted = IsGameLogicReady() && tienLenGameController.IsGameStarted;
@@ -180,6 +204,16 @@ namespace Assets.Script.TienLen.UI {
                 seatManager.GetSeatedPlayers(),
                 seatManager.GetNetworkPlayerMap(),
                 Runner.LocalPlayer);
+
+            // Publish the local logic player once its seat resolves, so
+            // deal fan-out and game logic stop seeing a null local player.
+            if ( localPlayerService != null ) {
+                TienLenPlayer logic = seatManager.GetLogicPlayer(Runner.LocalPlayer);
+                if ( logic != null
+                    && !ReferenceEquals(localPlayerService.GetLocalLogicPlayer(), logic) ) {
+                    localPlayerService.SetLocalLogicPlayer(logic);
+                }
+            }
         }
 
         private bool IsGameLogicReady() {
@@ -207,10 +241,80 @@ namespace Assets.Script.TienLen.UI {
 
             if ( tienLenGameController.IsGameStarted ) {
                 actionPanel.EnterGame();
+                // Turn seat may equal its default with no detectable delta
+                // (e.g. starter is seat 0), so push explicitly.
+                RenderTurn();
             }
             else {
                 actionPanel.ReturnToLobby();
             }
+        }
+
+        private void RenderTurn() {
+            if ( actionPanel == null || !IsGameLogicReady() ) return;
+            actionPanel.RenderTurnState(IsLocalTurn());
+        }
+
+        private bool IsLocalTurn() {
+            if ( !IsGameLogicReady() ) return false;
+            if ( tienLenGameController.WinnerSeat != -1 ) return false;
+            int localSeat = ResolveLocalSeat();
+            return localSeat != -1 && localSeat == tienLenGameController.CurrentTurnSeat;
+        }
+
+        private int ResolveLocalSeat() {
+            if ( seatManager == null ) return -1;
+            foreach ( var kvp in seatManager.GetNetworkPlayerMap() ) {
+                var netPlayer = kvp.Value;
+                if ( netPlayer == null ) continue;
+                if ( netPlayer.Object != null && netPlayer.Object.IsValid
+                    && netPlayer.Object.InputAuthority == Runner.LocalPlayer ) {
+                    return kvp.Key;
+                }
+                if ( netPlayer.PlayerRef == Runner.LocalPlayer ) {
+                    return kvp.Key;
+                }
+            }
+            return -1;
+        }
+
+        private string SeatDisplayName( int seat ) {
+            string name = $"Seat {seat}";
+            if ( seatManager != null ) {
+                var map = seatManager.GetNetworkPlayerMap();
+                if ( map.TryGetValue(seat, out var netPlayer) && netPlayer != null ) {
+                    name = (string)netPlayer.PlayerName;
+                }
+            }
+            return name;
+        }
+
+        private void RenderPassNote() {
+            if ( !IsGameLogicReady() ) return;
+            int seat = tienLenGameController.LastPassSeat;
+            if ( sessionDisplayUI == null ) return;
+
+            // -1 clears the note (a newer play superseded the pass).
+            sessionDisplayUI.RenderAnnouncement(
+                seat == -1 ? string.Empty : $"{SeatDisplayName(seat)} passed");
+        }
+
+        private void RenderGameOver() {
+            if ( !IsGameLogicReady() ) return;
+            int seat = tienLenGameController.WinnerSeat;
+            if ( seat == -1 ) return;
+
+            string name = $"Seat {seat}";
+            if ( seatManager != null ) {
+                var map = seatManager.GetNetworkPlayerMap();
+                if ( map.TryGetValue(seat, out var netPlayer) && netPlayer != null ) {
+                    name = (string)netPlayer.PlayerName;
+                }
+            }
+
+            sessionDisplayUI?.RenderAnnouncement($"{name} wins!");
+            actionPanel?.RenderTurnState(false);
+            actionPanel?.ReturnToLobby();
         }
 
         private void HandleStartClicked() {
