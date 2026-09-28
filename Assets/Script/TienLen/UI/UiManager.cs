@@ -9,12 +9,13 @@ namespace Assets.Script.TienLen.UI {
     public enum LobbyChangeReason { Initialized, PlayerJoined, PlayerLeft, SeatsChanged, GameStarted, TurnChanged }
 
     /// <summary>
-    /// Single entry point for every UI refresh. It resolves dependencies,
-    /// subscribes to the sources of truth (seat + lobby events) and forwards
-    /// each change to the currently installed <see cref="IUiStrategy"/>,
-    /// which decides what the screen should look like.
+    /// The single hub between network state and dumb UI views.
+    /// Concrete views (StartGameUI, SessionDisplayUI, TableVisualLayoutManager)
+    /// know nothing about seats, authority or lobby rules: UiManager detects
+    /// replicated changes in Render() via Fusion change detectors, resolves
+    /// plain data, and pushes it down through Render*() functions.
     /// </summary>
-    public class UiManager : MonoBehaviour, IUiStrategyHost {
+    public class UiManager : NetworkBehaviour, IUiStrategyHost {
         [Header("Dependencies")]
         [SerializeField] private TienLenGameController tienLenGameController;
         [SerializeField] private LobbySessionController lobbySessionController;
@@ -28,6 +29,15 @@ namespace Assets.Script.TienLen.UI {
         [FormerlySerializedAs("TableVisualLayoutManager")]
         [SerializeField] private TableVisualLayoutManager tableVisualLayoutManager;
 
+        private NetworkBehaviour.ChangeDetector seatDetector;
+        private NetworkBehaviour.ChangeDetector gameDetector;
+
+        // Last state actually pushed to the views. Compared every Render so
+        // the views converge even when a detector delta and the model rebuild
+        // land in different orders within the same frame.
+        private int lastRenderedSeatCount = -1;
+        private bool lastRenderedStarted;
+
         private UiStrategyContext context;
         private IUiStrategy strategy;
 
@@ -40,64 +50,182 @@ namespace Assets.Script.TienLen.UI {
 
         private void Awake() {
             // Warm the context so the first refresh never races resolution.
-            _ = Context;
+            //_ = Context;
         }
 
         private void OnEnable() {
-            ResolveReferences();
+            //ResolveReferences();
 
-            SubscribeEvents();
+            //SubscribeEvents();
 
+            // DISABLED: UI strategy pipeline commented out (freeze investigation).
             // A peer that joins after the match started must not flash the
             // lobby UI first, so pick the strategy from the replicated flag.
-            SwitchTo( Context.IsGameRunning
-                ? new InGameUiStrategy()
-                : new LobbyUiStrategy() );
+            //SwitchTo( Context.IsGameRunning
+            //    ? new InGameUiStrategy()
+            //    : new LobbyUiStrategy() );
 
-            RefreshLobby( LobbyChangeReason.Initialized );
+            //RefreshLobby( LobbyChangeReason.Initialized );
         }
 
         private void OnDisable() {
-            UnsubscribeEvents();
-
-            strategy?.OnExit();
-            strategy = null;
+            // DISABLED: UI strategy pipeline commented out (freeze investigation).
+            //strategy?.OnExit();
+            //strategy = null;
         }
 
-        #region events
+        public override void Spawned() {
+            ResolveReferences();
 
-        private void SubscribeEvents() {
-            if ( seatManager != null ) {
-                seatManager.OnSeatsChanged += HandleSeatsChanged;
+            if ( startGameUI != null && startGameUI.StartButton != null ) {
+                startGameUI.StartButton.onClick.AddListener(HandleStartClicked);
             }
 
-            if ( lobbySessionController != null ) {
-                lobbySessionController.OnPlayerJoinedEvent += HandlePlayerJoined;
-                lobbySessionController.OnPlayerLeftEvent += HandlePlayerLeft;
-            }
+            // Change detectors only report deltas, so paint current state once.
+            RenderAll();
         }
 
-        private void UnsubscribeEvents() {
-            if ( seatManager != null ) {
-                seatManager.OnSeatsChanged -= HandleSeatsChanged;
-            }
-
-            if ( lobbySessionController != null ) {
-                lobbySessionController.OnPlayerJoinedEvent -= HandlePlayerJoined;
-                lobbySessionController.OnPlayerLeftEvent -= HandlePlayerLeft;
+        public override void Despawned( NetworkRunner runner, bool hasState ) {
+            if ( startGameUI != null && startGameUI.StartButton != null ) {
+                startGameUI.StartButton.onClick.RemoveListener(HandleStartClicked);
             }
         }
 
-        private void HandleSeatsChanged() {
-            RefreshLobby( LobbyChangeReason.SeatsChanged );
+        public override void Render() {
+            seatDetector ??= TryCreateDetector(seatManager);
+            if ( seatDetector != null ) {
+                // Paint once: anything that changed between Spawned and
+                // detector creation is already baked into its snapshot.
+                RenderSeats();
+                RenderStartButton();
+            }
+
+
+
+            gameDetector ??= TryCreateDetector(tienLenGameController);
+            if ( gameDetector != null ) {
+                RenderStartButton();
+                RenderGamePhase();
+            }
+
+            if ( seatDetector != null && seatManager != null ) {
+                foreach ( var propertyName in seatDetector.DetectChanges(seatManager) ) {
+                    switch ( propertyName ) {
+                        case nameof(SeatManager.networkOccupiedSeats): {
+                                RenderSeats();
+                                RenderStartButton();
+                                break;
+                            }
+                    }
+                }
+            }
+
+            if ( gameDetector != null && tienLenGameController != null ) {
+                foreach ( var propertyName in gameDetector.DetectChanges(tienLenGameController) ) {
+                    switch ( propertyName ) {
+                        case nameof(TienLenGameController.IsGameStarted): {
+                                RenderStartButton();
+                                RenderGamePhase();
+                                break;
+                            }
+                    }
+                }
+            }
+
+            // Refs can resolve locally with no further network change, which
+            // no detector reports. The resolvable count also covers the case
+            // where a detector delta and the model rebuild land in different
+            // orders within one frame: re-render whenever the pushed state
+            // no longer matches what the views show.
+            int resolvedCount = seatManager != null ? seatManager.ResolvedSeatCount : 0;
+            bool started = IsGameLogicReady() && tienLenGameController.IsGameStarted;
+
+            if ( resolvedCount != lastRenderedSeatCount || started != lastRenderedStarted ) {
+                lastRenderedSeatCount = resolvedCount;
+                lastRenderedStarted = started;
+                RenderSeats();
+                RenderStartButton();
+                RenderGamePhase();
+            }
         }
 
-        private void HandlePlayerJoined( NetworkRunner runner ) {
-            RefreshLobby( LobbyChangeReason.PlayerJoined );
+        #region dumb-view renderers (data pushed down, no logic in views)
+
+        private void RenderAll() {
+            RenderSession();
+            RenderSeats();
+            RenderStartButton();
+            RenderGamePhase();
+
+            lastRenderedSeatCount = seatManager != null ? seatManager.ResolvedSeatCount : 0;
+            lastRenderedStarted = IsGameLogicReady() && tienLenGameController.IsGameStarted;
         }
 
-        private void HandlePlayerLeft( NetworkRunner runner ) {
-            RefreshLobby( LobbyChangeReason.PlayerLeft );
+        private void RenderSession() {
+            if ( sessionDisplayUI == null ) return;
+
+            string sessionName = Runner != null && Runner.SessionInfo.IsValid
+                ? Runner.SessionInfo.Name
+                : null;
+
+            sessionDisplayUI.RenderSession(sessionName);
+        }
+
+        private void RenderSeats() {
+            if ( tableVisualLayoutManager == null || seatManager == null ) return;
+            if ( seatManager.Object == null || !seatManager.Object.IsValid ) return;
+
+            tableVisualLayoutManager.RenderSeats(
+                seatManager.GetSeatedPlayers(),
+                seatManager.GetNetworkPlayerMap(),
+                Runner.LocalPlayer);
+        }
+
+        private bool IsGameLogicReady() {
+            return tienLenGameController != null
+                && tienLenGameController.Object != null
+                && tienLenGameController.Object.IsValid;
+        }
+
+        private void RenderStartButton() {
+            if ( startGameUI == null || !IsGameLogicReady() ) return;
+
+            int playerCount = seatManager != null
+                ? seatManager.GetNetworkPlayer().Count
+                : 0;
+
+            startGameUI.RenderStartButton(
+                playerCount,
+                Object.HasStateAuthority,
+                tienLenGameController.CanStartGame(),
+                tienLenGameController.IsGameStarted);
+        }
+
+        private void RenderGamePhase() {
+            if ( actionPanel == null || !IsGameLogicReady() ) return;
+
+            if ( tienLenGameController.IsGameStarted ) {
+                actionPanel.EnterGame();
+            }
+            else {
+                actionPanel.ReturnToLobby();
+            }
+        }
+
+        private void HandleStartClicked() {
+            // Only the host (state authority) may start, and only when
+            // enough players have joined.
+            if ( !Object.HasStateAuthority ) return;
+            if ( tienLenGameController == null ) return;
+            if ( tienLenGameController.IsGameStarted ) return;
+            if ( !tienLenGameController.CanStartGame() ) return;
+
+            tienLenGameController.StartGame();
+        }
+
+        private static NetworkBehaviour.ChangeDetector TryCreateDetector( NetworkBehaviour source ) {
+            if ( source == null || source.Object == null || !source.Object.IsValid ) return null;
+            return source.GetChangeDetector(NetworkBehaviour.ChangeDetector.Source.SimulationState);
         }
 
         #endregion
@@ -108,24 +236,26 @@ namespace Assets.Script.TienLen.UI {
         /// the resulting presentation.
         /// </summary>
         public void RefreshLobby( LobbyChangeReason reason ) {
-            Debug.Log( $"[UiManager] RefreshLobby reason={reason}" );
+            // DISABLED: UI strategy pipeline commented out (freeze investigation).
+            //Debug.Log( $"[UiManager] RefreshLobby reason={reason}" );
 
-            if ( strategy == null ) {
-                Debug.LogWarning( "[UiManager] RefreshLobby called with no active strategy, ignoring." );
-                return;
-            }
+            //if ( strategy == null ) {
+            //    Debug.LogWarning( "[UiManager] RefreshLobby called with no active strategy, ignoring." );
+            //    return;
+            //}
 
-            strategy.OnRefresh( reason, Context );
+            //strategy.OnRefresh( reason, Context );
         }
 
         public void SwitchTo( IUiStrategy next ) {
-            if ( next == null || ReferenceEquals( next, strategy ) ) return;
+            // DISABLED: UI strategy pipeline commented out (freeze investigation).
+            //if ( next == null || ReferenceEquals( next, strategy ) ) return;
 
-            Debug.Log( $"[UiManager] Strategy {strategy?.GetType().Name ?? "None"} -> {next.GetType().Name}" );
+            //Debug.Log( $"[UiManager] Strategy {strategy?.GetType().Name ?? "None"} -> {next.GetType().Name}" );
 
-            strategy?.OnExit();
-            strategy = next;
-            strategy.OnEnter( Context );
+            //strategy?.OnExit();
+            //strategy = next;
+            //strategy.OnEnter( Context );
         }
 
         #region wiring
@@ -139,7 +269,7 @@ namespace Assets.Script.TienLen.UI {
                 sessionDisplayUI,
                 startGameUI,
                 actionPanel,
-                tableVisualLayoutManager );
+                tableVisualLayoutManager);
         }
 
         /// <summary>

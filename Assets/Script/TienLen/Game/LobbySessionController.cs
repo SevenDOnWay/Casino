@@ -29,12 +29,6 @@ namespace Assets.Script.TienLen.Game {
         public bool isGameStartable { get; set; }
 
 
-
-
-        public event Action<NetworkRunner> OnPlayerJoinedEvent;
-        public event Action<NetworkRunner> OnPlayerLeftEvent;
-        public event Action OnGameStartedEvent;
-
         [Inject]
         void Construct( IPlayerRegisterService seatManager ) {
             this.seatManager = seatManager;
@@ -124,14 +118,8 @@ namespace Assets.Script.TienLen.Game {
                 Runner.Despawn(netObj);
                 Debug.Log($"[Lobby] Despawned network player for {player.PlayerId}");
             }
-
-            RpcPlayerLeft();
         }
 
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RpcPlayerLeft() {
-            OnPlayerLeftEvent?.Invoke(Runner);
-        }
 
         #region Start Game Button Logic
         //private void UpdateStartButtonUI() {

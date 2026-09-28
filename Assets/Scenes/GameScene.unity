@@ -273,8 +273,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
-  seatIndex: 0
-  isOccupied: 0
+  visualIndex: 0
   cardHolder: {fileID: 87784263}
   cardHolderPosition: {fileID: 87784262}
   spriteRenderer: {fileID: 889437778}
@@ -499,6 +498,7 @@ GameObject:
   - component: {fileID: 428874637}
   - component: {fileID: 428874636}
   - component: {fileID: 428874635}
+  - component: {fileID: 428874638}
   m_Layer: 5
   m_Name: StartBtn
   m_TagString: Untagged
@@ -608,6 +608,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 428874633}
   m_CullTransparentMesh: 1
+--- !u!114 &428874638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 428874633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f8896e203d7f794aa1afb4933586817, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.StartGameUI
+  startBtn: {fileID: 428874635}
+  startBtnText: {fileID: 1773020616}
 --- !u!1 &437638234
 GameObject:
   m_ObjectHideFlags: 0
@@ -1144,8 +1158,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
-  seatIndex: 0
-  isOccupied: 0
+  visualIndex: 0
   cardHolder: {fileID: 654509018}
   cardHolderPosition: {fileID: 654509017}
   spriteRenderer: {fileID: 1364561763}
@@ -1303,8 +1316,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
-  seatIndex: 0
-  isOccupied: 0
+  visualIndex: 0
   cardHolder: {fileID: 764129594}
   cardHolderPosition: {fileID: 764129593}
   spriteRenderer: {fileID: 55481598}
@@ -1525,8 +1537,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e055009c2ff932044866cf3f54e88298, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerSeat
-  seatIndex: 0
-  isOccupied: 0
+  visualIndex: 0
   cardHolder: {fileID: 829906683}
   cardHolderPosition: {fileID: 829906682}
   spriteRenderer: {fileID: 671960062}
@@ -2153,6 +2164,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f34e098d4abc96848986819c3cb5e535, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.TableVisualLayoutManager
+  localAnchorIndex: 0
 --- !u!4 &1611512766
 Transform:
   m_ObjectHideFlags: 0
@@ -2387,8 +2399,6 @@ GameObject:
   - component: {fileID: 1967596342}
   - component: {fileID: 1967596348}
   - component: {fileID: 1967596341}
-  - component: {fileID: 1967596346}
-  - component: {fileID: 1967596347}
   - component: {fileID: 1967596340}
   m_Layer: 5
   m_Name: Canvas
@@ -2415,7 +2425,7 @@ MonoBehaviour:
   Flags: 262146
   NestedObjects: []
   NetworkedBehaviours:
-  - {fileID: 1967596341}
+  - {fileID: 1967596348}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &1967596341
 MonoBehaviour:
@@ -2516,36 +2526,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &1967596346
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1967596339}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d9b01d30b24e9b4c97b3d75bc663c3a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.ActionPanel
-  actionPanel: {fileID: 2077176562}
-  playBtn: {fileID: 1189243365}
-  sortBtn: {fileID: 2119680905}
-  passBtn: {fileID: 437638239}
---- !u!114 &1967596347
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1967596339}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f8896e203d7f794aa1afb4933586817, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.StartGameUI
-  startBtn: {fileID: 428874635}
-  startBtnText: {fileID: 1773020616}
 --- !u!114 &1967596348
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2561,10 +2541,10 @@ MonoBehaviour:
   tienLenGameController: {fileID: 183374122}
   lobbySessionController: {fileID: 1937543990}
   seatManager: {fileID: 2034101244}
-  actionPanel: {fileID: 1967596346}
   sessionDisplayUI: {fileID: 1967596341}
-  startGameUI: {fileID: 1967596347}
-  TableVisualLayoutManager: {fileID: 1611512765}
+  startGameUI: {fileID: 428874638}
+  actionPanel: {fileID: 2077176568}
+  tableVisualLayoutManager: {fileID: 1611512765}
 --- !u!1 &2034101242
 GameObject:
   m_ObjectHideFlags: 0
@@ -2804,6 +2784,7 @@ GameObject:
   - component: {fileID: 2077176564}
   - component: {fileID: 2077176566}
   - component: {fileID: 2077176567}
+  - component: {fileID: 2077176568}
   m_Layer: 5
   m_Name: ActionPanel
   m_TagString: Untagged
@@ -2911,6 +2892,22 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &2077176568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2077176562}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d9b01d30b24e9b4c97b3d75bc663c3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.ActionPanel
+  panelRoot: {fileID: 0}
+  playBtn: {fileID: 1189243365}
+  sortBtn: {fileID: 2119680905}
+  passBtn: {fileID: 437638239}
 --- !u!1 &2089296670
 GameObject:
   m_ObjectHideFlags: 0

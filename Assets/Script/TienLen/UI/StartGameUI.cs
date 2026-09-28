@@ -1,97 +1,41 @@
-﻿using Assets.Script.TienLen.Game;
-using System.Collections;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using VContainer;
 
 namespace Assets.Script.TienLen.UI {
+    /// <summary>
+    /// Dumb view: renders whatever lobby state UiManager passes down.
+    /// Knows nothing about seats, authority or start rules. The click
+    /// meaning is owned by UiManager, which wires <see cref="StartButton"/>.
+    /// </summary>
     public class StartGameUI : MonoBehaviour {
-        [Header("Dependencies")]
-        private TienLenGameController tienLenGameController;
-
-
         [SerializeField] private Button startBtn;
         [SerializeField] private TextMeshProUGUI startBtnText;
 
-        [Inject]
-        void Construct( TienLenGameController tienLenGameController ) {
-            this.tienLenGameController = tienLenGameController;
-        }
+        public Button StartButton => startBtn;
 
-
-        private void OnEnable() {
-            startBtn.onClick.AddListener(OnStartGameClicked);
-            tienLenGameController.OnLobbyChanged += RefreshStartButton;
-
-        }
-
-        private void OnDisable() {
-            startBtn.onClick.RemoveListener(OnStartGameClicked);
-            tienLenGameController.OnLobbyChanged -= RefreshStartButton;
-        }
-
-        private void Start() {
-            //RefreshStartButton();
-        }
-
-
-        private void OnStartGameClicked() {
-            // Only host (state authority) is allowed to start.
-            // Clients have interactable = false, but guard here anyway.
-            if ( tienLenGameController == null ) return;
-            if ( !IsHost() ) return;
-
-            if ( !IsGameStartable() ) {
-                RefreshStartButton();
-                return;
-            }
-
-            startBtn.interactable = false;
-
-            tienLenGameController.StartGame();
-        }
-
-        private bool IsHost() {
-            return tienLenGameController.Object.HasStateAuthority;
-        }
-
-        /// <summary>
-        /// Single place that queries TienLenGameController.CanStartGame(),
-        /// which counts registered TienLenNetWorkPlayers (each has a PlayerRef).
-        /// </summary>
-        private bool IsGameStartable() {
-            return tienLenGameController.CanStartGame();
-        }
-
-        /// <summary>
-        /// Called on enable + every time the replicated seat list changes,
-        /// so host + clients stay in sync without polling Runner.ActivePlayers.
-        /// </summary>
-        public void RefreshStartButton() {
+        public void RenderStartButton( int playerCount, bool isHost, bool canStart, bool isGameStarted ) {
             if ( startBtn == null || startBtnText == null )
                 return;
 
-            bool isHost = IsHost();
-            bool startable = IsGameStartable();
+            startBtn.gameObject.SetActive(!isGameStarted);
 
-            // Clients can never click the button.
-            startBtn.interactable = isHost && startable;
-
-            if ( tienLenGameController != null && tienLenGameController.IsGameStarted ) {
+            if ( isGameStarted ) {
                 startBtnText.text = "Game Started";
-                startBtn.gameObject.SetActive(false);
                 return;
             }
+
+            // Clients can never click the button.
+            startBtn.interactable = isHost && canStart;
 
             if ( !isHost ) {
                 startBtnText.text = "Wait for host to start";
             }
-            else if ( startable ) {
-                startBtnText.text = $"Start Game ({tienLenGameController.RegisteredPlayerCount})";
+            else if ( canStart ) {
+                startBtnText.text = $"Start Game ({playerCount})";
             }
             else {
-                startBtnText.text = $"Wait for player join ({tienLenGameController?.RegisteredPlayerCount ?? 0})";
+                startBtnText.text = $"Wait for player join ({playerCount})";
             }
         }
 

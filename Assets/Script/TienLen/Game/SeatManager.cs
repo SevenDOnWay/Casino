@@ -1,7 +1,6 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
 using Fusion;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -13,6 +12,8 @@ namespace Assets.Script.TienLen.Game {
         SeatProvider seatProvider;
 
         private const int TotalSeats = 4;
+        private const float RetryDelay = 0.5f;
+        private const int MaxRetryAttempts = 20;
 
         /// <summary>
         /// A networked dictionary that maps seat indices to the NetworkObject of the player occupying that seat.
@@ -27,7 +28,42 @@ namespace Assets.Script.TienLen.Game {
         /// </summary>
         private readonly Dictionary<int, TienLenPlayer> seatedPlayers = new();
 
-        public event Action OnSeatsChanged;
+        /// <summary>
+        /// Monotonic counter bumped every time the seat model actually changes.
+        /// UI detects changes by polling this instead of subscribing to events.
+        /// </summary>
+        public int SeatRevision { get; private set; }
+
+        /// <summary>
+        /// True while a rebuild saw refs that have not spawned locally yet.
+        /// UiManager re-renders while this is set, so seats appear as soon as
+        /// their objects resolve even when no further network change arrives.
+        /// </summary>
+        public bool HasUnresolvedSeats => retryPending;
+
+        /// <summary>
+        /// Entries whose objects have spawned locally and can actually be
+        /// rendered. Allocation-free, so UiManager can poll it every frame.
+        /// </summary>
+        public int ResolvedSeatCount {
+            get {
+                if ( Object == null || !Object.IsValid ) return 0;
+
+                int count = 0;
+                foreach ( var kvp in networkOccupiedSeats ) {
+                    if ( kvp.Value == null ) continue;
+                    if ( kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out _) ) {
+                        count++;
+                    }
+                }
+
+                return count;
+            }
+        }
+
+        private bool retryPending;
+        private float retryAt;
+        private int retryAttempts;
 
         [Inject]
         void Construct( SeatProvider seatProvider ) {
@@ -36,6 +72,31 @@ namespace Assets.Script.TienLen.Game {
 
         public override void Spawned() {
             base.Spawned();
+            // OnChanged does not fire for the initial snapshot state, so
+            // rebuild once here to pick up seats that already replicated
+            // (e.g. late-joining client).
+            _ = OnOccupiedSeatsChangedAsync();
+        }
+
+        private void Update() {
+            // Retry a rebuild whose NetworkObject refs were not yet resolved.
+            if ( retryPending && Time.time >= retryAt ) {
+                retryPending = false;
+                if ( retryAttempts >= MaxRetryAttempts ) {
+                    Debug.LogWarning("[SeatManager] Gave up waiting for unresolved seat objects.");
+                }
+                else {
+                    _ = OnOccupiedSeatsChangedAsync();
+                }
+            }
+
+            // Self-heal: the model must mirror every resolvable dict entry.
+            // Covers Spawned running before the snapshot arrived (empty dict,
+            // so no retry was scheduled) and any otherwise missed delta.
+            // Both counts are local reads; the rebuild stops once caught up.
+            if ( !retryPending && seatedPlayers.Count != ResolvedSeatCount ) {
+                _ = OnOccupiedSeatsChangedAsync();
+            }
         }
 
         public NetworkDictionary<int, NetworkObject> GetNetworkOccupiedSeats() {
@@ -125,35 +186,57 @@ namespace Assets.Script.TienLen.Game {
 
         private async Task OnOccupiedSeatsChangedAsync() {
             // Rebuild the model from the replicated dictionary.
-            // Reuse existing TienLenPlayer instances for seats that stay occupied.
+            // Reuse existing TienLenPlayer instances for seats that stay occupied
+            // by the same network player.
             var newSeatedPlayers = new Dictionary<int, TienLenPlayer>();
+            bool hasUnresolved = false;
 
             foreach ( var kvp in networkOccupiedSeats ) {
                 int seatIndex = kvp.Key;
                 var netObj = kvp.Value;
 
                 if ( netObj == null || !netObj.TryGetComponent<TienLenNetWorkPlayer>(out var netPlayer) ) {
+                    // The ref replicated before the object spawned locally.
+                    // Don't drop the seat; retry shortly instead.
+                    hasUnresolved = true;
                     continue;
                 }
 
-                if ( seatedPlayers.TryGetValue(seatIndex, out var existingPlayer) ) {
+                if ( seatedPlayers.TryGetValue(seatIndex, out var existingPlayer)
+                    && existingPlayer != null
+                    && existingPlayer.Id == netPlayer.PlayerRef.PlayerId ) {
                     // Seat retained by same network player -> keep the logic player
                     // (and its Hand) intact.
                     newSeatedPlayers[seatIndex] = existingPlayer;
                 }
                 else {
-                    // New occupant -> create logic player.
+                    // New occupant (or different player reusing the seat) ->
+                    // create a fresh logic player.
                     newSeatedPlayers[seatIndex] = new TienLenPlayer(netPlayer);
                 }
             }
+
+            var before = new HashSet<int>(seatedPlayers.Keys);
 
             seatedPlayers.Clear();
             foreach ( var kvp in newSeatedPlayers ) {
                 seatedPlayers[kvp.Key] = kvp.Value;
             }
 
-            OnSeatsChanged?.Invoke();
-            Debug.Log($"[SeatManager] Seats changed, occupied={seatedPlayers.Count}");
+            if ( !before.SetEquals(seatedPlayers.Keys) ) {
+                SeatRevision++;
+            }
+
+            if ( hasUnresolved ) {
+                retryAttempts++;
+                retryAt = Time.time + RetryDelay;
+                retryPending = true;
+            }
+            else {
+                retryAttempts = 0;
+            }
+
+            Debug.Log($"[SeatManager] Seats changed, occupied={seatedPlayers.Count}, revision={SeatRevision}");
         }
 
         #region IPlayerRegisterService
@@ -164,6 +247,9 @@ namespace Assets.Script.TienLen.Game {
             if ( Object == null || !Object.IsValid ) return result;
 
             foreach ( var kvp in networkOccupiedSeats ) {
+                // On a client the ref can replicate before the object spawns
+                // locally, reading back as null. Skip instead of NREing.
+                if ( kvp.Value == null ) continue;
                 if ( kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out var player) ) {
                     result.Add(player);
                 }
@@ -178,6 +264,9 @@ namespace Assets.Script.TienLen.Game {
             if ( Object == null || !Object.IsValid ) return result;
 
             foreach ( var kvp in networkOccupiedSeats ) {
+                // On a client the ref can replicate before the object spawns
+                // locally, reading back as null. Skip instead of NREing.
+                if ( kvp.Value == null ) continue;
                 if ( kvp.Value.TryGetComponent<TienLenNetWorkPlayer>(out var player) ) {
                     result.Add(kvp.Key, player);
                 }

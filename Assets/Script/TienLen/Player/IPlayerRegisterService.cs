@@ -1,13 +1,16 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
 using Fusion;
-using System;
 using System.Collections.Generic;
 
 namespace Assets.Script.TienLen.Player {
     public interface IPlayerRegisterService {
 
-        public event Action OnSeatsChanged;
+        /// <summary>
+        /// Monotonic counter bumped every time the seat model is rebuilt.
+        /// UI polls this instead of subscribing to events.
+        /// </summary>
+        public int SeatRevision { get; }
 
         public void RegisterPlayer( TienLenNetWorkPlayer player );
         public void UnregisterPlayer( PlayerRef player );

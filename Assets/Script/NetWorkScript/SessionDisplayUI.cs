@@ -1,22 +1,21 @@
-﻿using Fusion;
-using System.Collections;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 
 namespace Assets.Script.NetWorkScript {
-    public class SessionDisplayUI : NetworkBehaviour {
+    /// <summary>
+    /// Dumb view: renders whatever session name UiManager passes down.
+    /// Knows nothing about Runner, seats or lobby logic.
+    /// </summary>
+    public class SessionDisplayUI : MonoBehaviour {
 
         [SerializeField] private TMP_Text sessionNameText;
 
-        public override void Spawned() {
-            UpdateSessionDisplay();
-        }
+        public void RenderSession( string sessionName ) {
+            if ( sessionNameText == null ) return;
 
-        private void UpdateSessionDisplay() {
-            if ( Runner != null && Runner.SessionInfo.IsValid ) {
-                string sessionName = Runner.SessionInfo.Name;
-                sessionNameText.text = $"Room: {sessionName}";
-            }
+            sessionNameText.text = string.IsNullOrEmpty(sessionName)
+                ? "Room: ..."
+                : $"Room: {sessionName}";
         }
     }
 }

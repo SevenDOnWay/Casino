@@ -69,8 +69,6 @@ namespace Assets.Script.TienLen.Game {
 
         //public event Action OnRoundStarted;
 
-        public event Action OnLobbyChanged;
-
         [Inject]
         void Construct( CardSpawner cardSpawner,
             LocalPlayerService localPlayerService,
@@ -92,23 +90,8 @@ namespace Assets.Script.TienLen.Game {
             if ( uiManager != null ) {
                 //uiManager.Init();
             }
-
-            if ( playerRegisterService != null ) {
-                playerRegisterService.OnSeatsChanged += HandleSeatsChanged;
-            }
         }
 
-        public override void Despawned( NetworkRunner runner, bool hasState ) {
-            if ( playerRegisterService != null ) {
-                playerRegisterService.OnSeatsChanged -= HandleSeatsChanged;
-            }
-            base.Despawned(runner, hasState);
-        }
-
-        private void HandleSeatsChanged() {
-            Debug.Log("[Lobby] Seats changed");
-            OnLobbyChanged?.Invoke();
-        }
         private void Start() {
             sprites = tienLenSO.GetLookUpTable();
             cardBack = tienLenSO.GetCardBackSprite();
@@ -141,9 +124,10 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private void OnIsGameStartedChanged() {
-            if ( !IsGameStarted ) return;
+            // DISABLED: UI strategy pipeline commented out (freeze investigation).
+            //if ( !IsGameStarted ) return;
 
-            uiManager?.RefreshLobby(LobbyChangeReason.GameStarted);
+            //uiManager?.RefreshLobby(LobbyChangeReason.GameStarted);
 
 
         }

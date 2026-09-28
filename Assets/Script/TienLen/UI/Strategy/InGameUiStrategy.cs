@@ -7,28 +7,31 @@ namespace Assets.Script.TienLen.UI.Strategy {
     /// </summary>
     public sealed class InGameUiStrategy : IUiStrategy {
         public void OnEnter( UiStrategyContext context ) {
-            // The match is running: the start button has no meaning anymore.
-            context.SetVisible( context.StartGameUI, false );
+            // DISABLED: UI strategy pipeline commented out (freeze investigation).
+            //// The match is running: the start button has no meaning anymore.
+            //context.SetVisible( context.StartGameUI, false );
 
-            context.ActionPanel?.EnterGame();
-            _ = context.TableLayoutManager?.RefreshLayoutAsync();
+            //context.ActionPanel?.EnterGame();
+            //_ = context.TableLayoutManager?.RefreshLayoutAsync();
         }
 
         public void OnRefresh( LobbyChangeReason reason, UiStrategyContext context ) {
-            if ( reason != LobbyChangeReason.GameStarted
-                && reason != LobbyChangeReason.TurnChanged
-                && reason != LobbyChangeReason.SeatsChanged ) {
-                return;
-            }
+            // DISABLED: UI strategy pipeline commented out (freeze investigation).
+            //if ( reason != LobbyChangeReason.GameStarted
+            //    && reason != LobbyChangeReason.TurnChanged
+            //    && reason != LobbyChangeReason.SeatsChanged ) {
+            //    return;
+            //}
 
-            // Keep the panel visible and its buttons in sync with the
-            // current selection / turn.
-            context.ActionPanel?.EnterGame();
-            _ = context.TableLayoutManager?.RefreshLayoutAsync();
+            //// Keep the panel visible and its buttons in sync with the
+            //// current selection / turn.
+            //context.ActionPanel?.EnterGame();
+            //_ = context.TableLayoutManager?.RefreshLayoutAsync();
         }
 
         public void OnExit() {
-            Debug.Log( "[UiStrategy] Exiting InGameUiStrategy" );
+            // DISABLED: UI strategy pipeline commented out (freeze investigation).
+            //Debug.Log( "[UiStrategy] Exiting InGameUiStrategy" );
         }
     }
 }

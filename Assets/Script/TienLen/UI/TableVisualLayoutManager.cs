@@ -9,11 +9,14 @@ using UnityEngine;
 using VContainer;
 
 namespace Assets.Script.TienLen.UI {
+    /// <summary>
+    /// Dumb view: renders seat data pushed down by UiManager.
+    /// Knows nothing about SeatManager, authority or lobby rules.
+    /// Only resolves visual slots (SeatProvider) and binds them.
+    /// </summary>
     public class TableVisualLayoutManager : MonoBehaviour {
         [Header("Dependencies")]
         private SeatProvider seatProvider;
-        private SeatManager seatManager;
-        private ILocalPlayerService localPlayerService;
 
         private const int TotalSeats = 4;
 
@@ -23,32 +26,42 @@ namespace Assets.Script.TienLen.UI {
 
         private PlayerSeat[] visualSlots;
 
+        // Latest data pushed down by UiManager.
+        private IReadOnlyDictionary<int, TienLenPlayer> latestSeatedPlayers;
+        private IReadOnlyDictionary<int, TienLenNetWorkPlayer> latestNetworkPlayers;
+        private PlayerRef latestLocalPlayer;
+
         [Inject]
-        void Construct( SeatProvider seatProvider,
-            SeatManager seatManager,
-            ILocalPlayerService localPlayerService ) {
+        void Construct( SeatProvider seatProvider ) {
             this.seatProvider = seatProvider;
-            this.seatManager = seatManager;
-            this.localPlayerService = localPlayerService;
-        }
-
-        private void OnEnable() {
-            seatManager.OnSeatsChanged += OnSeatsChanged;
-        }
-
-        private void OnDisable() {
-            seatManager.OnSeatsChanged -= OnSeatsChanged;
-        }
-
-        private void OnSeatsChanged() {
-            _ = RefreshLayoutAsync();
         }
 
         /// <summary>
-        /// Rebuilds the visual assignment from the network-indexed model.
+        /// Single entry point. UiManager calls this with fresh data whenever
+        /// its change detector reports a seat change.
+        /// </summary>
+        public void RenderSeats(
+            IReadOnlyDictionary<int, TienLenPlayer> seatedPlayers,
+            IReadOnlyDictionary<int, TienLenNetWorkPlayer> networkPlayers,
+            PlayerRef localPlayer ) {
+            latestSeatedPlayers = seatedPlayers;
+            latestNetworkPlayers = networkPlayers;
+            latestLocalPlayer = localPlayer;
+
+            _ = RefreshLayoutAsync();
+        }
+
+
+        /// <summary>
+        /// Rebuilds the visual assignment from the last pushed-down data.
         /// Uses a diff so unchanged slots are not re-bound.
         /// </summary>
-        public async Task RefreshLayoutAsync() {
+        private async Task RefreshLayoutAsync() {
+            if ( seatProvider == null ) {
+                Debug.LogWarning("[TableLayout] seatProvider is null, skipping layout refresh.");
+                return;
+            }
+
             visualSlots ??= await seatProvider.GetPlayerSeatsAsync();
 
             if ( visualSlots == null || visualSlots.Length == 0 ) {
@@ -56,11 +69,13 @@ namespace Assets.Script.TienLen.UI {
                 return;
             }
 
-            var seatedPlayers = seatManager.GetSeatedPlayers();
-            var networkPlayerMap = seatManager.GetNetworkPlayerMap();
+            var seatedPlayers = latestSeatedPlayers;
+            if ( seatedPlayers == null ) {
+                seatedPlayers = new Dictionary<int, TienLenPlayer>();
+            }
 
             // Resolve local anchor (network seat index of the local player).
-            int localSeatIndex = ResolveLocalSeatIndex(networkPlayerMap);
+            int localSeatIndex = ResolveLocalSeatIndex();
 
             // Build target mapping: visualSlotIndex -> (networkSeatIndex, TienLenPlayer)
             var targetAssignments = new Dictionary<int, (int netSeat, TienLenPlayer player)>();
@@ -106,16 +121,34 @@ namespace Assets.Script.TienLen.UI {
         }
 
         /// <summary>
-        /// Finds the network seat index of the local player, if any.
+        /// Finds the network seat index of the local player in the last
+        /// pushed-down data, if any.
         /// </summary>
-        private int ResolveLocalSeatIndex( IReadOnlyDictionary<int, TienLenNetWorkPlayer> networkPlayerMap ) {
-            var localNetworkPlayer = localPlayerService?.GetLocalNetworkPlayer();
-            if ( localNetworkPlayer == null ) return -1;
+        private int ResolveLocalSeatIndex() {
+            if ( latestNetworkPlayers == null ) return -1;
+            if ( !latestLocalPlayer.IsValid ) return -1;
 
-            foreach ( var kvp in networkPlayerMap ) {
-                if ( kvp.Value != null && kvp.Value.PlayerRef == localNetworkPlayer.PlayerRef ) {
+            foreach ( var kvp in latestNetworkPlayers ) {
+                var netPlayer = kvp.Value;
+                if ( netPlayer == null ) continue;
+
+                // InputAuthority is assigned at spawn, so it identifies the
+                // owner even when the replicated PlayerRef prop hasn't
+                // arrived on this client yet.
+                if ( netPlayer.Object != null
+                    && netPlayer.Object.IsValid
+                    && netPlayer.Object.InputAuthority == latestLocalPlayer ) {
                     return kvp.Key;
                 }
+
+                if ( netPlayer.PlayerRef == latestLocalPlayer ) {
+                    return kvp.Key;
+                }
+            }
+
+            if ( latestNetworkPlayers.Count > 0 ) {
+                Debug.LogWarning($"[TableLayout] Local player {latestLocalPlayer} owns no seat yet " +
+                    $"({latestNetworkPlayers.Count} seats known). Anchor falls back to identity mapping.");
             }
 
             return -1;
