@@ -1,6 +1,5 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
-using Assets.Script.TienLen.UI;
 using Fusion;
 using Fusion.Sockets;
 using System;
@@ -25,20 +24,10 @@ namespace Assets.Script.TienLen.Game {
         [SerializeField] private TMP_Text startBtnText;
 
 
-        [Header("Player Seats")]
-        private IReadOnlyList<PlayerSeat> playerSeats;
-
-
         private const int minPlayerToStart = 2;
         private const int totalSeats = 4;
         public bool isGameStartable { get; set; }
 
-
-
-
-        public event Action<NetworkRunner> OnPlayerJoinedEvent;
-        public event Action<NetworkRunner> OnPlayerLeftEvent;
-        public event Action OnGameStartedEvent;
 
         [Inject]
         void Construct( IPlayerRegisterService seatManager ) {
@@ -129,14 +118,8 @@ namespace Assets.Script.TienLen.Game {
                 Runner.Despawn(netObj);
                 Debug.Log($"[Lobby] Despawned network player for {player.PlayerId}");
             }
-
-            RpcPlayerLeft();
         }
 
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RpcPlayerLeft() {
-            OnPlayerLeftEvent?.Invoke(Runner);
-        }
 
         #region Start Game Button Logic
         //private void UpdateStartButtonUI() {

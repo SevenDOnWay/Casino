@@ -17,7 +17,7 @@ namespace Assets.Script {
 
         public Card Card { get => card; set => card = value; }
 
-        private void Awake() {
+        private void Start() {
             spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
