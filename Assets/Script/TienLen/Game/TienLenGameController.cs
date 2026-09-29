@@ -28,6 +28,7 @@ namespace Assets.Script.TienLen.Game {
         TienLenGame game;
         TurnManager turnManager;
         IPlayerRegisterService playerRegisterService;
+        TienLenRuleValidator validator;
         [SerializeField] UiManager uiManager;
 
         private const int totalSeats = 4;
@@ -43,6 +44,25 @@ namespace Assets.Script.TienLen.Game {
 
         /// <summary>Network seat index of the last accepted pass. -1 = none/cleared by a newer play.</summary>
         [Networked] public int LastPassSeat { get; set; }
+
+        [Header("Turn Configuration")]
+        [SerializeField] private float turnDuration = 15f;
+        public float TurnDuration => turnDuration;
+
+        [Networked] public TickTimer TurnTimer { get; set; }
+
+        public float RemainingTurnTimeNormalized {
+            get {
+                if ( !IsGameStarted || CurrentTurnSeat == -1 || turnDuration <= 0f ) return 0f;
+                if ( TurnTimer.IsRunning ) {
+                    float? remaining = TurnTimer.RemainingTime(Runner);
+                    if ( remaining.HasValue ) {
+                        return Mathf.Clamp01(remaining.Value / turnDuration);
+                    }
+                }
+                return 0f;
+            }
+        }
 
         /// <summary>
         /// Returns true when enough registered network players (each carries
@@ -84,13 +104,15 @@ namespace Assets.Script.TienLen.Game {
             TienLenGame game,
             TurnManager turnManager,
             CardCombinationEvaluator cardCombinationEvaluator,
-            IPlayerRegisterService playerRegisterService ) {
+            IPlayerRegisterService playerRegisterService,
+            TienLenRuleValidator validator ) {
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
             this.game = game;
             this.turnManager = turnManager;
             this.cardCombinationEvaluator = cardCombinationEvaluator;
             this.playerRegisterService = playerRegisterService;
+            this.validator = validator;
         }
 
         public override void Spawned() {
@@ -102,10 +124,54 @@ namespace Assets.Script.TienLen.Game {
                 CurrentTurnSeat = -1;
                 WinnerSeat = -1;
                 LastPassSeat = -1;
+                TurnTimer = default;
             }
 
             if ( uiManager != null ) {
                 //uiManager.Init();
+            }
+        }
+
+        public override void FixedUpdateNetwork() {
+            if ( !Object.HasStateAuthority ) return;
+            if ( !IsGameStarted || WinnerSeat != -1 ) return;
+
+            if ( TurnTimer.Expired(Runner) ) {
+                HandleTurnTimeout();
+            }
+        }
+
+        private void HandleTurnTimeout() {
+            if ( turnManager == null || turnManager.CurrentPlayer == null ) return;
+
+            var networkMap = playerRegisterService.GetNetworkPlayerMap();
+            PlayerRef currentRef = default;
+            foreach ( var kvp in networkMap ) {
+                if ( playerRegisterService.GetLogicPlayer(kvp.Value.PlayerRef) == turnManager.CurrentPlayer ) {
+                    currentRef = kvp.Value.PlayerRef;
+                    break;
+                }
+            }
+
+            if ( !currentRef.IsValid ) return;
+
+            Debug.Log($"[TienLenGameController] Turn timer expired for player {turnManager.CurrentPlayer.Id} (Seat {CurrentTurnSeat}). Auto-acting...");
+
+            if ( validator != null && validator.CurrentCombination != null ) {
+                HandlePassRequest(currentRef);
+            }
+            else {
+                var hand = turnManager.CurrentPlayer.Hand?.Cards;
+                if ( hand != null && hand.Count > 0 ) {
+                    Card lowestCard = hand[0];
+                    var singleList = new List<Card> { lowestCard };
+                    if ( cardCombinationEvaluator.TryEvaluate(singleList, out var combo) && turnManager.TryPlay(turnManager.CurrentPlayer, combo) ) {
+                        HandleAcceptedPlay(currentRef, turnManager.CurrentPlayer, singleList);
+                    }
+                }
+                else {
+                    HandlePassRequest(currentRef);
+                }
             }
         }
 
@@ -206,6 +272,9 @@ namespace Assets.Script.TienLen.Game {
             int seat = SeatOfPlayer(turnManager.CurrentPlayer);
             if ( seat != -1 ) {
                 CurrentTurnSeat = seat;
+                if ( Object.HasStateAuthority ) {
+                    TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration);
+                }
             }
         }
 

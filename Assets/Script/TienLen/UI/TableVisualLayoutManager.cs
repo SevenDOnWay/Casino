@@ -158,6 +158,25 @@ namespace Assets.Script.TienLen.UI {
             return -1;
         }
 
+        public PlayerSeat GetSeatByNetworkIndex( int networkSeatIndex ) {
+            if ( visualSlots == null || networkSeatIndex < 0 ) return null;
+            for ( int i = 0; i < visualSlots.Length; i++ ) {
+                if ( visualSlots[i] != null && visualSlots[i].BoundSeatIndex == networkSeatIndex ) {
+                    return visualSlots[i];
+                }
+            }
+            return null;
+        }
+
+        public PlayerSeat GetVisualSlot( int visualIndex ) {
+            if ( visualSlots == null || visualIndex < 0 || visualIndex >= visualSlots.Length ) return null;
+            return visualSlots[visualIndex];
+        }
+
+        public IReadOnlyList<PlayerSeat> GetAllVisualSlots() {
+            return visualSlots;
+        }
+
 #if UNITY_EDITOR
         private void OnValidate() {
             if ( localAnchorIndex < 0 || localAnchorIndex >= TotalSeats ) {
