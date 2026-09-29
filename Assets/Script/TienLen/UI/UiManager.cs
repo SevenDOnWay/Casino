@@ -170,6 +170,8 @@ namespace Assets.Script.TienLen.UI {
                 RenderStartButton();
                 RenderGamePhase();
             }
+
+            UpdateTurnTimers();
         }
 
         #region dumb-view renderers (data pushed down, no logic in views)
@@ -181,6 +183,7 @@ namespace Assets.Script.TienLen.UI {
             RenderGamePhase();
             RenderTurn();
             RenderPassNote();
+            UpdateTurnTimers();
 
             lastRenderedSeatRevision = seatManager != null ? seatManager.SeatRevision : -1;
             lastRenderedStarted = IsGameLogicReady() && tienLenGameController.IsGameStarted;
@@ -315,6 +318,31 @@ namespace Assets.Script.TienLen.UI {
             sessionDisplayUI?.RenderAnnouncement($"{name} wins!");
             actionPanel?.RenderTurnState(false);
             actionPanel?.ReturnToLobby();
+            UpdateTurnTimers();
+        }
+
+        private void UpdateTurnTimers() {
+            if ( tableVisualLayoutManager == null || !IsGameLogicReady() ) return;
+
+            int currentTurnSeat = tienLenGameController.CurrentTurnSeat;
+            bool isGameActive = tienLenGameController.IsGameStarted && tienLenGameController.WinnerSeat == -1;
+
+            var allSlots = tableVisualLayoutManager.GetAllVisualSlots();
+            if ( allSlots == null ) return;
+
+            float progress = tienLenGameController.RemainingTurnTimeNormalized;
+
+            for ( int i = 0; i < allSlots.Count; i++ ) {
+                var slot = allSlots[i];
+                if ( slot == null ) continue;
+
+                if ( isGameActive && currentTurnSeat != -1 && slot.BoundSeatIndex == currentTurnSeat ) {
+                    slot.UpdateTurnTimer( progress );
+                }
+                else {
+                    slot.StopTurnTimer();
+                }
+            }
         }
 
         private void HandleStartClicked() {
