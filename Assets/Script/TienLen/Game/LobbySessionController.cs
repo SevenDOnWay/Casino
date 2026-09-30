@@ -4,100 +4,92 @@ using Fusion;
 using Fusion.Sockets;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using VContainer;
 
 namespace Assets.Script.TienLen.Game {
+    /// <summary>
+    /// Authoritative lobby controller. Handles player joins, leaves,
+    /// network player object spawning, and seat registration.
+    /// </summary>
     public class LobbySessionController : NetworkBehaviour, INetworkRunnerCallbacks {
-
         [Header("Dependencies")]
-        private IPlayerRegisterService seatManager;
+        private IPlayerRegisterService playerRegisterService;
+        private ISeatQueryService seatQueryService;
 
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
 
-        [Header("Start Game Button")]
-        [SerializeField] private Button startGameBtn;
-        [SerializeField] private TMP_Text startBtnText;
-
-
-        private const int minPlayerToStart = 2;
-        private const int totalSeats = 4;
-        public bool isGameStartable { get; set; }
-
-
         [Inject]
-        void Construct( IPlayerRegisterService seatManager ) {
-            this.seatManager = seatManager;
-
-            //playerSeats = seatProvider.AllSeats;
+        void Construct( IPlayerRegisterService playerRegisterService, ISeatQueryService seatQueryService ) {
+            this.playerRegisterService = playerRegisterService;
+            this.seatQueryService = seatQueryService;
         }
 
         public override void Spawned() {
             Runner.AddCallbacks(this);
         }
 
-        //TODO: Handle cases player join mid game
+        public override void Despawned( NetworkRunner runner, bool hasState ) {
+            if ( runner != null ) {
+                runner.RemoveCallbacks(this);
+            }
+        }
+
+        private void OnDestroy() {
+            if ( Runner != null ) {
+                Runner.RemoveCallbacks(this);
+            }
+        }
+
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) {
             if ( !Object.HasStateAuthority ) return;
 
             Debug.Log($"[Lobby] Player joined: {player.PlayerId}");
 
-            if ( !CheckPlayerExist(player) ) return;
+            if ( !CheckPlayerCanJoin(player) ) return;
 
             TienLenNetWorkPlayer networkPlayer = SpawnNetworkPlayer(player);
-            seatManager.RegisterPlayer(networkPlayer);
-
-            Debug.Log($"[Lobby] Spawned network player '{networkPlayer?.PlayerName}' for {player.PlayerId}");
+            if ( networkPlayer != null ) {
+                playerRegisterService.RegisterPlayer(networkPlayer);
+                Debug.Log($"[Lobby] Spawned and registered network player '{networkPlayer.PlayerName}' for {player.PlayerId}");
+            }
         }
 
-        //TODO: Handle cases player leave mid game
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
             if ( !Object.HasStateAuthority ) return;
             RemovePlayer(player);
         }
 
-        //private void RegisterExistingPlayers() {
-        //    foreach ( var player in Runner.ActivePlayers ) {
-        //        SpawnNetworkPlayer(player);
-        //    }
-        //}
-
-
-        //TODO: Handle cases player join mid game
         private TienLenNetWorkPlayer SpawnNetworkPlayer( PlayerRef player ) {
             TienLenNetWorkPlayer networkPlayer = null;
 
-            //TODO: assign this for now later we use database 
-            var networkPlayerObject = Runner.Spawn(networkPlayerPrefab,
-                                        Vector3.zero,
-                                        Quaternion.identity,
-                                        inputAuthority: player,
-                                        onBeforeSpawned: (runner, obj) => {
-                                            networkPlayer = obj.GetComponent<TienLenNetWorkPlayer>();
-                                            networkPlayer.PlayerRef = player;
-                                            networkPlayer.PlayerName = $"Player {player.PlayerId}";
-                                        }
-                                        );
+            var networkPlayerObject = Runner.Spawn(
+                networkPlayerPrefab,
+                Vector3.zero,
+                Quaternion.identity,
+                inputAuthority: player,
+                onBeforeSpawned: ( runner, obj ) => {
+                    networkPlayer = obj.GetComponent<TienLenNetWorkPlayer>();
+                    if ( networkPlayer != null ) {
+                        networkPlayer.PlayerRef = player;
+                        networkPlayer.PlayerName = $"Player {player.PlayerId}";
+                    }
+                }
+            );
 
             return networkPlayer;
-
         }
 
-        private bool CheckPlayerExist( PlayerRef player ) {
-            if ( seatManager.TryGetSeat(player, out _) ) {
-                Debug.LogWarning($"Player {player.PlayerId} already has a network player object. Skipping spawn.");
+        private bool CheckPlayerCanJoin( PlayerRef player ) {
+            if ( seatQueryService != null && seatQueryService.TryGetSeat(player, out _) ) {
+                Debug.LogWarning($"[Lobby] Player {player.PlayerId} already has a registered seat. Skipping spawn.");
                 return false;
             }
 
             return true;
         }
 
-
-        //TODO: Handle cases player leave mid game
         private void RemovePlayer( PlayerRef player ) {
             if ( !Object.HasStateAuthority ) return;
             if ( Runner == null ) return;
@@ -105,14 +97,16 @@ namespace Assets.Script.TienLen.Game {
             Debug.Log($"[Lobby] Player left: {player.PlayerId}");
 
             NetworkObject netObj = null;
-            foreach ( var kvp in seatManager.GetNetworkPlayerMap() ) {
-                if ( kvp.Value != null && kvp.Value.PlayerRef == player ) {
-                    netObj = kvp.Value.Object;
-                    break;
+            if ( seatQueryService != null ) {
+                foreach ( var kvp in seatQueryService.GetNetworkPlayerMap() ) {
+                    if ( kvp.Value != null && kvp.Value.PlayerRef == player ) {
+                        netObj = kvp.Value.Object;
+                        break;
+                    }
                 }
             }
 
-            seatManager.UnregisterPlayer(player);
+            playerRegisterService?.UnregisterPlayer(player);
 
             if ( netObj != null ) {
                 Runner.Despawn(netObj);
@@ -120,116 +114,25 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-
-        #region Start Game Button Logic
-        //private void UpdateStartButtonUI() {
-        //    Debug.Log(
-        //            $"[StartUI] " +
-        //            $"Runner={Runner.name}, " +
-        //            $"LocalPlayer={Runner.LocalPlayer}, " +
-        //            $"IsServer={Runner.IsServer}, " +
-        //            $"HasStateAuthority={Object.HasStateAuthority}, " +
-        //            $"IsGameStarted={IsGameStarted}"
-        //        );
-
-        //    if ( startGameBtn == null ) return;
-
-        //    // Hide the button for everyone once the game has started
-        //    if ( IsGameStarted ) {
-        //        startGameBtn.gameObject.SetActive(false);
-        //        return;
-        //    }
-
-        //    // Keep visible for everyone before the match starts
-        //    startGameBtn.gameObject.SetActive(true);
-
-        //    // ONLY the host can click it, and ONLY if enough players joined
-        //    bool isHost = Runner.IsServer;
-        //    startGameBtn.interactable = isHost && isGameStartable;
-
-        //    // Optional: Provide visual feedback text
-        //    if ( startBtnText != null ) {
-        //        if ( !isHost ) {
-        //            startBtnText.text = "Waiting for Host to start...";
-        //        }
-        //        else if ( !isGameStartable ) {
-        //            startBtnText.text = $"Need {minPlayerToStart - Runner.ActivePlayers.Count()} more to start";
-        //        }
-        //        else {
-        //            startBtnText.text = "Start Game";
-        //        }
-        //    }
-        //}
-
-
-        //private void OnStartGameButtonClicked() {
-
-        //    Debug.Log($"[StartGame] Start button clicked, IsGameStarted={IsGameStarted}, isGameStartable={isGameStartable}");
-
-        //    if ( !Object.HasStateAuthority ) return;
-        //    if ( !isGameStartable ) return;
-        //    if ( IsGameStarted ) return;
-
-        //    Debug.Log("[StartGame] Host starting authoritative game state.");
-
-        //    IsGameStarted = true;
-
-        //    tienLenGameController.StartGame();
-        //}
-
-
-
-        #endregion
-
-
-
-        private void CheckPlayer() {
-            int currentConnectedPlayers = Runner.ActivePlayers.Count();
-
-            Debug.Log($"[TienLen] Current connected players: {currentConnectedPlayers}/{minPlayerToStart}");
-
-            if ( currentConnectedPlayers >= minPlayerToStart ) {
-                Debug.Log($"[TienLen] Player threshold reached ({currentConnectedPlayers}/{minPlayerToStart}). Starting game...");
-                isGameStartable = true;
-            }
-            else {
-                Debug.Log($"[TienLen] Waiting for more players... ({currentConnectedPlayers}/{minPlayerToStart})");
-                isGameStartable = false;
-            }
-
-            //UpdateStartButtonUI();
-        }
+        #region INetworkRunnerCallbacks
 
         public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
-
         public void OnObjectEnterAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
-
         public void OnShutdown( NetworkRunner runner, ShutdownReason shutdownReason ) { }
-
-        public void OnDisconnectedFromServer( NetworkRunner runner, NetDisconnectReason reason ) { }
-
+        void INetworkRunnerCallbacks.OnDisconnectedFromServer( NetworkRunner runner, NetDisconnectReason reason ) { }
         public void OnConnectRequest( NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token ) { }
-
         public void OnConnectFailed( NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason ) { }
-
         public void OnReliableDataReceived( NetworkRunner runner, PlayerRef player, ReliableKey key, ReadOnlySpan<byte> data ) { }
-
         public void OnReliableDataProgress( NetworkRunner runner, PlayerRef player, ReliableKey key, float progress ) { }
-
         public void OnInput( NetworkRunner runner, NetworkInput input ) { }
-
         public void OnInputMissing( NetworkRunner runner, PlayerRef player, NetworkInput input ) { }
-
-        public void OnConnectedToServer( NetworkRunner runner ) { }
-
+        void INetworkRunnerCallbacks.OnConnectedToServer( NetworkRunner runner ) { }
         public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) { }
-
         public void OnCustomAuthenticationResponse( NetworkRunner runner, Dictionary<string, object> data ) { }
-
         public void OnHostMigration( NetworkRunner runner, HostMigrationToken hostMigrationToken ) { }
-
         public void OnSceneLoadDone( NetworkRunner runner ) { }
-
         public void OnSceneLoadStart( NetworkRunner runner ) { }
+
+        #endregion
     }
 }

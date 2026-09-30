@@ -1,39 +1,32 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
-using VContainer;
 
 namespace Assets.Script.TienLen.Rule {
     public class CardCombination {
-        private CardComparer cardComparer;
-
         public CardCombinationType Type { get; }
-
         public IReadOnlyList<Card> Cards { get; }
-
         public CardRank MainRank { get; }
-
         public CardSuit MainSuit { get; }
 
-
         public CardCombination(
-        CardCombinationType type,
-        IEnumerable<Card> cards,
-        CardComparer cardComparer) {
+            CardCombinationType type,
+            IEnumerable<Card> cards,
+            IComparer<Card> cardComparer ) {
             Type = type;
 
-            Cards = cards
-                .OrderBy(c => c, Comparer<Card>.Create(cardComparer.Compare))
-                .ToList();
+            var list = cards.ToList();
+            list.Sort(cardComparer);
+            Cards = list;
 
             Card mainCard = Cards[^1];
-
             MainRank = mainCard.Rank;
             MainSuit = mainCard.Suit;
         }
 
+        public bool ContainsTwo() {
+            return Cards.Any(c => c.Rank == CardRank.Two);
+        }
 
-
+        public int PairCount => Type == CardCombinationType.PairSequence ? Cards.Count / 2 : 0;
     }
 }

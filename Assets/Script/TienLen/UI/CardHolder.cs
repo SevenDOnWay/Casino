@@ -1,10 +1,7 @@
 ﻿using Assets.Script.TienLen.Rule;
 using DG.Tweening;
-using FusionIntroShared;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using VContainer;
 
@@ -12,6 +9,7 @@ namespace Assets.Script.TienLen.UI {
     public class CardHolder : MonoBehaviour {
         [Header("Dependencies")]
         private CardComparer cardComparer;
+        private static readonly CardComparer DefaultComparer = new();
 
         [Header("Layout")]
         [SerializeField] private float maxWidth = 8f;
@@ -22,18 +20,11 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private float moveDuration = 0.25f;
         [SerializeField] private Ease moveEase = Ease.OutQuad;
 
-        //TODO: Change into list of card.
         private readonly List<CardView> cardsViews = new();
         private readonly List<CardView> selectedCards = new();
-
-
-        //TODO: Implement a way to set the interactable state of the CardHolder and its cards.
         private bool interactable = true;
 
         public event Action<IReadOnlyList<CardView>> OnCardSelected;
-
-
-
 
         public IReadOnlyList<CardView> CardViews => cardsViews;
         public IReadOnlyList<CardView> SelectedCards => selectedCards;
@@ -44,30 +35,20 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void AddCard( CardView cardView, bool animate = true ) {
-            if ( cardView == null ) {
-                Debug.LogWarning("[CardHolder] AddCard called with null CardView!", this);
-                return;
-            }
+            if ( cardView == null ) return;
+            if ( cardsViews.Contains(cardView) ) return;
 
-            if ( cardsViews.Contains(cardView) )
-                return;
-
-            // 1. CRITICAL: Parent the card to this CardHolder keeping its current world position
-            cardView.transform.SetParent(this.transform, worldPositionStays: true);
-
+            cardView.transform.SetParent(transform, worldPositionStays: true);
             cardsViews.Add(cardView);
 
             cardView.OnClicked += HandleCardClicked;
-
             cardView.SetInteractable(interactable);
 
-            // 2. Trigger arrangement so the dealt card flies into its hand slot
             ArrangeCards(animate);
         }
 
         public void RemoveCard( CardView cardView, bool animate = true ) {
             if ( cardView == null ) return;
-
             if ( !cardsViews.Remove(cardView) ) return;
 
             cardView.OnClicked -= HandleCardClicked;
@@ -76,9 +57,9 @@ namespace Assets.Script.TienLen.UI {
             ArrangeCards(animate);
         }
 
-        public void RemoveCards( IEnumerable<CardView> cardViews, bool animate = true ) {
-            if ( cardViews == null ) return;
-            foreach ( CardView cardView in cardViews ) {
+        public void RemoveCards( IEnumerable<CardView> toRemove, bool animate = true ) {
+            if ( toRemove == null ) return;
+            foreach ( CardView cardView in toRemove ) {
                 if ( cardView == null ) continue;
                 if ( cardsViews.Remove(cardView) ) {
                     cardView.OnClicked -= HandleCardClicked;
@@ -89,8 +70,6 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void Clear() {
-            // Selection references dying views: drop it first, then notify
-            // so dependents (e.g. action panel) re-evaluate on empty.
             selectedCards.Clear();
 
             foreach ( CardView card in cardsViews ) {
@@ -103,53 +82,39 @@ namespace Assets.Script.TienLen.UI {
             OnCardSelected?.Invoke(selectedCards);
         }
 
-        /// <summary>
-        /// Drops the current selection without touching the cards. Listeners
-        /// are notified so they can re-evaluate their own state (e.g. the
-        /// action panel's play button).
-        /// </summary>
         public void ClearSelection() {
             foreach ( CardView card in selectedCards ) {
-                if ( card != null ) card.SetSelected( false );
+                if ( card != null ) card.SetSelected(false);
             }
 
             if ( selectedCards.Count == 0 ) return;
 
             selectedCards.Clear();
-            OnCardSelected?.Invoke( selectedCards );
+            OnCardSelected?.Invoke(selectedCards);
         }
 
         private void HandleCardClicked( CardView cardView ) {
-
             if ( selectedCards.Contains(cardView) ) {
                 selectedCards.Remove(cardView);
                 cardView.SetSelected(false);
-                OnCardSelected?.Invoke(selectedCards);
             }
             else {
                 selectedCards.Add(cardView);
                 cardView.SetSelected(true);
-                OnCardSelected?.Invoke(selectedCards);
-
             }
 
-
-            // TODO: Notify listeners about the selection change and validate the selection.
-
+            OnCardSelected?.Invoke(selectedCards);
         }
 
         public void SortCards() {
-            // CardHolder is not container-injected in every scene, so the
-            // comparer may be null; CardComparer is stateless, so fall back
-            // to a local instance. Null cards (face-down backs) sort last.
-            cardComparer ??= new CardComparer();
+            var comparer = cardComparer ?? DefaultComparer;
 
             cardsViews.Sort(( a, b ) => {
                 Card aCard = a?.Card;
                 Card bCard = b?.Card;
                 if ( aCard == null ) return bCard == null ? 0 : 1;
                 if ( bCard == null ) return -1;
-                return cardComparer.Compare(aCard, bCard);
+                return comparer.Compare(aCard, bCard);
             });
         }
 
@@ -181,14 +146,12 @@ namespace Assets.Script.TienLen.UI {
                     card.transform.localPosition = targetPosition;
                 }
 
-                // Higher index visually on top
                 card.transform.SetSiblingIndex(i);
             }
         }
 
         private float CalculateSpacing() {
-            if ( cardsViews.Count <= 1 )
-                return cardWidth;
+            if ( cardsViews.Count <= 1 ) return cardWidth;
 
             float availableWidth = maxWidth - cardWidth;
             float spacing = availableWidth / (cardsViews.Count - 1);
@@ -196,52 +159,48 @@ namespace Assets.Script.TienLen.UI {
             return Mathf.Max(spacing, minSpacing);
         }
 
-        public void SetInteractable( bool interactable ) {
+        public void SetInteractable( bool value ) {
+            interactable = value;
             foreach ( var card in cardsViews ) {
-                card.SetInteractable(interactable);
+                if ( card != null ) {
+                    card.SetInteractable(value);
+                }
             }
         }
 
-        public List<CardView> FindCards(List<Card> cards) {
-            List<CardView> res = new();
-            if ( cards == null || cards.Count == 0 ) return res;
+        public List<CardView> FindCards( List<Card> cards ) {
+            List<CardView> result = new();
+            if ( cards == null || cards.Count == 0 ) return result;
 
-            Dictionary<Card, CardView> dic = new();
-            List<CardView> faceless = new();
+            Dictionary<Card, CardView> cardToView = new();
+            List<CardView> facelessViews = new();
 
-            foreach(var cardView in cardsViews ) {
+            foreach ( var cardView in cardsViews ) {
                 if ( cardView == null ) continue;
                 if ( cardView.Card == null ) {
-                    // Face-down back view (a non-local hand on a viewer):
-                    // no card data, so it can never match by value.
-                    faceless.Add(cardView);
+                    facelessViews.Add(cardView);
                     continue;
                 }
-                if ( !dic.ContainsKey(cardView.Card) ) {
-                    dic.Add(cardView.Card, cardView);
-                }
+                cardToView.TryAdd(cardView.Card, cardView);
             }
 
             foreach ( var card in cards ) {
-                if ( card != null && dic.TryGetValue(card, out CardView cardView) ) {
-                    res.Add(cardView);
+                if ( card != null && cardToView.TryGetValue(card, out CardView view) ) {
+                    result.Add(view);
                 }
             }
 
-            // Viewers hold only backs: fall back to any views so the play
-            // still animates to the table instead of vanishing.
-            // (Revealing faces here is a visual follow-up.)
-            for ( int i = res.Count; i < cards.Count && faceless.Count > 0; i++ ) {
-                CardView fallback = faceless[0];
-                faceless.RemoveAt(0);
-                if ( !res.Contains(fallback) ) {
-                    res.Add(fallback);
+            // Viewers hold back placeholders: fall back to placeholder views so animation plays
+            for ( int i = result.Count; i < cards.Count && facelessViews.Count > 0; i++ ) {
+                CardView fallback = facelessViews[0];
+                facelessViews.RemoveAt(0);
+                if ( !result.Contains(fallback) ) {
+                    result.Add(fallback);
                 }
             }
 
-            return res;
+            return result;
         }
-
 
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected() {
@@ -269,6 +228,4 @@ namespace Assets.Script.TienLen.UI {
         }
 #endif
     }
-
-
 }

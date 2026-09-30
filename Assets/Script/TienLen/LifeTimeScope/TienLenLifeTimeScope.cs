@@ -4,58 +4,45 @@ using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 using VContainer;
 using VContainer.Unity;
 
 namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope {
-
         [SerializeField] private TienLenNetWorkPlayer prefab;
 
         protected override void Configure( IContainerBuilder builder ) {
             builder.Register<LocalPlayerService>(Lifetime.Singleton)
-                                                .As<ILocalPlayerService>()
-                                                .AsSelf();
+                   .As<ILocalPlayerService>()
+                   .AsSelf();
 
             builder.RegisterComponentInNewPrefab(prefab, Lifetime.Scoped);
 
-            //rule
+            // Rules & Evaluation
             builder.Register<CardCombinationType>(Lifetime.Singleton);
             builder.Register<CardComparer>(Lifetime.Singleton);
             builder.Register<CardCombinationEvaluator>(Lifetime.Singleton);
             builder.Register<TienLenRuleValidator>(Lifetime.Singleton);
 
-            builder.Register<CardSpriteAtlas>(Lifetime.Singleton);
-
+            // Session & Table State
             builder.RegisterComponentInHierarchy<LobbySessionController>();
             builder.RegisterComponentInHierarchy<TienLenGameController>();
             builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
             builder.RegisterComponentInHierarchy<SeatProvider>();
 
             builder.RegisterComponentInHierarchy<SeatManager>()
-                                        .As<IPlayerRegisterService>()
-                                        .AsSelf();
+                   .As<IPlayerRegisterService>()
+                   .As<ISeatQueryService>()
+                   .AsSelf();
 
-
-            builder.Register<TienLenGame>(Lifetime.Singleton);
             builder.Register<TurnManager>(Lifetime.Singleton);
 
+            // UI
             builder.RegisterComponentInHierarchy<UiManager>();
             builder.RegisterComponentInHierarchy<StartGameUI>();
-
-
-
-
             builder.RegisterComponentInHierarchy<CardSpawner>();
             builder.RegisterComponentInHierarchy<ActionPanel>();
-
-
         }
-
     }
 }

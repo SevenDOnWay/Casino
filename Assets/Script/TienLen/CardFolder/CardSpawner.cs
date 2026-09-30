@@ -1,15 +1,10 @@
-﻿using System;
+﻿using Assets.Script.TienLen.Game;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace Assets.Script.TienLen.CardFolder {
-    class CardSpawner : MonoBehaviour {
-
-
-
+    public class CardSpawner : MonoBehaviour {
         public List<CardView> SpawnAllCard( Dictionary<(CardSuit, CardRank), Sprite> spriteLookup ) {
-
             List<CardView> cardViews = new List<CardView>();
 
             foreach ( var (card, cardSprite) in spriteLookup ) {
@@ -44,21 +39,5 @@ namespace Assets.Script.TienLen.CardFolder {
 
             return cardObject.AddComponent<CardView>();
         }
-
-        //public CardView SpawnCard( ) {
-        //Transform spawnParent = parent != null ? parent : deckAnchor;
-        //CardView view = Instantiate(cardPrefab, spawnParent);
-
-        //Sprite sprite = spriteAtlas.GetCardSprite(cardData);
-        //view.Initialize(cardData, sprite);
-
-        //viewLookup[cardData] = view;
-        //return view;
-        //}
-
-        //public CardView GetView( Card card ) => viewLookup.GetValueOrDefault(card);
-
-
-
     }
 }
