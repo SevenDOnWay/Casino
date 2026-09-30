@@ -1,5 +1,4 @@
 ﻿using Assets.Script.TienLen.Player;
-using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -24,9 +23,7 @@ namespace Assets.Script.TienLen.UI {
         public bool IsOccupied => tienLenPlayer != null;
 
         /// <summary>
-        /// The **network** seat index this visual slot is currently bound to.
-        /// -1 when empty. Used by TableVisualLayoutManager to diff and avoid
-        /// rebinding unchanged slots.
+        /// The network seat index this visual slot is currently bound to (-1 when empty).
         /// </summary>
         public int BoundSeatIndex { get; private set; } = -1;
 
@@ -48,7 +45,7 @@ namespace Assets.Script.TienLen.UI {
 
         public void BindPlayer( TienLenPlayer player, int networkSeatIndex ) {
             if ( player == null ) {
-                Debug.LogError( "[PlayerSeat] Cannot bind a null player." );
+                Debug.LogError("[PlayerSeat] Cannot bind a null player.");
                 return;
             }
 
@@ -56,8 +53,6 @@ namespace Assets.Script.TienLen.UI {
                                           && BoundSeatIndex != networkSeatIndex
                                           && tienLenPlayer != null;
 
-            // Clear on rebind (agreed): when a different player takes this slot,
-            // wipe the CardHolder so the incoming player starts clean.
             if ( isRebindToDifferentPlayer && cardHolder != null ) {
                 cardHolder.Clear();
             }
@@ -65,23 +60,18 @@ namespace Assets.Script.TienLen.UI {
             tienLenPlayer = player;
             BoundSeatIndex = networkSeatIndex;
 
-            // Only re-assign the CardHolder if it actually changed.
-            if ( player.CardHolder != cardHolder ) {
-                player.SetCardHolder( cardHolder );
-            }
-
-            ChangeAvatar( true );
+            ChangeAvatar(true);
             StopTurnTimer();
         }
 
         public void ClearSeat() {
-            if ( tienLenPlayer != null && cardHolder != null ) {
+            if ( cardHolder != null ) {
                 cardHolder.Clear();
             }
 
             tienLenPlayer = null;
             BoundSeatIndex = -1;
-            ChangeAvatar( false );
+            ChangeAvatar(false);
             StopTurnTimer();
         }
 
@@ -94,24 +84,18 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void ChangeAvatar( bool isAvatarVisible ) {
-            if ( spriteRenderer == null ) {
-                Debug.LogWarning( $"[PlayerSeat {visualIndex}] spriteRenderer is null, cannot change avatar visibility." );
-                return;
-            }
-            if ( spriteRenderer.gameObject == null ) {
-                Debug.LogWarning( $"[PlayerSeat {visualIndex}] avatar gameObject is null, cannot change avatar visibility." );
-                return;
-            }
-            spriteRenderer.gameObject.SetActive( isAvatarVisible );
+            if ( spriteRenderer == null ) return;
+            if ( spriteRenderer.gameObject == null ) return;
+            spriteRenderer.gameObject.SetActive(isAvatarVisible);
         }
 
         public void StartTurnTimer( float initialProgress = 1f ) {
             EnsureClockWipe();
             if ( timerClockWipe != null ) {
                 if ( !timerClockWipe.gameObject.activeSelf ) {
-                    timerClockWipe.gameObject.SetActive( true );
+                    timerClockWipe.gameObject.SetActive(true);
                 }
-                timerClockWipe.SetProgress( initialProgress );
+                timerClockWipe.SetProgress(initialProgress);
             }
         }
 
@@ -119,9 +103,9 @@ namespace Assets.Script.TienLen.UI {
             EnsureClockWipe();
             if ( timerClockWipe != null ) {
                 if ( !timerClockWipe.gameObject.activeSelf ) {
-                    timerClockWipe.gameObject.SetActive( true );
+                    timerClockWipe.gameObject.SetActive(true);
                 }
-                timerClockWipe.SetProgress( remainingProgress01 );
+                timerClockWipe.SetProgress(remainingProgress01);
             }
         }
 
@@ -132,8 +116,8 @@ namespace Assets.Script.TienLen.UI {
                     timerClockWipe.ResetToDefault();
                 }
                 else {
-                    timerClockWipe.SetProgress( 0f );
-                    timerClockWipe.gameObject.SetActive( false );
+                    timerClockWipe.SetProgress(0f);
+                    timerClockWipe.gameObject.SetActive(false);
                 }
             }
         }
