@@ -4,53 +4,61 @@ using UnityEngine.EventSystems;
 
 namespace Assets.Script {
     public class CardView : MonoBehaviour, IPointerClickHandler {
-        SpriteRenderer spriteRenderer;
+        [SerializeField] private float selectElevation = 0.7f;
 
-        Card card;
-
+        private SpriteRenderer spriteRenderer;
+        private Card card;
         private bool interactable;
         private bool selected;
 
-
-
         public event Action<CardView> OnClicked;
 
-        public Card Card { get => card; set => card = value; }
-
-        private void Start() {
-            spriteRenderer = GetComponent<SpriteRenderer>();
+        public Card Card {
+            get => card;
+            set => card = value;
         }
 
-        public void Init(Card card ) {
+        public bool IsSelected => selected;
+        public bool IsInteractable => interactable;
+
+        private void Awake() {
+            EnsureSpriteRenderer();
+        }
+
+        private void EnsureSpriteRenderer() {
+            if ( spriteRenderer == null ) {
+                spriteRenderer = GetComponent<SpriteRenderer>();
+            }
+        }
+
+        public void Init( Card card ) {
             this.card = card;
         }
 
-        //change sprite of the card
-        public void ChangeSprite(Sprite sprite) {
-            this.spriteRenderer.sprite = sprite;
+        public void ChangeSprite( Sprite sprite ) {
+            EnsureSpriteRenderer();
+            if ( spriteRenderer != null ) {
+                spriteRenderer.sprite = sprite;
+            }
         }
 
         public void OnPointerClick( PointerEventData eventData ) {
             if ( !interactable ) return;
-
-            //Debug.Log($"[CardView] Card clicked: {card}");
-
             OnClicked?.Invoke(this);
         }
 
         public void SetInteractable( bool value ) {
             interactable = value;
-
-            if ( !value ) SetSelected(false);
+            if ( !value ) {
+                SetSelected(false);
+            }
         }
 
         public void SetSelected( bool value ) {
             selected = value;
 
             Vector3 position = transform.localPosition;
-
-            // Example selection effect
-            position.y = selected ? 0.7f : 0f;
+            position.y = selected ? selectElevation : 0f;
             transform.localPosition = position;
         }
     }

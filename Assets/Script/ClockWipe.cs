@@ -154,9 +154,12 @@ namespace Assets.Script {
             sr.SetPropertyBlock(block);
         }
 
-        private void LateUpdate() {
-            // Allows live tuning in the editor during Play mode
-            Apply();
+#if UNITY_EDITOR
+        private void OnValidate() {
+            if ( !Application.isPlaying ) {
+                Apply();
+            }
         }
+#endif
     }
 }
