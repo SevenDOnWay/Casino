@@ -1,6 +1,7 @@
 ﻿using Assets.Script.NetWorkScript;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Assets.Script.TienLen.Player {
     /// <summary>
@@ -37,12 +38,14 @@ namespace Assets.Script.TienLen.Player {
         }
 
         public bool HasCards( List<Card> cards ) {
-            if ( Hand == null ) return false;
+            if ( Hand == null || Hand.Cards == null ) return false;
             if ( cards == null || cards.Count == 0 ) return false;
             var playerCards = Hand.Cards;
 
             foreach ( var card in cards ) {
-                if ( !playerCards.Contains(card) ) return false;
+                if ( card == null || !playerCards.Contains(card) ) {
+                    return false;
+                }
             }
 
             return true;

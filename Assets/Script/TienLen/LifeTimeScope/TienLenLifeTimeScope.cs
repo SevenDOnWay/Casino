@@ -24,7 +24,6 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.Register<CardComparer>(Lifetime.Singleton);
             builder.Register<CardCombinationEvaluator>(Lifetime.Singleton);
             builder.Register<TienLenRuleValidator>(Lifetime.Singleton);
-            builder.Register<CardSpriteAtlas>(Lifetime.Singleton);
 
             // Session & Table State
             builder.RegisterComponentInHierarchy<LobbySessionController>();

@@ -3,6 +3,7 @@ using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Fusion;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using VContainer;
 
@@ -238,17 +239,9 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private int ResolveLocalSeat() {
-            if ( SeatQuery == null || Runner == null ) return -1;
-            foreach ( var kvp in SeatQuery.GetNetworkPlayerMap() ) {
-                var netPlayer = kvp.Value;
-                if ( netPlayer == null ) continue;
-                if ( netPlayer.Object != null && netPlayer.Object.IsValid
-                    && netPlayer.Object.InputAuthority == Runner.LocalPlayer ) {
-                    return kvp.Key;
-                }
-                if ( netPlayer.PlayerRef == Runner.LocalPlayer ) {
-                    return kvp.Key;
-                }
+            if ( SeatQuery == null || Runner == null || !Runner.LocalPlayer.IsValid ) return -1;
+            if ( SeatQuery.TryGetSeat(Runner.LocalPlayer, out int seat) ) {
+                return seat;
             }
             return -1;
         }

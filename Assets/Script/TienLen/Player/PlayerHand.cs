@@ -1,39 +1,41 @@
-﻿using Assets.Script.TienLen.Rule;
-using System.Collections.Generic;
-using VContainer;
+﻿using System.Collections.Generic;
 
 namespace Assets.Script.TienLen.Player {
     public class PlayerHand {
+        private readonly List<Card> cards = new();
 
-        private List<Card> cards = new();
-
-        public List<Card> Cards => cards; //TODO: Change this to list<card> 
-
+        public IReadOnlyList<Card> Cards => cards;
         public int Count => cards.Count;
 
-
         public void AddCard( Card card ) {
-            cards.Add(card);
+            if ( card != null ) {
+                cards.Add(card);
+            }
         }
 
-        public void AddCard( List<Card> cardList ) {
-            cards.AddRange(cardList);
+        public void AddCard( IEnumerable<Card> cardList ) {
+            if ( cardList != null ) {
+                cards.AddRange(cardList);
+            }
         }
 
         public void Remove( Card card ) {
-            cards.Remove(card);
+            if ( card != null ) {
+                cards.Remove(card);
+            }
         }
 
         public void Remove( IEnumerable<Card> selectedCards ) {
-            foreach ( Card card in selectedCards )
-                cards.Remove(card);
+            if ( selectedCards == null ) return;
+            foreach ( Card card in selectedCards ) {
+                if ( card != null ) {
+                    cards.Remove(card);
+                }
+            }
         }
 
         public void Clear() {
             cards.Clear();
         }
-
-
-
     }
 }
