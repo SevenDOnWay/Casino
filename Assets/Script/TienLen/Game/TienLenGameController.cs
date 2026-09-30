@@ -21,7 +21,6 @@ namespace Assets.Script.TienLen.Game {
         private CardSpawner cardSpawner;
         private CardCombinationEvaluator cardCombinationEvaluator;
         private LocalPlayerService localPlayerService;
-        private TienLenGame game;
         private TurnManager turnManager;
         private ISeatQueryService seatQueryService;
         private TienLenRuleValidator validator;
@@ -86,7 +85,6 @@ namespace Assets.Script.TienLen.Game {
         void Construct(
             CardSpawner cardSpawner,
             LocalPlayerService localPlayerService,
-            TienLenGame game,
             TurnManager turnManager,
             CardCombinationEvaluator cardCombinationEvaluator,
             ISeatQueryService seatQueryService,
@@ -94,7 +92,6 @@ namespace Assets.Script.TienLen.Game {
             TableVisualLayoutManager tableVisualLayoutManager ) {
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
-            this.game = game;
             this.turnManager = turnManager;
             this.cardCombinationEvaluator = cardCombinationEvaluator;
             this.seatQueryService = seatQueryService;
@@ -199,7 +196,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private void OnIsGameStartedChanged() {
-            // Replicated change detector in UiManager reacts to IsGameStarted
+            // Handled via change detector in UiManager
         }
 
         private void InitializeTurns() {

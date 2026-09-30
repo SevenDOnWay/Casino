@@ -1,19 +1,20 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
-using Cysharp.Threading.Tasks;
 using Fusion;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 using VContainer;
 
 namespace Assets.Script.TienLen.Game {
+    /// <summary>
+    /// Standalone domain model for non-networked Tiến Lên sessions or offline rule tests.
+    /// </summary>
     public class TienLenGame {
         [Header("Dependencies")]
         private LocalPlayerService localPlayerService;
 
-        private List<TienLenPlayer> players = new();
+        private readonly List<TienLenPlayer> players = new();
         public IReadOnlyList<TienLenPlayer> Players => players;
 
         private Deck deck;
@@ -23,17 +24,12 @@ namespace Assets.Script.TienLen.Game {
 
         public TienLenPlayer CurrentPlayer => players != null && players.Count > currentPlayerIndex ? players[currentPlayerIndex] : null;
 
-        public event Action<TienLenPlayer> OnPlayerWon;
-        public event Action OnRoundStarted;
-        public event Action OnRoundEnded;
-
         [Inject]
         public TienLenGame( LocalPlayerService localPlayerService ) {
             this.localPlayerService = localPlayerService;
         }
 
         public void Initialize() {
-            Debug.Log("[InitializeGame] Initializing Tiến Lên game.");
             State = TienLenGameState.DealingCard;
             currentPlayerIndex = 0;
         }
@@ -48,10 +44,6 @@ namespace Assets.Script.TienLen.Game {
 
         public void RemovePlayer( PlayerRef playerRef ) {
             players.RemoveAll(p => p.Id == playerRef.PlayerId);
-        }
-
-        public void StartRound() {
-            DealHandsAuthoritative();
         }
 
         public void DealHandsAuthoritative() {

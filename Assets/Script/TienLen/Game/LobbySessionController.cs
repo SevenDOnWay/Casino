@@ -114,19 +114,19 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        #region INetworkRunnerCallbacks Boilerplate
+        #region INetworkRunnerCallbacks
 
         public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
         public void OnObjectEnterAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
         public void OnShutdown( NetworkRunner runner, ShutdownReason shutdownReason ) { }
-        public void OnDisconnectedFromServer( NetworkRunner runner, NetDisconnectReason reason ) { }
+        void INetworkRunnerCallbacks.OnDisconnectedFromServer( NetworkRunner runner, NetDisconnectReason reason ) { }
         public void OnConnectRequest( NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token ) { }
         public void OnConnectFailed( NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason ) { }
         public void OnReliableDataReceived( NetworkRunner runner, PlayerRef player, ReliableKey key, ReadOnlySpan<byte> data ) { }
         public void OnReliableDataProgress( NetworkRunner runner, PlayerRef player, ReliableKey key, float progress ) { }
         public void OnInput( NetworkRunner runner, NetworkInput input ) { }
         public void OnInputMissing( NetworkRunner runner, PlayerRef player, NetworkInput input ) { }
-        public void OnConnectedToServer( NetworkRunner runner ) { }
+        void INetworkRunnerCallbacks.OnConnectedToServer( NetworkRunner runner ) { }
         public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) { }
         public void OnCustomAuthenticationResponse( NetworkRunner runner, Dictionary<string, object> data ) { }
         public void OnHostMigration( NetworkRunner runner, HostMigrationToken hostMigrationToken ) { }

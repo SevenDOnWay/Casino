@@ -37,7 +37,6 @@ namespace Assets.Script.TienLen.LifeTimeScope {
                    .As<ISeatQueryService>()
                    .AsSelf();
 
-            builder.Register<TienLenGame>(Lifetime.Singleton);
             builder.Register<TurnManager>(Lifetime.Singleton);
 
             // UI
