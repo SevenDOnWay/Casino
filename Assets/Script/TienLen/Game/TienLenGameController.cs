@@ -41,6 +41,10 @@ namespace Assets.Script.TienLen.Game {
         /// <summary>Network seat index of the last accepted pass. -1 = none/cleared by a newer play.</summary>
         [Networked] public int LastPassSeat { get; set; }
 
+        /// <summary>Networked array of the cards currently played on the table.</summary>
+        [Networked, Capacity(13)] public NetworkArray<NetworkCard> CurrentTableCards => default;
+        [Networked] public int CurrentTableCardCount { get; set; }
+
         [Header("Turn Configuration")]
         [SerializeField] private float turnDuration = 15f;
         public float TurnDuration => turnDuration;
@@ -103,10 +107,131 @@ namespace Assets.Script.TienLen.Game {
             base.Spawned();
 
             if ( Object.HasStateAuthority ) {
-                CurrentTurnSeat = -1;
-                WinnerSeat = -1;
-                LastPassSeat = -1;
-                TurnTimer = default;
+                if ( Runner.IsResume ) {
+                    ResumeFromMigration();
+                }
+                else {
+                    CurrentTurnSeat = -1;
+                    WinnerSeat = -1;
+                    LastPassSeat = -1;
+                    TurnTimer = default;
+                    CurrentTableCardCount = 0;
+                }
+            }
+        }
+
+        public void ResumeFromMigration() {
+            if ( !Object.HasStateAuthority ) return;
+            Debug.Log("[TienLenGameController] Resuming game state after Host Migration...");
+
+            if ( !IsGameStarted ) {
+                Debug.Log("[TienLenGameController] Game has not started yet. Lobby state preserved.");
+                return;
+            }
+
+            if ( seatQueryService == null ) return;
+
+            List<TienLenPlayer> ordered = seatQueryService.GetSeatedPlayers()
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => kvp.Value)
+                .ToList();
+
+            if ( ordered.Count == 0 ) return;
+
+            if ( ordered.Count == 1 ) {
+                WinnerSeat = SeatOfPlayer(ordered[0]);
+                Debug.Log($"[TienLenGameController] Single player remaining after migration. Player {ordered[0].Id} wins!");
+                return;
+            }
+
+            turnManager.Initialize(ordered);
+
+            // Reconstruct validator table combination from CurrentTableCards
+            if ( CurrentTableCardCount > 0 ) {
+                List<Card> tableCards = new();
+                for ( int i = 0; i < CurrentTableCardCount; i++ ) {
+                    tableCards.Add(CurrentTableCards[i].ToCard());
+                }
+
+                if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(tableCards, out CardCombination combo) ) {
+                    validator?.SetCurrentCombination(combo);
+                    Debug.Log($"[TienLenGameController] Restored table combination: {combo.Type} ({combo.Cards.Count} cards).");
+                }
+            }
+            else {
+                validator?.Reset();
+            }
+
+            // Restore active turn player
+            if ( CurrentTurnSeat != -1 ) {
+                var seated = seatQueryService.GetSeatedPlayers();
+                if ( seated.TryGetValue(CurrentTurnSeat, out var turnPlayer) && turnPlayer != null ) {
+                    turnManager.SetCurrentPlayer(turnPlayer);
+                }
+                else {
+                    // Player left -> advance turn
+                    turnManager.ForceAdvanceTurn();
+                    MirrorTurnSeat();
+                }
+            }
+
+            // Give a grace buffer on the turn timer
+            TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration + 5f);
+
+            // Ask all connected clients to report their current hands to the new Host
+            RPCRequestHandReport();
+        }
+
+        public void HandlePlayerLeftMidGame( PlayerRef playerRef ) {
+            if ( !Object.HasStateAuthority ) return;
+            if ( !IsGameStarted || WinnerSeat != -1 ) return;
+
+            Debug.Log($"[TienLenGameController] Player {playerRef.PlayerId} left mid-game.");
+
+            var seated = seatQueryService?.GetSeatedPlayers();
+            if ( seated == null ) return;
+
+            int remainingCount = seated.Count;
+            if ( remainingCount <= 1 ) {
+                if ( remainingCount == 1 ) {
+                    var winnerKvp = seated.First();
+                    WinnerSeat = winnerKvp.Key;
+                    Debug.Log($"[TienLenGameController] Player {winnerKvp.Value.Id} wins because other players left!");
+                }
+                return;
+            }
+
+            if ( turnManager?.CurrentPlayer != null && seatQueryService != null ) {
+                var leavingLogic = seatQueryService.GetLogicPlayer(playerRef);
+                if ( ReferenceEquals(turnManager.CurrentPlayer, leavingLogic) ) {
+                    Debug.Log("[TienLenGameController] Active turn player left. Advancing turn...");
+                    turnManager.ForceAdvanceTurn();
+                    MirrorTurnSeat();
+                }
+            }
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        public void RPCRequestHandReport() {
+            if ( localPlayerService != null ) {
+                var localLogic = localPlayerService.GetLocalLogicPlayer();
+                var localNet = localPlayerService.GetLocalNetworkPlayer();
+                if ( localLogic?.Hand?.Cards != null && localNet != null ) {
+                    NetworkCard[] netCards = localLogic.Hand.Cards
+                        .Select(c => new NetworkCard(c))
+                        .ToArray();
+                    localNet.RPCReportHandState(netCards);
+                }
+            }
+        }
+
+        public void HandleReportedHand( PlayerRef sender, NetworkCard[] cards ) {
+            if ( !Object.HasStateAuthority || cards == null ) return;
+            TienLenPlayer player = GetPlayer(sender);
+            if ( player != null ) {
+                player.Hand.Clear();
+                player.Hand.AddCard(cards.Select(c => c.ToCard()));
+                Debug.Log($"[TienLenGameController] Restored hand ({cards.Length} cards) for player {player.Id} ({sender.PlayerId}) on new Host.");
             }
         }
 
@@ -445,6 +570,10 @@ namespace Assets.Script.TienLen.Game {
                 return;
             }
 
+            if ( validator != null && validator.CurrentCombination == null ) {
+                CurrentTableCardCount = 0;
+            }
+
             MirrorTurnSeat();
             LastPassSeat = SeatOfPlayer(player);
             RPCPassAccepted(sender);
@@ -474,6 +603,11 @@ namespace Assets.Script.TienLen.Game {
                 sender,
                 playedCards.Select(card => new NetworkCard(card)).ToArray()
             );
+
+            CurrentTableCardCount = playedCards.Count;
+            for ( int i = 0; i < playedCards.Count && i < 13; i++ ) {
+                CurrentTableCards.Set(i, new NetworkCard(playedCards[i]));
+            }
 
             MirrorTurnSeat();
             LastPassSeat = -1;

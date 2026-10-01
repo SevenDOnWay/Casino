@@ -173,6 +173,10 @@ namespace Assets.Script.TienLen.UI {
             lastRenderedStarted = IsGameLogicReady() && tienLenGameController.IsGameStarted;
         }
 
+        public void ShowAnnouncement( string message ) {
+            sessionDisplayUI?.RenderAnnouncement(message);
+        }
+
         private void RenderSession() {
             if ( sessionDisplayUI == null ) return;
 

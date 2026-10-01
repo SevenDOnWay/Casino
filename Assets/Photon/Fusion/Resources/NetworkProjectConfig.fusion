@@ -67,8 +67,8 @@
         "GameReliableChannelSendCount": 1
     },
     "HostMigration": {
-        "EnableAutoUpdate": false,
-        "UpdateDelay": 10
+        "EnableAutoUpdate": true,
+        "UpdateDelay": 5
     },
     "EncryptionConfig": {
         "EnableEncryption": false

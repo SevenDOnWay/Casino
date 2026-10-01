@@ -75,5 +75,20 @@ namespace Assets.Script.NetWorkScript {
 
             controller.HandlePassRequest(sender);
         }
+
+        [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+        public void RPCReportHandState( NetworkCard[] cards, RpcInfo info = default ) {
+            PlayerRef sender = (info.Source != PlayerRef.None) ? info.Source : Object.InputAuthority;
+            if ( sender == PlayerRef.None ) {
+                sender = PlayerRef;
+            }
+
+            if ( controller == null ) {
+                Debug.LogError("[TienLenNetWorkPlayer.RPCReportHandState] Controller is null.");
+                return;
+            }
+
+            controller.HandleReportedHand(sender, cards);
+        }
     }
 }
