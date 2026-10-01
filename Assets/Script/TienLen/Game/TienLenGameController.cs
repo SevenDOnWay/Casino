@@ -660,9 +660,28 @@ namespace Assets.Script.TienLen.Game {
                 yield break;
             }
 
+            // Remove cards from player's hand immediately so remaining cards animate into place
+            cardHolder.RemoveCards(views, animate: true);
+
             float duration = 0.35f;
-            float cardSpacing = 0.2f;
-            Vector3 centerPos = Vector3.zero;
+
+            // Space cards evenly so suits and ranks are clearly legible
+            float baseSpacing = 0.6f;
+            float maxTotalWidth = 6f;
+            float cardSpacing = views.Count > 1
+                ? Mathf.Min(baseSpacing, maxTotalWidth / (views.Count - 1))
+                : baseSpacing;
+
+            float totalWidth = (views.Count - 1) * cardSpacing;
+            float startX = -totalWidth / 2f;
+
+            // Small random offset and tilt for the hand so consecutive played hands have natural variety
+            Vector3 handRandomOffset = new Vector3(
+                UnityEngine.Random.Range(-0.25f, 0.25f),
+                UnityEngine.Random.Range(-0.15f, 0.15f),
+                0f
+            );
+            float handBaseAngle = UnityEngine.Random.Range(-3f, 3f);
 
             for ( int i = 0; i < views.Count; i++ ) {
                 CardView view = views[i];
@@ -678,23 +697,25 @@ namespace Assets.Script.TienLen.Game {
                 }
 
                 Transform cardTransform = view.transform;
-                cardTransform.SetParent(cardTransform.root, worldPositionStays: true);
+                cardTransform.SetParent(table.transform, worldPositionStays: true);
 
-                float offset = (i - (views.Count - 1) / 2f) * cardSpacing;
-                Vector3 targetPos = centerPos + new Vector3(offset, 0f, 0f);
-                float randomAngle = UnityEngine.Random.Range(-5f, 5f);
+                float cardX = startX + i * cardSpacing;
+                float cardYJitter = UnityEngine.Random.Range(-0.03f, 0.03f);
+                float cardZOffset = -i * 0.01f; // Layering depth to prevent z-fighting
+
+                Vector3 targetLocalPos = handRandomOffset + new Vector3(cardX, cardYJitter, cardZOffset);
+                float randomAngle = handBaseAngle + UnityEngine.Random.Range(-2f, 2f);
 
                 cardTransform.DOKill();
 
                 Sequence seq = DOTween.Sequence();
-                seq.Join(cardTransform.DOMove(targetPos, duration).SetEase(Ease.OutQuad));
-                seq.Join(cardTransform.DORotate(new Vector3(0, 0, randomAngle), duration));
+                seq.Join(cardTransform.DOLocalMove(targetLocalPos, duration).SetEase(Ease.OutQuad));
+                seq.Join(cardTransform.DOLocalRotate(new Vector3(0, 0, randomAngle), duration));
                 seq.Join(cardTransform.DOScale(Vector3.one * 0.9f, duration));
 
-                table.AddCard(view);
+                table.AddCard(view, autoArrange: false);
             }
 
-            cardHolder.RemoveCards(views, animate: false);
             yield return null;
         }
 

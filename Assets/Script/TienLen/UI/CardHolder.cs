@@ -15,6 +15,7 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private float maxWidth = 8f;
         [SerializeField] private float cardWidth = 1f;
         [SerializeField] private float minSpacing = 0.2f;
+        [SerializeField] private float maxSpacing = 0.65f;
 
         [Header("Animation")]
         [SerializeField] private float moveDuration = 0.25f;
@@ -34,7 +35,7 @@ namespace Assets.Script.TienLen.UI {
             this.cardComparer = cardComparer;
         }
 
-        public void AddCard( CardView cardView, bool animate = true ) {
+        public void AddCard( CardView cardView, bool animate = true, bool autoArrange = true ) {
             if ( cardView == null ) return;
             if ( cardsViews.Contains(cardView) ) return;
 
@@ -44,7 +45,9 @@ namespace Assets.Script.TienLen.UI {
             cardView.OnClicked += HandleCardClicked;
             cardView.SetInteractable(interactable);
 
-            ArrangeCards(animate);
+            if ( autoArrange ) {
+                ArrangeCards(animate);
+            }
         }
 
         public void RemoveCard( CardView cardView, bool animate = true ) {
@@ -155,8 +158,9 @@ namespace Assets.Script.TienLen.UI {
 
             float availableWidth = maxWidth - cardWidth;
             float spacing = availableWidth / (cardsViews.Count - 1);
+            float effectiveMaxSpacing = maxSpacing > 0f ? maxSpacing : 0.65f;
 
-            return Mathf.Max(spacing, minSpacing);
+            return Mathf.Clamp(spacing, minSpacing, effectiveMaxSpacing);
         }
 
         public void SetInteractable( bool value ) {
