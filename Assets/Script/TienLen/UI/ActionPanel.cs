@@ -31,9 +31,16 @@ namespace Assets.Script.TienLen.UI {
         private bool lastPushedIsTurn;
         private CardHolder subscribedHand;
 
-        private CardHolder LocalHand => tableVisualLayoutManager != null
-            ? tableVisualLayoutManager.GetLocalCardHolder()
-            : null;
+        private CardHolder LocalHand {
+            get {
+                if ( subscribedHand != null ) return subscribedHand;
+                if ( tableVisualLayoutManager != null ) {
+                    return tableVisualLayoutManager.GetLocalCardHolder();
+                }
+                tableVisualLayoutManager = FindAnyObjectByType<TableVisualLayoutManager>();
+                return tableVisualLayoutManager?.GetLocalCardHolder();
+            }
+        }
 
         [Inject]
         void Construct(

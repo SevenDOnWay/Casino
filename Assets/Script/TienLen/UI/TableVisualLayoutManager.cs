@@ -139,7 +139,20 @@ namespace Assets.Script.TienLen.UI {
             return GetSeatByNetworkIndex(networkSeatIndex)?.cardHolder;
         }
 
+        private void EnsureVisualSlots() {
+            if ( visualSlots == null || visualSlots.Length == 0 ) {
+                if ( seatProvider != null ) {
+                    visualSlots = seatProvider.GetPlayerSeats();
+                }
+                else {
+                    seatProvider = GetComponent<SeatProvider>() ?? GetComponentInParent<SeatProvider>() ?? FindAnyObjectByType<SeatProvider>();
+                    visualSlots = seatProvider != null ? seatProvider.GetPlayerSeats() : FindObjectsByType<PlayerSeat>(FindObjectsSortMode.None);
+                }
+            }
+        }
+
         public PlayerSeat GetVisualSlot( int visualIndex ) {
+            EnsureVisualSlots();
             if ( visualSlots == null || visualIndex < 0 || visualIndex >= visualSlots.Length ) return null;
             return visualSlots[visualIndex];
         }
@@ -153,6 +166,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public IReadOnlyList<PlayerSeat> GetAllVisualSlots() {
+            EnsureVisualSlots();
             return visualSlots;
         }
     }

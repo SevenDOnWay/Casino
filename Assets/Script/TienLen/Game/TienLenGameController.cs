@@ -245,36 +245,73 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private void HandleTurnTimeout() {
+            if ( !Object.HasStateAuthority ) return;
+            if ( !IsGameStarted || WinnerSeat != -1 ) return;
             if ( turnManager == null || turnManager.CurrentPlayer == null || seatQueryService == null ) return;
 
+            var currentPlayer = turnManager.CurrentPlayer;
             var networkMap = seatQueryService.GetNetworkPlayerMap();
             PlayerRef currentRef = default;
             foreach ( var kvp in networkMap ) {
-                if ( seatQueryService.GetLogicPlayer(kvp.Value.PlayerRef) == turnManager.CurrentPlayer ) {
+                if ( seatQueryService.GetLogicPlayer(kvp.Value.PlayerRef) == currentPlayer ) {
                     currentRef = kvp.Value.PlayerRef;
                     break;
                 }
             }
 
-            if ( !currentRef.IsValid ) return;
+            Debug.Log($"[TienLenGameController] Turn timer expired for player {currentPlayer.Id} (Seat {CurrentTurnSeat}). Auto-acting...");
 
-            Debug.Log($"[TienLenGameController] Turn timer expired for player {turnManager.CurrentPlayer.Id} (Seat {CurrentTurnSeat}). Auto-acting...");
-
+            // If there is an active table combination, timeout counts as a PASS
             if ( validator != null && validator.CurrentCombination != null ) {
-                HandlePassRequest(currentRef);
-            }
-            else {
-                var hand = turnManager.CurrentPlayer.Hand?.Cards;
-                if ( hand != null && hand.Count > 0 ) {
-                    Card lowestCard = hand[0];
-                    var singleList = new List<Card> { lowestCard };
-                    if ( cardCombinationEvaluator.TryEvaluate(singleList, out var combo) && turnManager.TryPlay(turnManager.CurrentPlayer, combo) ) {
-                        HandleAcceptedPlay(currentRef, turnManager.CurrentPlayer, singleList);
-                    }
-                }
-                else {
+                if ( currentRef.IsValid ) {
                     HandlePassRequest(currentRef);
                 }
+                else {
+                    if ( turnManager.TryPass(currentPlayer) ) {
+                        MirrorTurnSeat();
+                    }
+                    else {
+                        turnManager.ForceAdvanceTurn();
+                        MirrorTurnSeat();
+                    }
+                }
+            }
+            else {
+                // Leading a new round: cannot pass, so auto-play lowest valid single card
+                var hand = currentPlayer.Hand?.Cards;
+                bool played = false;
+                if ( hand != null && hand.Count > 0 ) {
+                    var sortedHand = hand.OrderBy(c => c.Rank).ThenBy(c => (int)c.Suit).ToList();
+                    foreach ( var card in sortedHand ) {
+                        var singleList = new List<Card> { card };
+                        if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(singleList, out var combo) && (validator == null || validator.CanPlay(combo)) ) {
+                            if ( turnManager.TryPlay(currentPlayer, combo) ) {
+                                if ( currentRef.IsValid ) {
+                                    HandleAcceptedPlay(currentRef, currentPlayer, singleList);
+                                }
+                                else {
+                                    currentPlayer.TryRemoveCards(singleList);
+                                    RPCPlayAccepted(PlayerRef.None, singleList.Select(c => new NetworkCard(c)).ToArray());
+                                    CurrentTableCardCount = 1;
+                                    MirrorTurnSeat();
+                                }
+                                played = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if ( !played ) {
+                    Debug.LogWarning($"[TienLenGameController] Auto-play could not find valid play for player {currentPlayer.Id}. Force advancing turn.");
+                    turnManager.ForceAdvanceTurn();
+                    MirrorTurnSeat();
+                }
+            }
+
+            // Always guarantee TurnTimer is reset for the next turn
+            if ( Object.HasStateAuthority && (!TurnTimer.IsRunning || TurnTimer.Expired(Runner)) ) {
+                TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration);
             }
         }
 

@@ -109,16 +109,54 @@ namespace Assets.Script.TienLen.UI {
             OnCardSelected?.Invoke(selectedCards);
         }
 
+        public enum SortMode {
+            ByRank,
+            ByGroup
+        }
+
+        private SortMode currentSortMode = SortMode.ByRank;
+
         public void SortCards() {
+            SortMode nextMode = (currentSortMode == SortMode.ByRank) ? SortMode.ByGroup : SortMode.ByRank;
+            SortCards(nextMode);
+        }
+
+        public void SortCards( SortMode mode ) {
+            currentSortMode = mode;
             var comparer = cardComparer ?? DefaultComparer;
 
-            cardsViews.Sort(( a, b ) => {
-                Card aCard = a?.Card;
-                Card bCard = b?.Card;
-                if ( aCard == null ) return bCard == null ? 0 : 1;
-                if ( bCard == null ) return -1;
-                return comparer.Compare(aCard, bCard);
-            });
+            if ( mode == SortMode.ByGroup ) {
+                var rankCounts = new Dictionary<CardRank, int>();
+                foreach ( var view in cardsViews ) {
+                    if ( view?.Card == null ) continue;
+                    rankCounts[view.Card.Rank] = rankCounts.GetValueOrDefault(view.Card.Rank, 0) + 1;
+                }
+
+                cardsViews.Sort(( a, b ) => {
+                    Card aCard = a?.Card;
+                    Card bCard = b?.Card;
+                    if ( aCard == null ) return bCard == null ? 0 : 1;
+                    if ( bCard == null ) return -1;
+
+                    int aCount = rankCounts.GetValueOrDefault(aCard.Rank, 0);
+                    int bCount = rankCounts.GetValueOrDefault(bCard.Rank, 0);
+
+                    if ( aCount != bCount ) {
+                        return bCount.CompareTo(aCount);
+                    }
+
+                    return comparer.Compare(aCard, bCard);
+                });
+            }
+            else {
+                cardsViews.Sort(( a, b ) => {
+                    Card aCard = a?.Card;
+                    Card bCard = b?.Card;
+                    if ( aCard == null ) return bCard == null ? 0 : 1;
+                    if ( bCard == null ) return -1;
+                    return comparer.Compare(aCard, bCard);
+                });
+            }
         }
 
         public void ArrangeCards( bool animate = true ) {
@@ -134,7 +172,7 @@ namespace Assets.Script.TienLen.UI {
 
                 Vector3 targetPosition = new Vector3(
                     startX + i * spacing,
-                    0f,
+                    card.IsSelected ? 0.7f : 0f,
                     -i * 0.01f
                 );
 
