@@ -16,18 +16,26 @@ namespace Assets.Script.TienLen.Game {
         [Header("Dependencies")]
         private IPlayerRegisterService playerRegisterService;
         private ISeatQueryService seatQueryService;
+        private TienLenGameController gameController;
 
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
 
         [Inject]
-        void Construct( IPlayerRegisterService playerRegisterService, ISeatQueryService seatQueryService ) {
+        void Construct( IPlayerRegisterService playerRegisterService, ISeatQueryService seatQueryService, TienLenGameController gameController ) {
             this.playerRegisterService = playerRegisterService;
             this.seatQueryService = seatQueryService;
+            this.gameController = gameController;
         }
 
         public override void Spawned() {
             Runner.AddCallbacks(this);
+
+            if ( Object.HasStateAuthority && Runner != null && Runner.LocalPlayer.IsValid ) {
+                if ( CheckPlayerCanJoin(Runner.LocalPlayer) ) {
+                    OnPlayerJoined(Runner, Runner.LocalPlayer);
+                }
+            }
         }
 
         public override void Despawned( NetworkRunner runner, bool hasState ) {
@@ -47,6 +55,23 @@ namespace Assets.Script.TienLen.Game {
 
             Debug.Log($"[Lobby] Player joined: {player.PlayerId}");
 
+            if ( runner.IsResume ) {
+                if ( seatQueryService != null && seatQueryService.TryGetSeat(player, out _) ) {
+                    Debug.Log($"[Lobby] Player {player.PlayerId} already has a restored seat from snapshot.");
+                    return;
+                }
+
+                if ( seatQueryService != null ) {
+                    var networkPlayerMap = seatQueryService.GetNetworkPlayerMap();
+                    foreach ( var kvp in networkPlayerMap ) {
+                        if ( kvp.Value != null && kvp.Value.PlayerRef == player ) {
+                            Debug.Log($"[Lobby] Found matching network player for {player.PlayerId} at seat {kvp.Key}.");
+                            return;
+                        }
+                    }
+                }
+            }
+
             if ( !CheckPlayerCanJoin(player) ) return;
 
             TienLenNetWorkPlayer networkPlayer = SpawnNetworkPlayer(player);
@@ -59,6 +84,7 @@ namespace Assets.Script.TienLen.Game {
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
             if ( !Object.HasStateAuthority ) return;
             RemovePlayer(player);
+            gameController?.HandlePlayerLeftMidGame(player);
         }
 
         private TienLenNetWorkPlayer SpawnNetworkPlayer( PlayerRef player ) {

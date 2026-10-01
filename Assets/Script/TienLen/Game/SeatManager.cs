@@ -62,8 +62,47 @@ namespace Assets.Script.TienLen.Game {
 
         public override void Spawned() {
             base.Spawned();
+
+            if ( Object.HasStateAuthority && Runner.IsResume ) {
+                CleanupDisconnectedSeats();
+            }
+
             // Initial snapshot rebuild to pick up seats that already replicated (e.g. late-joining client).
             _ = OnOccupiedSeatsChangedAsync();
+        }
+
+        public void CleanupDisconnectedSeats() {
+            if ( !Object.HasStateAuthority || Runner == null ) return;
+
+            List<int> seatsToRemove = new();
+            HashSet<PlayerRef> activePlayers = new(Runner.ActivePlayers);
+
+            foreach ( var kvp in networkOccupiedSeats ) {
+                int seatIndex = kvp.Key;
+                var netObj = kvp.Value;
+
+                if ( netObj == null || !netObj.IsValid ) {
+                    seatsToRemove.Add(seatIndex);
+                    continue;
+                }
+
+                if ( netObj.TryGetComponent<TienLenNetWorkPlayer>(out var netPlayer) ) {
+                    if ( !activePlayers.Contains(netPlayer.PlayerRef) ) {
+                        seatsToRemove.Add(seatIndex);
+                    }
+                }
+                else {
+                    seatsToRemove.Add(seatIndex);
+                }
+            }
+
+            foreach ( var seat in seatsToRemove ) {
+                networkOccupiedSeats.Remove(seat);
+                Debug.Log($"[SeatManager] Cleaned up disconnected seat {seat}");
+            }
+
+            retryPending = false;
+            retryAttempts = 0;
         }
 
         private void Update() {
@@ -71,7 +110,11 @@ namespace Assets.Script.TienLen.Game {
             if ( retryPending && Time.time >= retryAt ) {
                 retryPending = false;
                 if ( retryAttempts >= MaxRetryAttempts ) {
-                    Debug.LogWarning("[SeatManager] Gave up waiting for unresolved seat objects.");
+                    Debug.LogWarning("[SeatManager] Gave up waiting for unresolved seat objects. Cleaning up dead seats...");
+                    if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                        CleanupDisconnectedSeats();
+                    }
+                    retryAttempts = 0;
                 }
                 else {
                     _ = OnOccupiedSeatsChangedAsync();
@@ -226,7 +269,7 @@ namespace Assets.Script.TienLen.Game {
 
                 if ( seatedPlayers.TryGetValue(seatIndex, out var existingPlayer)
                     && existingPlayer != null
-                    && existingPlayer.Id == netPlayer.PlayerRef.PlayerId ) {
+                    && (existingPlayer.Id == netPlayer.PlayerRef.PlayerId || string.Equals(existingPlayer.PlayerName, (string)netPlayer.PlayerName)) ) {
                     newSeatedPlayers[seatIndex] = existingPlayer;
                 }
                 else {

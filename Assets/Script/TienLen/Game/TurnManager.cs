@@ -84,6 +84,35 @@ namespace Assets.Script.TienLen.Game {
             OnTurnChanged?.Invoke();
         }
 
+        public void ForceAdvanceTurn() {
+            AdvanceTurn();
+        }
+
+        public void SetCurrentPlayer( TienLenPlayer player ) {
+            if ( players == null || player == null ) return;
+            for ( int i = 0; i < players.Count; i++ ) {
+                if ( ReferenceEquals(players[i], player) ) {
+                    currentPlayerIndex = i;
+                    OnTurnChanged?.Invoke();
+                    return;
+                }
+            }
+        }
+
+        public void SetLastPlayPlayer( TienLenPlayer player ) {
+            if ( players == null || player == null ) return;
+            for ( int i = 0; i < players.Count; i++ ) {
+                if ( ReferenceEquals(players[i], player) ) {
+                    lastPlayIndex = i;
+                    return;
+                }
+            }
+        }
+
+        public void ResetRound() {
+            StartNewRound();
+        }
+
         private void StartNewRound() {
             validator.Reset();
             passedPlayers = 0;
