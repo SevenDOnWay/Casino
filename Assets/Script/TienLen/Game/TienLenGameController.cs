@@ -67,12 +67,13 @@ namespace Assets.Script.TienLen.Game {
         public int RegisteredPlayerCount =>
             seatQueryService != null ? seatQueryService.GetNetworkPlayer().Count : 0;
 
-        public bool CanStartGame() {
-            if ( Object == null || !Object.IsValid ) return false;
-            if ( IsGameStarted ) return false;
-            if ( seatQueryService == null ) return false;
+        public bool HasEnoughPlayersToPlay =>
+            Object != null && Object.IsValid && seatQueryService != null && RegisteredPlayerCount >= minPlayersToStart;
 
-            return RegisteredPlayerCount >= minPlayersToStart;
+        public bool CanStartGame() {
+            if ( !HasEnoughPlayersToPlay ) return false;
+            if ( IsGameStarted ) return false;
+            return true;
         }
 
         [SerializeField] private CardHolder tableCenterPosition;
@@ -83,7 +84,6 @@ namespace Assets.Script.TienLen.Game {
 
         // Hands that arrived before the local seat model knew the player.
         private readonly Dictionary<PlayerRef, List<Card>> pendingHands = new();
-        private int lastSeenSeatRevision = -1;
 
         [Inject]
         void Construct(
@@ -139,8 +139,7 @@ namespace Assets.Script.TienLen.Game {
             if ( ordered.Count == 0 ) return;
 
             if ( ordered.Count == 1 ) {
-                WinnerSeat = SeatOfPlayer(ordered[0]);
-                Debug.Log($"[TienLenGameController] Single player remaining after migration. Player {ordered[0].Id} wins!");
+                TriggerGameOver(SeatOfPlayer(ordered[0]));
                 return;
             }
 
@@ -195,8 +194,7 @@ namespace Assets.Script.TienLen.Game {
             if ( remainingCount <= 1 ) {
                 if ( remainingCount == 1 ) {
                     var winnerKvp = seated.First();
-                    WinnerSeat = winnerKvp.Key;
-                    Debug.Log($"[TienLenGameController] Player {winnerKvp.Value.Id} wins because other players left!");
+                    TriggerGameOver(winnerKvp.Key);
                 }
                 return;
             }
@@ -324,12 +322,7 @@ namespace Assets.Script.TienLen.Game {
 
         private void Update() {
             if ( pendingHands.Count == 0 ) return;
-            if ( seatQueryService == null ) return;
             if ( Object == null || !Object.IsValid ) return;
-
-            int revision = seatQueryService.SeatRevision;
-            if ( revision == lastSeenSeatRevision ) return;
-            lastSeenSeatRevision = revision;
 
             var owners = new List<PlayerRef>(pendingHands.Keys);
             foreach ( var owner in owners ) {
@@ -351,10 +344,92 @@ namespace Assets.Script.TienLen.Game {
             if ( IsGameStarted ) return;
 
             IsGameStarted = true;
+            WinnerSeat = -1;
+            LastPassSeat = -1;
 
             Deck deck = CreateDeck();
             DealCard(deck);
             InitializeTurns();
+        }
+
+        private void TriggerGameOver( int winnerSeat ) {
+            WinnerSeat = winnerSeat;
+            Debug.Log($"[Game] Player at seat {winnerSeat} wins!");
+
+            if ( Object.HasStateAuthority ) {
+                WaitAndStartNextGame(winnerSeat).Forget();
+            }
+        }
+
+        private async UniTaskVoid WaitAndStartNextGame( int previousWinnerSeat ) {
+            float celebrationDuration = 3.5f;
+            var ct = this.GetCancellationTokenOnDestroy();
+
+            try {
+                await UniTask.Delay(TimeSpan.FromSeconds(celebrationDuration), cancellationToken: ct);
+            }
+            catch ( OperationCanceledException ) {
+                return;
+            }
+
+            if ( !Object.HasStateAuthority ) return;
+
+            if ( !HasEnoughPlayersToPlay ) {
+                Debug.LogWarning("[TienLenGameController] Cannot continue game: not enough players.");
+                IsGameStarted = false;
+                WinnerSeat = -1;
+                CurrentTurnSeat = -1;
+                CurrentTableCardCount = 0;
+                return;
+            }
+
+            StartNextRound(previousWinnerSeat);
+        }
+
+        private void StartNextRound( int previousWinnerSeat ) {
+            if ( !Object.HasStateAuthority || seatQueryService == null ) return;
+
+            Debug.Log("[TienLenGameController] Starting next game round...");
+
+            // 1. Reset round & table state
+            validator?.Reset();
+            CurrentTableCardCount = 0;
+            LastPassSeat = -1;
+            WinnerSeat = -1;
+
+            // 2. Clear all logic hands
+            var seatedPlayers = seatQueryService.GetSeatedPlayers();
+            foreach ( var p in seatedPlayers.Values ) {
+                p.Hand?.Clear();
+            }
+
+            // 3. Create fresh deck and deal to all current players
+            Deck deck = CreateDeck();
+            DealCard(deck);
+
+            // 4. Initialize turns - in Tien Len, previous round winner leads the next game!
+            List<TienLenPlayer> ordered = seatedPlayers
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => kvp.Value)
+                .ToList();
+
+            if ( ordered.Count == 0 ) return;
+
+            turnManager.Initialize(ordered);
+
+            int startingIndex = -1;
+            if ( seatedPlayers.TryGetValue(previousWinnerSeat, out var winnerPlayer) && winnerPlayer != null ) {
+                startingIndex = ordered.IndexOf(winnerPlayer);
+            }
+
+            if ( startingIndex >= 0 ) {
+                turnManager.SetStartingPlayer(startingIndex);
+            }
+            else {
+                turnManager.SetStartingPlayer(FindStartingSeatOrderIndex(ordered));
+            }
+
+            MirrorTurnSeat();
         }
 
         private void OnIsGameStartedChanged() {
@@ -433,31 +508,35 @@ namespace Assets.Script.TienLen.Game {
 
             var networkMap = seatQueryService.GetNetworkPlayerMap();
             foreach ( var kvp in networkMap ) {
-                TienLenPlayer logicPlayer = seatQueryService.GetLogicPlayer(kvp.Value.PlayerRef);
-                if ( logicPlayer?.Hand == null ) continue;
+                if ( kvp.Value == null || !kvp.Value.PlayerRef.IsValid ) continue;
+                PlayerRef targetRef = kvp.Value.PlayerRef;
+
+                TienLenPlayer logicPlayer = seatQueryService.GetLogicPlayer(targetRef);
+                if ( logicPlayer?.Hand == null || logicPlayer.Hand.Count == 0 ) continue;
 
                 NetworkCard[] netCards = logicPlayer.Hand.Cards
                     .Select(card => new NetworkCard(card))
                     .ToArray();
 
-                RPCReceiveHand(kvp.Value.PlayerRef, netCards);
+                RPCReceiveHand(targetRef, netCards);
             }
         }
 
         [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
         private void RPCReceiveHand( PlayerRef owner, NetworkCard[] cards ) {
+            if ( cards == null || cards.Length == 0 ) return;
             if ( !Object.HasStateAuthority && owner != Runner.LocalPlayer ) return;
 
             List<Card> hand = cards.Select(card => card.ToCard()).ToList();
 
-            if ( !TryApplyHand(owner, hand) ) {
-                pendingHands[owner] = hand;
-                Debug.Log($"[Deal] Buffered hand for {owner} until seats are ready.");
-            }
+            // Cache hand immediately so dealing routine can access it even before seat resolution completes
+            pendingHands[owner] = hand;
+            TryApplyHand(owner, hand);
         }
 
         private bool TryApplyHand( PlayerRef owner, List<Card> hand ) {
-            TienLenPlayer player = seatQueryService?.GetLogicPlayer(owner);
+            if ( hand == null || hand.Count == 0 ) return false;
+            TienLenPlayer player = seatQueryService?.GetLogicPlayer(owner) ?? localPlayerService?.GetLocalLogicPlayer();
             if ( player?.Hand == null ) return false;
 
             player.Hand.Clear();
@@ -488,6 +567,20 @@ namespace Assets.Script.TienLen.Game {
 
             var orderedSeats = seatedPlayers.OrderBy(kvp => kvp.Key).ToList();
 
+            // Clear any leftover visual cards from table and all seats before dealing new cards
+            if ( tableCenterPosition != null ) {
+                tableCenterPosition.Clear();
+            }
+            if ( tableVisualLayoutManager != null ) {
+                tableVisualLayoutManager.RefreshLayout();
+                var slots = tableVisualLayoutManager.GetAllVisualSlots();
+                if ( slots != null ) {
+                    foreach ( var slot in slots ) {
+                        slot?.cardHolder?.Clear();
+                    }
+                }
+            }
+
             try {
                 // 1. Spawn deck stack
                 for ( int i = 0; i < totalDeckSize; i++ ) {
@@ -503,7 +596,6 @@ namespace Assets.Script.TienLen.Game {
                 for ( int round = 0; round < cardsPerPlayer; round++ ) {
                     for ( int p = 0; p < orderedSeats.Count; p++ ) {
                         int seatIndex = orderedSeats[p].Key;
-                        var player = orderedSeats[p].Value;
                         ct.ThrowIfCancellationRequested();
 
                         if ( deckStack.Count == 0 ) break;
@@ -523,30 +615,57 @@ namespace Assets.Script.TienLen.Game {
                             : null;
 
                         if ( targetCardHolder == null ) {
+                            tableVisualLayoutManager?.RefreshLayout();
+                            targetCardHolder = tableVisualLayoutManager?.GetCardHolderForSeat(seatIndex);
+                        }
+
+                        if ( targetCardHolder == null ) {
                             Debug.LogError($"[Deal] CardHolder is null for seat {seatIndex}. Destroying visual card.");
                             Destroy(cardView.gameObject);
                             continue;
                         }
 
-                        bool isLocal = (seatOwner == Runner.LocalPlayer);
+                        bool isLocal = (seatOwner.IsValid && seatOwner == Runner.LocalPlayer)
+                                    || (!seatOwner.IsValid && seatIndex == 0 && Object.HasStateAuthority);
 
                         if ( isLocal ) {
                             const int handWaitMs = 5000;
                             int waitedMs = 0;
-                            while ( (player.Hand?.Cards == null || player.Hand.Cards.Count <= round)
-                                && waitedMs < handWaitMs ) {
+                            List<Card> localCards = null;
+
+                            while ( waitedMs < handWaitMs ) {
+                                // Check pendingHands cache first
+                                if ( pendingHands.TryGetValue(seatOwner, out var buffered) && buffered != null && buffered.Count > round ) {
+                                    TryApplyHand(seatOwner, buffered);
+                                    localCards = buffered;
+                                    break;
+                                }
+
+                                // Check logic player
+                                var livePlayer = seatQueryService?.GetLogicPlayer(seatOwner) ?? localPlayerService?.GetLocalLogicPlayer();
+                                if ( livePlayer?.Hand?.Cards != null && livePlayer.Hand.Cards.Count > round ) {
+                                    localCards = livePlayer.Hand.Cards.ToList();
+                                    break;
+                                }
+
                                 await UniTask.Delay(50, cancellationToken: ct);
                                 waitedMs += 50;
                             }
 
-                            if ( player.Hand?.Cards == null || player.Hand.Cards.Count <= round ) {
+                            if ( localCards == null || localCards.Count <= round ) {
                                 Debug.LogError($"[Deal] Hand missing card at index {round} for local player.");
                                 Destroy(cardView.gameObject);
                                 continue;
                             }
 
-                            Card cardData = player.Hand.Cards[round];
-                            Sprite cardSprite = sprites[(cardData.Suit, cardData.Rank)];
+                            Card cardData = localCards[round];
+                            Sprite cardSprite = null;
+                            if ( sprites != null && sprites.TryGetValue((cardData.Suit, cardData.Rank), out Sprite sp) ) {
+                                cardSprite = sp;
+                            }
+                            else if ( tienLenSO != null ) {
+                                cardSprite = tienLenSO.GetCardSprite(cardData.Suit, cardData.Rank);
+                            }
 
                             CardView faceCardView = cardSpawner.SpawnCard(cardData, cardSprite);
                             faceCardView.transform.position = cardView.transform.position;
@@ -650,8 +769,7 @@ namespace Assets.Script.TienLen.Game {
             LastPassSeat = -1;
 
             if ( player.Hand.Count == 0 ) {
-                WinnerSeat = SeatOfPlayer(player);
-                Debug.Log($"[Game] Player {player.Id} wins!");
+                TriggerGameOver(SeatOfPlayer(player));
             }
         }
 
