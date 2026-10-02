@@ -28,7 +28,7 @@ namespace Assets.Script.TienLen.Game {
         [SerializeField] private TableVisualLayoutManager tableVisualLayoutManager;
 
         private const int totalSeats = 4;
-        private const int minPlayersToStart = 2;
+        [SerializeField] private int minPlayersToStart = 2;
 
         [Networked, OnChangedRender(nameof(OnIsGameStartedChanged))] public NetworkBool IsGameStarted { get; set; }
 
@@ -46,7 +46,7 @@ namespace Assets.Script.TienLen.Game {
         [Networked] public int CurrentTableCardCount { get; set; }
 
         [Header("Turn Configuration")]
-        [SerializeField] private float turnDuration = 15f;
+        [SerializeField] private float turnDuration = 10f;
         public float TurnDuration => turnDuration;
 
         [Networked] public TickTimer TurnTimer { get; set; }
@@ -429,7 +429,7 @@ namespace Assets.Script.TienLen.Game {
                 turnManager.SetStartingPlayer(FindStartingSeatOrderIndex(ordered));
             }
 
-            MirrorTurnSeat();
+            MirrorTurnSeat(isDealingStart: true);
         }
 
         private void OnIsGameStartedChanged() {
@@ -448,7 +448,7 @@ namespace Assets.Script.TienLen.Game {
 
             turnManager.Initialize(ordered);
             turnManager.SetStartingPlayer(FindStartingSeatOrderIndex(ordered));
-            MirrorTurnSeat();
+            MirrorTurnSeat(isDealingStart: true);
         }
 
         private int FindStartingSeatOrderIndex( List<TienLenPlayer> ordered ) {
@@ -472,12 +472,13 @@ namespace Assets.Script.TienLen.Game {
             return -1;
         }
 
-        private void MirrorTurnSeat() {
+        private void MirrorTurnSeat( bool isDealingStart = false ) {
             int seat = SeatOfPlayer(turnManager.CurrentPlayer);
             if ( seat != -1 ) {
                 CurrentTurnSeat = seat;
                 if ( Object.HasStateAuthority ) {
-                    TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration);
+                    float duration = isDealingStart ? (turnDuration + 3.5f) : turnDuration;
+                    TurnTimer = TickTimer.CreateFromSeconds(Runner, duration);
                 }
             }
         }
@@ -692,6 +693,10 @@ namespace Assets.Script.TienLen.Game {
                 if ( localHand != null ) {
                     localHand.SortCards();
                     localHand.ArrangeCards(animate: true);
+                }
+
+                if ( uiManager != null ) {
+                    uiManager.Refresh(LobbyChangeReason.TurnChanged);
                 }
             }
             finally {

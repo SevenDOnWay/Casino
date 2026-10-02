@@ -302,6 +302,9 @@ namespace Assets.Script.TienLen.UI {
             int seat = tienLenGameController.WinnerSeat;
             if ( seat == -1 ) {
                 winEffectController?.StopWinEffect();
+                sessionDisplayUI?.RenderAnnouncement(string.Empty);
+                RenderStartButton();
+                RenderGamePhase();
                 return;
             }
 
