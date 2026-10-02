@@ -1,5 +1,6 @@
 ﻿using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
+using Assets.Script.TienLen.Effects;
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
@@ -38,11 +39,14 @@ namespace Assets.Script.TienLen.LifeTimeScope {
 
             builder.Register<TurnManager>(Lifetime.Singleton);
 
-            // UI
+            // UI & Effects
             builder.RegisterComponentInHierarchy<UiManager>();
             builder.RegisterComponentInHierarchy<StartGameUI>();
             builder.RegisterComponentInHierarchy<CardSpawner>();
             builder.RegisterComponentInHierarchy<ActionPanel>();
+            builder.RegisterComponentOnNewGameObject<PlayerWinEffectController>(Lifetime.Singleton, "PlayerWinEffectController")
+                   .As<IPlayerWinEffect>()
+                   .AsSelf();
         }
     }
 }

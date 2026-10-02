@@ -1,4 +1,5 @@
 ﻿using Assets.Script.NetWorkScript;
+using Assets.Script.TienLen.Effects;
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Fusion;
@@ -33,6 +34,7 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private StartGameUI startGameUI;
         [SerializeField] private ActionPanel actionPanel;
         [SerializeField] private TableVisualLayoutManager tableVisualLayoutManager;
+        [SerializeField] private PlayerWinEffectController winEffectController;
 
         private ISeatQueryService seatQueryService;
         private ILocalPlayerService localPlayerService;
@@ -48,16 +50,32 @@ namespace Assets.Script.TienLen.UI {
             ISeatQueryService seatQueryService,
             ILocalPlayerService localPlayerService,
             TienLenGameController tienLenGameController,
-            TableVisualLayoutManager tableVisualLayoutManager ) {
+            TableVisualLayoutManager tableVisualLayoutManager,
+            PlayerWinEffectController winEffectController = null ) {
             this.seatQueryService = seatQueryService;
             this.localPlayerService = localPlayerService;
             if ( this.tienLenGameController == null ) this.tienLenGameController = tienLenGameController;
             if ( this.tableVisualLayoutManager == null ) this.tableVisualLayoutManager = tableVisualLayoutManager;
+            if ( this.winEffectController == null && winEffectController != null ) this.winEffectController = winEffectController;
         }
 
         private ISeatQueryService SeatQuery => seatQueryService ?? seatManager;
 
+        private void Awake() {
+            EnsureWinEffectController();
+        }
+
+        private void EnsureWinEffectController() {
+            if ( winEffectController == null ) {
+                winEffectController = GetComponentInChildren<PlayerWinEffectController>(true) ?? FindAnyObjectByType<PlayerWinEffectController>();
+                if ( winEffectController == null ) {
+                    winEffectController = gameObject.AddComponent<PlayerWinEffectController>();
+                }
+            }
+        }
+
         public override void Spawned() {
+            EnsureWinEffectController();
             if ( startGameUI != null && startGameUI.StartButton != null ) {
                 startGameUI.StartButton.onClick.AddListener(HandleStartClicked);
             }
@@ -222,16 +240,24 @@ namespace Assets.Script.TienLen.UI {
             if ( actionPanel == null || !IsGameLogicReady() ) return;
 
             if ( tienLenGameController.IsGameStarted ) {
+                if ( tienLenGameController.WinnerSeat == -1 ) {
+                    winEffectController?.StopWinEffect();
+                }
                 actionPanel.EnterGame();
                 RenderTurn();
             }
             else {
+                winEffectController?.StopWinEffect();
                 actionPanel.ReturnToLobby();
             }
         }
 
         private void RenderTurn() {
             if ( actionPanel == null || !IsGameLogicReady() ) return;
+            if ( tienLenGameController.WinnerSeat == -1 ) {
+                winEffectController?.StopWinEffect();
+                sessionDisplayUI?.RenderAnnouncement(string.Empty);
+            }
             actionPanel.RenderTurnState(IsLocalTurn());
         }
 
@@ -274,12 +300,25 @@ namespace Assets.Script.TienLen.UI {
         private void RenderGameOver() {
             if ( !IsGameLogicReady() ) return;
             int seat = tienLenGameController.WinnerSeat;
-            if ( seat == -1 ) return;
+            if ( seat == -1 ) {
+                winEffectController?.StopWinEffect();
+                sessionDisplayUI?.RenderAnnouncement(string.Empty);
+                RenderStartButton();
+                RenderGamePhase();
+                return;
+            }
 
             string name = SeatDisplayName(seat);
-            sessionDisplayUI?.RenderAnnouncement($"{name} wins!");
+            sessionDisplayUI?.RenderAnnouncement($"{name} wins! Next round starting soon...");
             actionPanel?.RenderTurnState(false);
-            actionPanel?.ReturnToLobby();
+
+            Vector3 winPos = Vector3.zero;
+            var winnerSlot = tableVisualLayoutManager?.GetSeatByNetworkIndex(seat);
+            if ( winnerSlot != null ) {
+                winPos = winnerSlot.transform.position;
+            }
+            winEffectController?.PlayWinEffect(seat, winPos);
+
             UpdateTurnTimers();
         }
 
