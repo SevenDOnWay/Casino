@@ -13,6 +13,7 @@ namespace Assets.Script.TienLen.Player {
         public string PlayerName { get; }
         public int AvatarId { get; set; } = 0;
         public int Level { get; set; } = 1;
+        public long Money { get; set; } = 10000;
         public PlayerHand Hand { get; }
         public bool IsHuman { get; }
 
@@ -27,12 +28,14 @@ namespace Assets.Script.TienLen.Player {
             string playerName,
             bool isHuman = true,
             int avatarId = 0,
-            int level = 1 ) {
+            int level = 1,
+            long money = 10000 ) {
             Id = id;
             PlayerName = playerName;
             IsHuman = isHuman;
             AvatarId = avatarId;
             Level = level;
+            Money = money;
             Hand = new PlayerHand();
         }
 
@@ -41,6 +44,7 @@ namespace Assets.Script.TienLen.Player {
             PlayerName = (string)tienLenNetWorkPlayer.PlayerName;
             AvatarId = tienLenNetWorkPlayer.AvatarId;
             Level = tienLenNetWorkPlayer.Level > 0 ? tienLenNetWorkPlayer.Level : 1;
+            Money = tienLenNetWorkPlayer.Money > 0 ? tienLenNetWorkPlayer.Money : 10000;
             IsHuman = true;
             Hand = new PlayerHand();
         }

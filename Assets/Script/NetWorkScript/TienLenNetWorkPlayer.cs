@@ -15,6 +15,7 @@ namespace Assets.Script.NetWorkScript {
         [Networked] public NetworkString<_16> PlayerName { get; set; }
         [Networked] public int AvatarId { get; set; }
         [Networked] public int Level { get; set; }
+        [Networked] public long Money { get; set; }
 
         [Inject]
         public void Construct( ILocalPlayerService localPlayerService, TienLenGameController controller ) {
@@ -36,25 +37,28 @@ namespace Assets.Script.NetWorkScript {
                 string name = localPlayerService.GetName() ?? "Player";
                 int avatar = localPlayerService.GetAvatarId();
                 int lvl = localPlayerService.GetLevel();
+                long money = localPlayerService.GetMoney();
 
                 if ( Object.HasStateAuthority ) {
                     PlayerName = name;
                     AvatarId = avatar;
                     Level = lvl;
+                    Money = money;
                 }
                 else {
-                    RPCSetPlayerData(name, avatar, lvl);
+                    RPCSetPlayerData(name, avatar, lvl, money);
                 }
 
-                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' ({PlayerRef.PlayerId}) Avatar={AvatarId} Level={Level}.");
+                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' ({PlayerRef.PlayerId}) Avatar={AvatarId} Level={Level} Money={Money}.");
             }
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-        public void RPCSetPlayerData( string name, int avatarId, int level ) {
+        public void RPCSetPlayerData( string name, int avatarId, int level, long money ) {
             PlayerName = name;
             AvatarId = avatarId;
             Level = level;
+            Money = money;
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
