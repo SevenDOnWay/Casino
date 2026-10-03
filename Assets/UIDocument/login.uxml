@@ -1,0 +1,57 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:custom="Assets.Script.UI.Components" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UIDocument/login.uss?fileID=7433441132597879392&amp;guid=e81a4b92c47144e0b021d7b321a0a004&amp;type=3#login"/>
+    <Style src="project://database/Assets/UIDocument/Components/SocialButton.uss?fileID=7433441132597879392&amp;guid=e81a4b92c47144e0b021d7b321a0a003&amp;type=3#SocialButton"/>
+    <ui:VisualElement name="login-screen" class="login-screen theme-dark" style="flex-shrink: 0;">
+        <ui:VisualElement name="login-header" class="login-header"/>
+        <ui:VisualElement name="auth-card-wrapper" class="auth-card-wrapper" style="flex-shrink: 0;">
+            <ui:VisualElement name="auth-card" class="auth-card" style="height: 75%;">
+                <ui:VisualElement name="auth-card-header" class="auth-card__header" style="margin-bottom: 10px; align-items: stretch; justify-content: space-between; align-self: stretch; align-content: flex-start; margin-top: 10px;">
+                    <ui:Label text="Welcome" name="" class="auth-card__title" style="font-size: 25px; -unity-font-style: bold; justify-content: space-between; align-self: auto; align-items: auto; align-content: auto; flex-shrink: 1; flex-grow: 1;"/>
+                </ui:VisualElement>
+                <ui:VisualElement name="social-buttons-row" class="social-buttons-row">
+                    <custom:SocialLoginButton name="google-login-btn" provider="Google" provider-label="Google"/>
+                    <custom:SocialLoginButton name="facebook-login-btn" provider="Facebook" provider-label="Facebook"/>
+                </ui:VisualElement>
+                <ui:VisualElement name="divider-container" class="divider-container" style="height: -7px;">
+                    <ui:VisualElement class="divider-line" style="height: 0;"/>
+                    <ui:Label text="OR CONTINUE WITH" class="divider-badge"/>
+                </ui:VisualElement>
+                <ui:VisualElement name="alert-box" class="alert-box alert-box--error hidden">
+                    <ui:Label name="alert-text" text="Alert message goes here." class="alert-text"/>
+                </ui:VisualElement>
+                <ui:VisualElement name="login-form" class="login-form" style="flex-shrink: 0;">
+                    <ui:VisualElement name="email-group" class="form-group">
+                        <ui:Label text="Email address" class="form-label"/>
+                        <ui:TextField name="email-input" placeholder-text="name@example.com" class="form-input"/>
+                        <ui:Label name="email-error" text="Please enter a valid email address." class="field-error-label hidden"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="password-group" class="form-group">
+                        <ui:VisualElement class="password-header-row">
+                            <ui:Label text="Password" class="form-label" style="margin-bottom: 0;"/>
+                            <ui:Button name="forgot-password-btn" text="Forgot password?" class="forgot-password-btn"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="password-input-container">
+                            <ui:TextField name="password-input" password="true" placeholder-text="password" class="form-input password-input"/>
+                            <ui:Button name="toggle-password-btn" tooltip="Show / Hide Password" class="toggle-password-btn">
+                                <ui:Label name="toggle-password-icon" text="👁" class="eye-icon"/>
+                            </ui:Button>
+                        </ui:VisualElement>
+                        <ui:Label name="password-error" text="Password must be at least 6 characters." class="field-error-label hidden"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="remember-row" class="remember-row">
+                        <ui:Toggle name="remember-toggle" class="remember-toggle"/>
+                        <ui:Label text="Remember me" class="remember-toggle-label"/>
+                    </ui:VisualElement>
+                    <ui:Button name="submit-btn" class="submit-btn">
+                        <ui:Label name="submit-spinner" text="↻" class="submit-btn-spinner hidden"/>
+                        <ui:Label name="submit-btn-text" text="Sign in" class="submit-btn-text"/>
+                    </ui:Button>
+                </ui:VisualElement>
+                <ui:VisualElement name="signup-prompt-row" class="signup-prompt-row" style="flex-shrink: 0;">
+                    <ui:Label text="Don&apos;t have an account?" class="signup-prompt-text"/>
+                    <ui:Button name="sign-up-btn" text="Create an account" class="signup-btn"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,4 +1,6 @@
-﻿using Assets.Script.NetWorkScript;
+﻿using Assets.Script.Data.Models;
+using Assets.Script.Data.Services;
+using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
@@ -24,6 +26,7 @@ namespace Assets.Script.TienLen.Game {
         private TurnManager turnManager;
         private ISeatQueryService seatQueryService;
         private TienLenRuleValidator validator;
+        private IPlayerProfileService profileService;
         [SerializeField] private UiManager uiManager;
         [SerializeField] private TableVisualLayoutManager tableVisualLayoutManager;
 
@@ -93,13 +96,15 @@ namespace Assets.Script.TienLen.Game {
             CardCombinationEvaluator cardCombinationEvaluator,
             ISeatQueryService seatQueryService,
             TienLenRuleValidator validator,
-            TableVisualLayoutManager tableVisualLayoutManager ) {
+            TableVisualLayoutManager tableVisualLayoutManager,
+            IPlayerProfileService profileService = null ) {
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
             this.turnManager = turnManager;
             this.cardCombinationEvaluator = cardCombinationEvaluator;
             this.seatQueryService = seatQueryService;
             this.validator = validator;
+            this.profileService = profileService;
             if ( this.tableVisualLayoutManager == null ) this.tableVisualLayoutManager = tableVisualLayoutManager;
         }
 
@@ -356,9 +361,37 @@ namespace Assets.Script.TienLen.Game {
             WinnerSeat = winnerSeat;
             Debug.Log($"[Game] Player at seat {winnerSeat} wins!");
 
+            ReportMatchOutcome(winnerSeat);
+
             if ( Object.HasStateAuthority ) {
                 WaitAndStartNextGame(winnerSeat).Forget();
             }
+        }
+
+        private void ReportMatchOutcome( int winnerSeat ) {
+            if ( profileService == null ) return;
+
+            string myId = localPlayerService?.GetID();
+            if ( string.IsNullOrEmpty(myId) ) return;
+
+            int mySeat = localPlayerService?.Player != null ? SeatOfPlayer(localPlayerService.Player) : -1;
+            bool isWinner = (mySeat == winnerSeat);
+
+            var report = new MatchResultReportRequest {
+                matchId = Guid.NewGuid().ToString("N"),
+                results = new List<MatchPlayerSummary> {
+                    new MatchPlayerSummary {
+                        userId = myId,
+                        displayName = localPlayerService.GetName(),
+                        avatarId = localPlayerService.GetAvatarId(),
+                        rank = isWinner ? 1 : 2,
+                        moneyEarned = isWinner ? 1000 : -300,
+                        expEarned = isWinner ? 50 : 15
+                    }
+                }
+            };
+
+            profileService.RecordMatchResultAsync(report).Forget();
         }
 
         private async UniTaskVoid WaitAndStartNextGame( int previousWinnerSeat ) {

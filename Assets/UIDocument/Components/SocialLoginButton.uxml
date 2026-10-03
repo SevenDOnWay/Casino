@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:Button name="social-btn" class="social-btn">
+        <ui:VisualElement name="social-btn__icon-container" class="social-btn__icon-container">
+            <ui:Label name="social-btn__icon-badge" class="social-btn__icon-badge" text="★" />
+        </ui:VisualElement>
+        <ui:Label name="social-btn__label" class="social-btn__label" text="Provider" />
+    </ui:Button>
+</ui:UXML>

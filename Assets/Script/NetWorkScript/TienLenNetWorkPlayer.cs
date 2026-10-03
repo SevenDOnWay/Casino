@@ -13,6 +13,8 @@ namespace Assets.Script.NetWorkScript {
 
         [Networked] public PlayerRef PlayerRef { get; set; }
         [Networked] public NetworkString<_16> PlayerName { get; set; }
+        [Networked] public int AvatarId { get; set; }
+        [Networked] public int Level { get; set; }
 
         [Inject]
         public void Construct( ILocalPlayerService localPlayerService, TienLenGameController controller ) {
@@ -30,8 +32,29 @@ namespace Assets.Script.NetWorkScript {
 
             if ( Object.HasInputAuthority && localPlayerService != null ) {
                 localPlayerService.SetLocalNetworkPlayer(this);
-                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' ({PlayerRef.PlayerId}).");
+
+                string name = localPlayerService.GetName() ?? "Player";
+                int avatar = localPlayerService.GetAvatarId();
+                int lvl = localPlayerService.GetLevel();
+
+                if ( Object.HasStateAuthority ) {
+                    PlayerName = name;
+                    AvatarId = avatar;
+                    Level = lvl;
+                }
+                else {
+                    RPCSetPlayerData(name, avatar, lvl);
+                }
+
+                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' ({PlayerRef.PlayerId}) Avatar={AvatarId} Level={Level}.");
             }
+        }
+
+        [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+        public void RPCSetPlayerData( string name, int avatarId, int level ) {
+            PlayerName = name;
+            AvatarId = avatarId;
+            Level = level;
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]

@@ -11,6 +11,8 @@ namespace Assets.Script.TienLen.Player {
     public class TienLenPlayer {
         public int Id { get; }
         public string PlayerName { get; }
+        public int AvatarId { get; set; } = 0;
+        public int Level { get; set; } = 1;
         public PlayerHand Hand { get; }
         public bool IsHuman { get; }
 
@@ -23,16 +25,22 @@ namespace Assets.Script.TienLen.Player {
         public TienLenPlayer(
             int id,
             string playerName,
-            bool isHuman = true ) {
+            bool isHuman = true,
+            int avatarId = 0,
+            int level = 1 ) {
             Id = id;
             PlayerName = playerName;
             IsHuman = isHuman;
+            AvatarId = avatarId;
+            Level = level;
             Hand = new PlayerHand();
         }
 
         public TienLenPlayer( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
             Id = tienLenNetWorkPlayer.PlayerRef.PlayerId;
             PlayerName = (string)tienLenNetWorkPlayer.PlayerName;
+            AvatarId = tienLenNetWorkPlayer.AvatarId;
+            Level = tienLenNetWorkPlayer.Level > 0 ? tienLenNetWorkPlayer.Level : 1;
             IsHuman = true;
             Hand = new PlayerHand();
         }

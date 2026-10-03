@@ -1,0 +1,6 @@
+@TienLen.Server_HostAddress = http://localhost:5265
+
+GET {{TienLen.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

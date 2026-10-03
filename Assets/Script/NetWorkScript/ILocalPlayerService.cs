@@ -1,8 +1,7 @@
-﻿using Assets.Script.TienLen.Player;
+﻿using Assets.Script.Data.Models;
+using Assets.Script.TienLen.Player;
 using Fusion;
 using System;
-using System.Collections;
-using UnityEngine;
 
 namespace Assets.Script.NetWorkScript {
     public interface ILocalPlayerService {
@@ -10,15 +9,19 @@ namespace Assets.Script.NetWorkScript {
         /// Raised whenever the local logic player is (re)bound, so UI that
         /// depends on the local hand can hook in without polling.
         /// </summary>
-        public event Action<TienLenPlayer> OnLocalPlayerSet;
+        event Action<TienLenPlayer> OnLocalPlayerSet;
+        event Action<PlayerProfileData> OnProfileUpdated;
 
-        public TienLenNetWorkPlayer GetLocalNetworkPlayer();
-        public TienLenPlayer GetLocalLogicPlayer();
-        public void SetLocalNetworkPlayer( TienLenNetWorkPlayer networkPlayer );
-        public void SetLocalLogicPlayer( TienLenPlayer player );
-        public string GetID();
-        public string GetName();
-
-
+        PlayerProfileData Profile { get; }
+        TienLenNetWorkPlayer GetLocalNetworkPlayer();
+        TienLenPlayer GetLocalLogicPlayer();
+        void SetLocalNetworkPlayer( TienLenNetWorkPlayer networkPlayer );
+        void SetLocalLogicPlayer( TienLenPlayer player );
+        void SetProfile( PlayerProfileData profile );
+        string GetID();
+        string GetName();
+        int GetAvatarId();
+        long GetMoney();
+        int GetLevel();
     }
 }

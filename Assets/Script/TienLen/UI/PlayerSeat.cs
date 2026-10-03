@@ -1,4 +1,5 @@
-﻿using Assets.Script.TienLen.Player;
+﻿using Assets.Script.Data.SO;
+using Assets.Script.TienLen.Player;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -15,6 +16,7 @@ namespace Assets.Script.TienLen.UI {
 
         [Header("Avatar")]
         [SerializeField] private SpriteRenderer spriteRenderer;
+        [SerializeField] private AvatarDatabaseSO avatarDatabase;
 
         [Header("Timer / Turn Indicator")]
         [SerializeField] private ClockWipe timerClockWipe;
@@ -59,6 +61,13 @@ namespace Assets.Script.TienLen.UI {
 
             tienLenPlayer = player;
             BoundSeatIndex = networkSeatIndex;
+
+            if ( avatarDatabase != null && spriteRenderer != null ) {
+                var avatarSprite = avatarDatabase.GetAvatarSprite(player.AvatarId);
+                if ( avatarSprite != null ) {
+                    spriteRenderer.sprite = avatarSprite;
+                }
+            }
 
             ChangeAvatar(true);
             StopTurnTimer();
@@ -110,15 +119,9 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void StopTurnTimer() {
-            EnsureClockWipe();
             if ( timerClockWipe != null ) {
-                if ( spriteRenderer != null && timerClockWipe.gameObject == spriteRenderer.gameObject ) {
-                    timerClockWipe.ResetToDefault();
-                }
-                else {
-                    timerClockWipe.SetProgress(0f);
-                    timerClockWipe.gameObject.SetActive(false);
-                }
+                //timerClockWipe.ResetProgress();
+                timerClockWipe.gameObject.SetActive(false);
             }
         }
     }

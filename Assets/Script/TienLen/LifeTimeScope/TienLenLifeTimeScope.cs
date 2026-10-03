@@ -1,4 +1,7 @@
-﻿using Assets.Script.NetWorkScript;
+﻿using Assets.Script.Data.Models;
+using Assets.Script.Data.Repositories;
+using Assets.Script.Data.Services;
+using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Effects;
 using Assets.Script.TienLen.Game;
@@ -12,8 +15,26 @@ using VContainer.Unity;
 namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope {
         [SerializeField] private TienLenNetWorkPlayer prefab;
+        [SerializeField] private bool useMockRepository = false;
+        [SerializeField] private string apiBaseUrl = "http://localhost:5000/api";
 
         protected override void Configure( IContainerBuilder builder ) {
+            // Data Layer
+            if ( useMockRepository ) {
+                builder.Register<MockPlayerRepository>(Lifetime.Singleton)
+                       .As<IPlayerRepository>()
+                       .As<IDataRepository<PlayerProfileData>>();
+            }
+            else {
+                builder.Register<RestPlayerRepository>(Lifetime.Singleton)
+                       .WithParameter("baseUrl", apiBaseUrl)
+                       .As<IPlayerRepository>()
+                       .As<IDataRepository<PlayerProfileData>>();
+            }
+
+            builder.Register<AuthService>(Lifetime.Singleton).As<IAuthService>();
+            builder.Register<PlayerProfileService>(Lifetime.Singleton).As<IPlayerProfileService>();
+
             builder.Register<LocalPlayerService>(Lifetime.Singleton)
                    .As<ILocalPlayerService>()
                    .AsSelf();
