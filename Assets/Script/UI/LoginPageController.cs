@@ -206,19 +206,19 @@ namespace Assets.Script.UI {
         }
 
         private void BindSocialButtons() {
-            var googleBtn = root.Q<SocialLoginButton>("google-login-btn");
-            if ( googleBtn != null ) {
-                googleBtn.OnSocialButtonClicked += (provider, name) => HandleSocialLogin(provider, name);
-            } else {
-                SocialLoginButton.BindTemplateInstance(root, "google-login-btn", SocialAuthProvider.Google, HandleSocialLogin);
-            }
+            SocialLoginButton.BindTemplateInstance(
+                root,
+                "google-login-btn",
+                SocialAuthProvider.Google,
+                ( provider, name ) => HandleSocialLogin(provider, name)
+            );
 
-            var fbBtn = root.Q<SocialLoginButton>("facebook-login-btn");
-            if ( fbBtn != null ) {
-                fbBtn.OnSocialButtonClicked += (provider, name) => HandleSocialLogin(provider, name);
-            } else {
-                SocialLoginButton.BindTemplateInstance(root, "facebook-login-btn", SocialAuthProvider.Facebook, HandleSocialLogin);
-            }
+            SocialLoginButton.BindTemplateInstance(
+                root,
+                "facebook-login-btn",
+                SocialAuthProvider.Facebook,
+                ( provider, name ) => HandleSocialLogin(provider, name)
+            );
         }
 
         public void ToggleAuthMode() {
@@ -297,18 +297,22 @@ namespace Assets.Script.UI {
                 SetSubmittingState(false);
 
                 if ( response != null && response.isSuccess ) {
-                    ShowAlert("Successfully signed in! Welcome back.", AlertType.Success, 1.5f);
+                    string name = response.profile?.displayName ?? "Player";
+                    ShowAlert($"Signed in successfully! Welcome back, {name}.", AlertType.Success, 2f);
                     await UniTask.Delay(TimeSpan.FromSeconds(0.8f));
                     NavigateToNextScene();
                 }
                 else {
-                    string error = response?.errorMessage ?? "Login failed. Please check your credentials.";
-                    ShowAlert(error, AlertType.Error);
+                    string error = response?.errorMessage;
+                    if ( string.IsNullOrEmpty(error) ) {
+                        error = "Unable to connect to server. Ensure backend is running at " + defaultApiUrl;
+                    }
+                    ShowAlert(error, AlertType.Error, 5f);
                 }
             }
             catch ( Exception ex ) {
                 SetSubmittingState(false);
-                ShowAlert($"Error: {ex.Message}", AlertType.Error);
+                ShowAlert($"Connection error: {ex.Message}", AlertType.Error, 5f);
             }
         }
 
@@ -323,18 +327,22 @@ namespace Assets.Script.UI {
                 SetSubmittingState(false);
 
                 if ( response != null && response.isSuccess ) {
-                    ShowAlert("Account created successfully! Welcome.", AlertType.Success, 1.5f);
+                    string name = response.profile?.displayName ?? "Player";
+                    ShowAlert($"Account created successfully! Welcome, {name}.", AlertType.Success, 2f);
                     await UniTask.Delay(TimeSpan.FromSeconds(0.8f));
                     NavigateToNextScene();
                 }
                 else {
-                    string error = response?.errorMessage ?? "Registration failed. Email may already be in use.";
-                    ShowAlert(error, AlertType.Error);
+                    string error = response?.errorMessage;
+                    if ( string.IsNullOrEmpty(error) ) {
+                        error = "Unable to connect to server. Ensure backend is running at " + defaultApiUrl;
+                    }
+                    ShowAlert(error, AlertType.Error, 5f);
                 }
             }
             catch ( Exception ex ) {
                 SetSubmittingState(false);
-                ShowAlert($"Error: {ex.Message}", AlertType.Error);
+                ShowAlert($"Connection error: {ex.Message}", AlertType.Error, 5f);
             }
         }
 

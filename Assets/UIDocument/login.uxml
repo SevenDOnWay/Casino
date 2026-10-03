@@ -2,13 +2,12 @@
     <Style src="project://database/Assets/UIDocument/login.uss?fileID=7433441132597879392&amp;guid=e81a4b92c47144e0b021d7b321a0a004&amp;type=3#login"/>
     <Style src="project://database/Assets/UIDocument/Components/SocialButton.uss?fileID=7433441132597879392&amp;guid=e81a4b92c47144e0b021d7b321a0a003&amp;type=3#SocialButton"/>
     <ui:VisualElement name="login-screen" class="login-screen theme-dark" style="flex-shrink: 0;">
-        <ui:VisualElement name="login-header" class="login-header"/>
         <ui:VisualElement name="auth-card-wrapper" class="auth-card-wrapper" style="flex-shrink: 0;">
             <ui:VisualElement name="auth-card" class="auth-card" style="height: 75%;">
                 <ui:VisualElement name="auth-card-header" class="auth-card__header" style="margin-bottom: 10px; align-items: stretch; justify-content: space-between; align-self: stretch; align-content: flex-start; margin-top: 10px;">
                     <ui:Label text="Welcome" name="" class="auth-card__title" style="font-size: 25px; -unity-font-style: bold; justify-content: space-between; align-self: auto; align-items: auto; align-content: auto; flex-shrink: 1; flex-grow: 1;"/>
                 </ui:VisualElement>
-                <ui:VisualElement name="social-buttons-row" class="social-buttons-row">
+                <ui:VisualElement name="social-buttons-row" class="social-buttons-row" style="margin-top: 10px;">
                     <custom:SocialLoginButton name="google-login-btn" provider="Google" provider-label="Google"/>
                     <custom:SocialLoginButton name="facebook-login-btn" provider="Facebook" provider-label="Facebook"/>
                 </ui:VisualElement>
@@ -22,7 +21,7 @@
                 <ui:VisualElement name="login-form" class="login-form" style="flex-shrink: 0;">
                     <ui:VisualElement name="email-group" class="form-group">
                         <ui:Label text="Email address" class="form-label"/>
-                        <ui:TextField name="email-input" placeholder-text="name@example.com" class="form-input"/>
+                        <ui:TextField name="email-input" placeholder-text="name@example.com" class="form-input" style="font-size: 15px;"/>
                         <ui:Label name="email-error" text="Please enter a valid email address." class="field-error-label hidden"/>
                     </ui:VisualElement>
                     <ui:VisualElement name="password-group" class="form-group">
@@ -31,7 +30,7 @@
                             <ui:Button name="forgot-password-btn" text="Forgot password?" class="forgot-password-btn"/>
                         </ui:VisualElement>
                         <ui:VisualElement class="password-input-container">
-                            <ui:TextField name="password-input" password="true" placeholder-text="password" class="form-input password-input"/>
+                            <ui:TextField name="password-input" password="true" placeholder-text="password" class="form-input password-input" style="font-size: 15px;"/>
                             <ui:Button name="toggle-password-btn" tooltip="Show / Hide Password" class="toggle-password-btn">
                                 <ui:Label name="toggle-password-icon" text="👁" class="eye-icon"/>
                             </ui:Button>
