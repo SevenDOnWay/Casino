@@ -21,6 +21,16 @@ namespace Assets.Script.NetWorkScript {
             runner.AddCallbacks(this);
         }
 
+        public void HostRoom( string roomName, int playerCount = 4 ) {
+            string target = string.IsNullOrEmpty(roomName) ? testRoomName : roomName;
+            _ = StartSimulation(runner, GameMode.Host, target, playerCount);
+        }
+
+        public void JoinRoom( string roomName ) {
+            string target = string.IsNullOrEmpty(roomName) ? testRoomName : roomName;
+            _ = StartSimulation(runner, GameMode.Client, target);
+        }
+
         public async void HostRoomButton() {
             await StartSimulation(runner, GameMode.Host, testRoomName, 4);
         }

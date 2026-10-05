@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Assets.Script.Data.Models;
 using Assets.Script.Data.Repositories;
 using Assets.Script.Data.Services;
+using Assets.Script.Data.SO;
 using Assets.Script.NetWorkScript;
 using Assets.Script.UI.Components;
 using Cysharp.Threading.Tasks;
@@ -22,6 +23,7 @@ namespace Assets.Script.UI {
     public class MainMenuController : MonoBehaviour {
         [Header("Configuration")]
         [SerializeField] private MainMenuConfigSO config;
+        [SerializeField] private AvatarDatabaseSO avatarDatabase;
         [SerializeField] private bool useMockIfUninjected = true;
         [SerializeField] private string defaultApiUrl = "http://localhost:5000/api";
 
@@ -33,6 +35,9 @@ namespace Assets.Script.UI {
 
         [Inject]
         private IAuthService authService;
+
+        [Inject]
+        private ILocalPlayerService localPlayerService;
 
         // Visual Tree References
         private UIDocument uiDocument;
@@ -146,6 +151,10 @@ namespace Assets.Script.UI {
                 authService ??= new AuthService(repo);
                 profileService = new PlayerProfileService(repo, authService);
             }
+
+            if (localPlayerService == null) {
+                localPlayerService = new LocalPlayerService(profileService);
+            }
         }
 
         private void OnEnable() {
@@ -177,6 +186,7 @@ namespace Assets.Script.UI {
             if (profileService != null) {
                 try {
                     await profileService.RefreshProfileAsync();
+                    localPlayerService?.SetProfile(profileService.CachedProfile);
                     UpdateProfileDisplay(profileService.CachedProfile);
                 } catch (Exception ex) {
                     Debug.LogWarning($"[MainMenuController] Failed to refresh profile: {ex.Message}");
@@ -383,6 +393,7 @@ namespace Assets.Script.UI {
             profileService.OnMoneyChanged += HandleMoneyChanged;
             profileService.OnLevelOrExpChanged += HandleLevelOrExpChanged;
             profileService.OnDisplayNameChanged += HandleDisplayNameChanged;
+            profileService.OnAvatarChanged += HandleAvatarChanged;
         }
 
         private void UnsubscribeFromProfileChanges() {
@@ -390,6 +401,13 @@ namespace Assets.Script.UI {
             profileService.OnMoneyChanged -= HandleMoneyChanged;
             profileService.OnLevelOrExpChanged -= HandleLevelOrExpChanged;
             profileService.OnDisplayNameChanged -= HandleDisplayNameChanged;
+            profileService.OnAvatarChanged -= HandleAvatarChanged;
+        }
+
+        private void HandleAvatarChanged(int newAvatarId) {
+            if (profileService?.CachedProfile != null) {
+                UpdateProfileDisplay(profileService.CachedProfile);
+            }
         }
 
         private void UpdateProfileDisplay(PlayerProfileData profile) {
@@ -416,6 +434,16 @@ namespace Assets.Script.UI {
                 // Tokens / Gems: 1 TK per 100 CR or custom
                 long tokens = Mathf.Max(100, (int)(profile.money / 100));
                 currencyTkAmount.text = tokens.ToString("N0");
+            }
+
+            if (avatarDatabase != null && avatarImage != null) {
+                if (avatarDatabase.TryGetAvatarSprite(profile.avatarId, out Sprite sprite) && sprite != null) {
+                    avatarImage.style.backgroundImage = new StyleBackground(sprite);
+                    if (avatarPlaceholderText != null) avatarPlaceholderText.style.display = DisplayStyle.None;
+                } else {
+                    avatarImage.style.backgroundImage = StyleKeyword.Null;
+                    if (avatarPlaceholderText != null) avatarPlaceholderText.style.display = DisplayStyle.Flex;
+                }
             }
         }
 
@@ -467,7 +495,7 @@ namespace Assets.Script.UI {
             OnQuickJoinRequested?.Invoke();
 
             if (networkController != null) {
-                networkController.JoinRoomButton("QuickMatch");
+                networkController.JoinRoom("QuickMatch");
             } else {
                 LoadGameplayScene();
             }
@@ -485,7 +513,7 @@ namespace Assets.Script.UI {
             OnHostTableRequested?.Invoke(roomName, selectedPlayerCount, selectedStake, isPrivate);
 
             if (networkController != null) {
-                networkController.HostRoomButton();
+                networkController.HostRoom(roomName, selectedPlayerCount);
             } else {
                 LoadGameplayScene();
             }
@@ -507,7 +535,7 @@ namespace Assets.Script.UI {
             OnJoinTableRequested?.Invoke(roomCode);
 
             if (networkController != null) {
-                networkController.JoinRoomButton(roomCode);
+                networkController.JoinRoom(roomCode);
             } else {
                 LoadGameplayScene();
             }
@@ -546,6 +574,7 @@ namespace Assets.Script.UI {
 
         private void HandleLogout() {
             Debug.Log("[MainMenuController] Logging out user...");
+            authService?.Logout();
             OnLogoutRequested?.Invoke();
 
             string signInScene = config != null ? config.SignInSceneName : "SignInScene";
