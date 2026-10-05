@@ -64,6 +64,12 @@ namespace Assets.Script.TienLen.UI {
             }
         }
 
+        public void UpdatePlayerVisuals() {
+            if ( infoView != null && tienLenPlayer != null ) {
+                infoView.SetPlayerInfo(tienLenPlayer);
+            }
+        }
+
         /// <summary>
         /// Clears all player visuals and cards from this seat slot.
         /// </summary>
