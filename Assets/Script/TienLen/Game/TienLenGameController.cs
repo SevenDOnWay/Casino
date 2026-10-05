@@ -610,7 +610,7 @@ namespace Assets.Script.TienLen.Game {
                 var slots = tableVisualLayoutManager.GetAllVisualSlots();
                 if ( slots != null ) {
                     foreach ( var slot in slots ) {
-                        slot?.cardHolder?.Clear();
+                        slot?.CardHolder?.Clear();
                     }
                 }
             }

@@ -12,16 +12,19 @@ namespace Assets.Script.Data.SO {
 
         [SerializeField] private AvatarEntry[] avatars;
 
-        public Sprite GetAvatarSprite( int id ) {
-            if ( avatars == null || avatars.Length == 0 ) return null;
+
+        public bool TryGetAvatarSprite( int id, out Sprite sprite ) {
+            sprite = null;
+            if ( avatars == null || avatars.Length == 0 ) return false;
 
             for ( int i = 0; i < avatars.Length; i++ ) {
                 if ( avatars[i].avatarId == id ) {
-                    return avatars[i].avatarSprite;
+                    sprite = avatars[i].avatarSprite;
+                    return true;
                 }
             }
 
-            return avatars[0].avatarSprite;
+            return false;
         }
 
         public int TotalAvatars => avatars != null ? avatars.Length : 0;

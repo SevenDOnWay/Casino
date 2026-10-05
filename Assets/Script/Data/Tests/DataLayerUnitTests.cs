@@ -4,12 +4,13 @@ using Assets.Script.Data.Services;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Assets.Script.Data.Tests {
     [TestFixture]
     public class DataLayerUnitTests {
         [Test]
-        public async void MockPlayerRepository_Register_SetsDefaultsCorrectly() {
+        public async Task MockPlayerRepository_Register_SetsDefaultsCorrectly() {
             var repo = new MockPlayerRepository();
             var authService = new AuthService(repo);
 
@@ -24,7 +25,7 @@ namespace Assets.Script.Data.Tests {
         }
 
         [Test]
-        public async void MockPlayerRepository_UpdateProfile_CustomizesDisplayNameAndAvatar() {
+        public async Task MockPlayerRepository_UpdateProfile_CustomizesDisplayNameAndAvatar() {
             var repo = new MockPlayerRepository();
             var authService = new AuthService(repo);
             var profileService = new PlayerProfileService(repo, authService);
@@ -40,7 +41,7 @@ namespace Assets.Script.Data.Tests {
         }
 
         [Test]
-        public async void PlayerProfileService_RecordMatchResult_UpdatesBalanceAndHistory() {
+        public async Task PlayerProfileService_RecordMatchResult_UpdatesBalanceAndHistory() {
             var repo = new MockPlayerRepository();
             var authService = new AuthService(repo);
             var profileService = new PlayerProfileService(repo, authService);

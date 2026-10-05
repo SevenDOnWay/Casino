@@ -136,7 +136,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public CardHolder GetCardHolderForSeat( int networkSeatIndex ) {
-            return GetSeatByNetworkIndex(networkSeatIndex)?.cardHolder;
+            return GetSeatByNetworkIndex(networkSeatIndex)?.CardHolder;
         }
 
         private void EnsureVisualSlots() {
@@ -162,7 +162,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public CardHolder GetLocalCardHolder() {
-            return GetLocalSeat()?.cardHolder;
+            return GetLocalSeat()?.CardHolder;
         }
 
         public IReadOnlyList<PlayerSeat> GetAllVisualSlots() {
