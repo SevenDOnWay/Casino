@@ -15,6 +15,7 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text money;
         [SerializeField] private TMP_Text levelText;
+        [SerializeField] private GameObject infoRoot;
 
         [Header("Turn Timer Indicator")]
         [SerializeField] private ClockWipe turnTimer;
@@ -25,6 +26,7 @@ namespace Assets.Script.TienLen.UI {
         public TMP_Text MoneyText => money;
         public TMP_Text LevelText => levelText;
         public ClockWipe TurnTimer => turnTimer;
+        public GameObject InfoRoot => infoRoot;
 
         [Inject]
         public void Construct( AvatarDatabaseSO avatarDatabase ) {
@@ -37,34 +39,56 @@ namespace Assets.Script.TienLen.UI {
             TMP_Text money = null,
             TMP_Text levelText = null,
             ClockWipe turnTimer = null,
-            GameObject infoRoot = null ) {
+            GameObject infoRoot = null,
+            AvatarDatabaseSO avatarDatabase = null
+        ) {
             this.avatar = avatar;
             this.nameText = nameText;
             this.money = money;
             this.levelText = levelText;
             this.turnTimer = turnTimer;
+            this.infoRoot = infoRoot;
+            this.avatarDatabase = avatarDatabase;
+        }
+
+        public void InitializeForTest(
+            SpriteRenderer avatar = null,
+            TMP_Text nameText = null,
+            TMP_Text money = null,
+            TMP_Text levelText = null,
+            ClockWipe turnTimer = null,
+            GameObject infoRoot = null,
+            AvatarDatabaseSO avatarDatabase = null
+        ) {
+            Initialize(avatar, nameText, money, levelText, turnTimer, infoRoot, avatarDatabase);
         }
 
         public void SetPlayerInfo( TienLenPlayer player ) {
             if ( player == null ) return;
 
-            if ( nameText != null ) nameText.text = player.PlayerName;
-            if ( levelText != null ) levelText.text = $"Lv.{player.Level}";
-
-            if ( avatarDatabase != null ) {
-                avatarDatabase.TryGetAvatarSprite(player.AvatarId, out Sprite avatarSprite);
+            if ( avatarDatabase != null && avatarDatabase.TryGetAvatarSprite(player.AvatarId, out Sprite avatarSprite) ) {
                 if ( avatar != null ) avatar.sprite = avatarSprite;
             }
 
-            if ( money != null ) money.text = FormatMoney(player.Money);
+            if ( nameText != null ) {
+                nameText.text = !string.IsNullOrEmpty(player.PlayerName) ? player.PlayerName : "Player";
+            }
+
+            if ( money != null ) {
+                money.text = FormatMoney(player.Money);
+            }
+
+            if ( levelText != null ) {
+                levelText.text = $"Lv.{player.Level}";
+            }
 
             SetVisible(true);
             StopTurnTimer();
         }
 
         public void Clear() {
-            if ( nameText != null ) nameText.text = string.Empty;
             if ( avatar != null ) avatar.sprite = null;
+            if ( nameText != null ) nameText.text = string.Empty;
             if ( money != null ) money.text = string.Empty;
             if ( levelText != null ) levelText.text = string.Empty;
 
@@ -83,10 +107,15 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void SetVisible( bool visible ) {
+            if ( infoRoot != null ) {
+                infoRoot.SetActive(visible);
+                return;
+            }
+
             gameObject.SetActive(visible);
 
-            if ( nameText != null ) nameText.gameObject.SetActive(visible);
             if ( avatar != null ) avatar.gameObject.SetActive(visible);
+            if ( nameText != null ) nameText.gameObject.SetActive(visible);
             if ( money != null ) money.gameObject.SetActive(visible);
             if ( levelText != null ) levelText.gameObject.SetActive(visible);
         }
