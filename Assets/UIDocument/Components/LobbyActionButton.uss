@@ -1,0 +1,234 @@
+/* ============================================================================
+   Lobby Action Button Component Stylesheet
+   Matches Minimal Arena Design System
+   ============================================================================ */
+
+.lobby-menu-btn {
+    width: 100%;
+    min-height: 64px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    border-width: 1px;
+    cursor: link;
+    transition-property: background-color, border-color, translate, scale;
+    transition-duration: 0.15s;
+}
+
+.lobby-menu-btn:hover {
+    translate: 0 -2px;
+}
+
+.lobby-menu-btn:active,
+.lobby-menu-btn--active {
+    translate: 0 1px;
+    scale: 0.99 0.99;
+}
+
+/* Left Group */
+.lobby-btn-left {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 1;
+    flex-grow: 1;
+    margin-right: 8px;
+}
+
+.lobby-btn-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 14px;
+    flex-shrink: 0;
+}
+
+.lobby-btn-icon {
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin: 0;
+    padding: 0;
+}
+
+.lobby-btn-text-group {
+    flex-direction: column;
+    justify-content: center;
+    flex-shrink: 1;
+}
+
+.lobby-btn-title {
+    font-size: 15px;
+    -unity-font-style: bold;
+    letter-spacing: -0.2px;
+    margin: 0;
+    padding: 0;
+    margin-bottom: 2px;
+}
+
+.lobby-btn-subtitle {
+    font-size: 11px;
+    -unity-font-style: normal;
+    margin: 0;
+    padding: 0;
+}
+
+/* Right Group */
+.lobby-btn-right {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.lobby-btn-badge {
+    font-size: 10px;
+    -unity-font-style: bold;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-right: 8px;
+    -unity-text-align: middle-center;
+}
+
+.lobby-btn-chevron {
+    font-size: 14px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    transition-property: translate;
+    transition-duration: 0.15s;
+}
+
+.lobby-menu-btn:hover .lobby-btn-chevron {
+    translate: 3px 0;
+}
+
+/* ----------------------------------------------------------------------------
+   Variants
+   ---------------------------------------------------------------------------- */
+
+/* Variant: Primary (Solid Pale / White CTA) */
+.lobby-menu-btn--primary {
+    background-color: #f4f4f5;
+    border-color: #ffffff;
+    color: #09090b;
+}
+
+.lobby-menu-btn--primary:hover {
+    background-color: #ffffff;
+    border-color: #ffffff;
+}
+
+.lobby-menu-btn--primary .lobby-btn-icon-box {
+    background-color: #09090b;
+    border-width: 0;
+}
+
+.lobby-menu-btn--primary .lobby-btn-icon {
+    color: #f4f4f5;
+}
+
+.lobby-menu-btn--primary .lobby-btn-title {
+    color: #09090b;
+}
+
+.lobby-menu-btn--primary .lobby-btn-subtitle {
+    color: #52525b;
+}
+
+.lobby-menu-btn--primary .lobby-btn-badge {
+    background-color: #e4e4e7;
+    color: #3f3f46;
+}
+
+.lobby-menu-btn--primary .lobby-btn-chevron {
+    color: #18181b;
+}
+
+/* Variant: Outline (Monochrome Dark Card) */
+.lobby-menu-btn--outline {
+    background-color: rgba(24, 24, 27, 0.85);
+    border-color: #27272a;
+    color: #f4f4f5;
+}
+
+.lobby-menu-btn--outline:hover {
+    background-color: rgba(39, 39, 42, 0.9);
+    border-color: #3f3f46;
+}
+
+.lobby-menu-btn--outline .lobby-btn-icon-box {
+    background-color: rgba(39, 39, 42, 0.8);
+    border-width: 1px;
+    border-color: rgba(63, 63, 70, 0.6);
+}
+
+.lobby-menu-btn--outline .lobby-btn-icon {
+    color: #d4d4d8;
+}
+
+.lobby-menu-btn--outline .lobby-btn-title {
+    color: #fafafa;
+}
+
+.lobby-menu-btn--outline .lobby-btn-subtitle {
+    color: #a1a1aa;
+}
+
+.lobby-menu-btn--outline .lobby-btn-badge {
+    background-color: #27272a;
+    color: #a1a1aa;
+    border-width: 1px;
+    border-color: #3f3f46;
+}
+
+.lobby-menu-btn--outline .lobby-btn-chevron {
+    color: #71717a;
+}
+
+/* Variant: Muted (Subtle outline for offline / secondary) */
+.lobby-menu-btn--muted {
+    background-color: rgba(14, 14, 17, 0.6);
+    border-color: rgba(39, 39, 42, 0.6);
+    color: #d4d4d8;
+}
+
+.lobby-menu-btn--muted:hover {
+    background-color: rgba(24, 24, 27, 0.8);
+    border-color: rgba(63, 63, 70, 0.8);
+}
+
+.lobby-menu-btn--muted .lobby-btn-icon-box {
+    background-color: rgba(24, 24, 27, 0.9);
+    border-width: 1px;
+    border-color: #27272a;
+    width: 36px;
+    height: 36px;
+}
+
+.lobby-menu-btn--muted .lobby-btn-icon {
+    color: #a1a1aa;
+    font-size: 14px;
+}
+
+.lobby-menu-btn--muted .lobby-btn-title {
+    color: #d4d4d8;
+    font-size: 14px;
+}
+
+.lobby-menu-btn--muted .lobby-btn-subtitle {
+    color: #71717a;
+    font-size: 10.5px;
+}
+
+.lobby-menu-btn--muted .lobby-btn-badge {
+    background-color: transparent;
+    color: #71717a;
+    padding: 0;
+}
+
+.lobby-menu-btn--muted .lobby-btn-chevron {
+    color: #52525b;
+}

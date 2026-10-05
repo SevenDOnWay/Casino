@@ -1,0 +1,867 @@
+/* ============================================================================
+   Minimal Arena - Game Lobby Main Menu Stylesheet
+   UI Toolkit - Desktop PC & Mobile Responsive Architecture
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   Root & Background Grid Pattern
+   ---------------------------------------------------------------------------- */
+.main-menu-root {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    background-color: #09090b;
+    color: #fafafa;
+    justify-content: space-between;
+    align-items: stretch;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Safe Area Inset Container */
+.safe-area-container {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    justify-content: space-between;
+    align-items: stretch;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ----------------------------------------------------------------------------
+   Top Header / Status Bar
+   ---------------------------------------------------------------------------- */
+.lobby-header {
+    width: 100%;
+    padding: 24px 36px 12px 36px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+/* Top-Left: Player Profile Container */
+.profile-card {
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background-color: rgba(24, 24, 27, 0.75);
+    border-width: 1px;
+    border-color: rgba(39, 39, 42, 0.85);
+    cursor: link;
+    transition-property: background-color, border-color, translate;
+    transition-duration: 0.15s;
+}
+
+.profile-card:hover {
+    background-color: rgba(39, 39, 42, 0.9);
+    border-color: rgba(63, 63, 70, 0.9);
+    translate: 0 -1px;
+}
+
+/* Avatar Box */
+.avatar-frame {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    background-color: #18181b;
+    border-width: 1px;
+    border-color: #3f3f46;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-right: 12px;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.avatar-placeholder-text {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: #e4e4e7;
+}
+
+/* Emerald Online Status Indicator */
+.avatar-status-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 9px;
+    height: 9px;
+    border-radius: 5px;
+    background-color: #34d399;
+    border-width: 1.5px;
+    border-color: #09090b;
+}
+
+/* Identity & Currencies Column */
+.profile-info {
+    flex-direction: column;
+    justify-content: center;
+}
+
+.profile-name-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.player-name-label {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: #f4f4f5;
+    letter-spacing: 0.3px;
+    margin-right: 8px;
+    padding: 0;
+}
+
+.player-lvl-tag {
+    font-size: 9.5px;
+    -unity-font-style: bold;
+    letter-spacing: 0.8px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background-color: #27272a;
+    color: #a1a1aa;
+    border-width: 1px;
+    border-color: rgba(63, 63, 70, 0.6);
+}
+
+/* Currencies Row */
+.currencies-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.currency-pill {
+    flex-direction: row;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    margin-right: 6px;
+}
+
+.currency-tag {
+    font-size: 9px;
+    -unity-font-style: bold;
+    color: #71717a;
+    margin-right: 4px;
+    padding: 0;
+}
+
+.currency-amount {
+    font-size: 11.5px;
+    -unity-font-style: bold;
+    color: #e4e4e7;
+    padding: 0;
+}
+
+/* Top-Right: Minimal Controls Bar */
+.header-controls {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 14px;
+    background-color: rgba(24, 24, 27, 0.75);
+    border-width: 1px;
+    border-color: rgba(39, 39, 42, 0.85);
+}
+
+.latency-pill {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 8px;
+}
+
+.latency-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background-color: #34d399;
+    margin-right: 6px;
+}
+
+.latency-text {
+    font-size: 11.5px;
+    color: #a1a1aa;
+    padding: 0;
+}
+
+.header-divider {
+    width: 1px;
+    height: 18px;
+    background-color: #27272a;
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+.header-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background-color: rgba(39, 39, 42, 0.6);
+    border-width: 1px;
+    border-color: rgba(63, 63, 70, 0.4);
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    cursor: link;
+    padding: 0;
+    transition-property: background-color, border-color, translate;
+    transition-duration: 0.15s;
+}
+
+.header-icon-btn:hover {
+    background-color: rgba(63, 63, 70, 0.8);
+    border-color: rgba(113, 113, 122, 0.8);
+    translate: 0 -1px;
+}
+
+.header-icon-btn:active {
+    translate: 0 1px;
+}
+
+.header-icon-label {
+    font-size: 13px;
+    color: #a1a1aa;
+    -unity-text-align: middle-center;
+    padding: 0;
+    margin: 0;
+}
+
+.header-icon-btn:hover .header-icon-label {
+    color: #fafafa;
+}
+
+/* ----------------------------------------------------------------------------
+   Center Main Game Action Stack
+   ---------------------------------------------------------------------------- */
+.lobby-main-scroll {
+    flex-grow: 1;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.lobby-main-container {
+    width: 100%;
+    max-width: 440px;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 20px;
+}
+
+/* Title Block */
+.lobby-title-block {
+    align-items: center;
+    margin-bottom: 26px;
+}
+
+.lobby-subtitle {
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: #71717a;
+    margin-bottom: 4px;
+    padding: 0;
+    -unity-text-align: middle-center;
+}
+
+.lobby-title {
+    font-size: 34px;
+    -unity-font-style: bold;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+    padding: 0;
+    -unity-text-align: middle-center;
+}
+
+/* Actions Stack */
+.lobby-actions-stack {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* ----------------------------------------------------------------------------
+   Tactile Action Buttons (Native UI Elements Fallback / Direct UXML Support)
+   ---------------------------------------------------------------------------- */
+.action-card-btn {
+    width: 100%;
+    min-height: 64px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    border-width: 1px;
+    cursor: link;
+    transition-property: background-color, border-color, translate, scale;
+    transition-duration: 0.15s;
+}
+
+.action-card-btn:hover {
+    translate: 0 -2px;
+}
+
+.action-card-btn:active {
+    translate: 0 1px;
+    scale: 0.99 0.99;
+}
+
+.action-card-left {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 1;
+    flex-grow: 1;
+}
+
+.action-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 14px;
+    flex-shrink: 0;
+}
+
+.action-icon-text {
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.action-text-group {
+    flex-direction: column;
+    justify-content: center;
+    flex-shrink: 1;
+}
+
+.action-title {
+    font-size: 15px;
+    -unity-font-style: bold;
+    letter-spacing: -0.2px;
+    margin-bottom: 2px;
+    padding: 0;
+}
+
+.action-desc {
+    font-size: 11px;
+    padding: 0;
+}
+
+.action-card-right {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.action-badge {
+    font-size: 10.5px;
+    -unity-font-style: bold;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-right: 8px;
+}
+
+.action-chevron {
+    font-size: 14px;
+    -unity-font-style: bold;
+    transition-property: translate;
+    transition-duration: 0.15s;
+}
+
+.action-card-btn:hover .action-chevron {
+    translate: 3px 0;
+}
+
+/* Card Style: Primary (Quick Join) */
+.action-card-btn--primary {
+    background-color: #f4f4f5;
+    border-color: #ffffff;
+    color: #09090b;
+}
+
+.action-card-btn--primary:hover {
+    background-color: #ffffff;
+    border-color: #ffffff;
+}
+
+.action-card-btn--primary .action-icon-box {
+    background-color: #09090b;
+}
+
+.action-card-btn--primary .action-icon-text {
+    color: #f4f4f5;
+}
+
+.action-card-btn--primary .action-title {
+    color: #09090b;
+}
+
+.action-card-btn--primary .action-desc {
+    color: #52525b;
+}
+
+.action-card-btn--primary .action-badge {
+    background-color: #e4e4e7;
+    color: #3f3f46;
+}
+
+.action-card-btn--primary .action-chevron {
+    color: #18181b;
+}
+
+/* Card Style: Outline (Host Table & Search Tables) */
+.action-card-btn--outline {
+    background-color: rgba(24, 24, 27, 0.85);
+    border-color: #27272a;
+    color: #fafafa;
+}
+
+.action-card-btn--outline:hover {
+    background-color: rgba(39, 39, 42, 0.9);
+    border-color: #3f3f46;
+}
+
+.action-card-btn--outline .action-icon-box {
+    background-color: rgba(39, 39, 42, 0.8);
+    border-width: 1px;
+    border-color: rgba(63, 63, 70, 0.6);
+}
+
+.action-card-btn--outline .action-icon-text {
+    color: #d4d4d8;
+}
+
+.action-card-btn--outline .action-title {
+    color: #fafafa;
+}
+
+.action-card-btn--outline .action-desc {
+    color: #a1a1aa;
+}
+
+.action-card-btn--outline .action-chevron {
+    color: #71717a;
+}
+
+/* Card Style: Muted (Practice Mode) */
+.action-card-btn--muted {
+    background-color: rgba(14, 14, 17, 0.6);
+    border-color: rgba(39, 39, 42, 0.6);
+    color: #d4d4d8;
+}
+
+.action-card-btn--muted:hover {
+    background-color: rgba(24, 24, 27, 0.8);
+    border-color: rgba(63, 63, 70, 0.8);
+}
+
+.action-card-btn--muted .action-icon-box {
+    background-color: rgba(24, 24, 27, 0.9);
+    border-width: 1px;
+    border-color: #27272a;
+    width: 36px;
+    height: 36px;
+}
+
+.action-card-btn--muted .action-icon-text {
+    color: #a1a1aa;
+    font-size: 14px;
+}
+
+.action-card-btn--muted .action-title {
+    color: #d4d4d8;
+    font-size: 14px;
+}
+
+.action-card-btn--muted .action-desc {
+    color: #71717a;
+    font-size: 10.5px;
+}
+
+.action-card-btn--muted .action-badge {
+    background-color: transparent;
+    color: #71717a;
+    padding: 0;
+}
+
+.action-card-btn--muted .action-chevron {
+    color: #52525b;
+}
+
+/* ----------------------------------------------------------------------------
+   Footer Status Bar
+   ---------------------------------------------------------------------------- */
+.lobby-footer {
+    width: 100%;
+    padding: 16px 36px;
+    border-top-width: 1px;
+    border-top-color: #18181b;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.footer-info-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.footer-server-label {
+    font-size: 11px;
+    color: #71717a;
+    letter-spacing: 0.5px;
+    padding: 0;
+}
+
+.footer-divider {
+    font-size: 11px;
+    color: #3f3f46;
+    margin-left: 6px;
+    margin-right: 6px;
+    padding: 0;
+}
+
+.footer-version-label {
+    font-size: 11px;
+    color: #71717a;
+    padding: 0;
+}
+
+.footer-links-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.footer-link-btn {
+    font-size: 12px;
+    color: #71717a;
+    background-color: transparent;
+    border-width: 0;
+    margin-left: 12px;
+    padding: 4px 6px;
+    cursor: link;
+    transition-property: color;
+    transition-duration: 0.15s;
+}
+
+.footer-link-btn:hover {
+    color: #e4e4e7;
+}
+
+/* ----------------------------------------------------------------------------
+   Modal Dialog Framework (Overlays, Host Table, Search, Settings, Rules, Leaderboard)
+   ---------------------------------------------------------------------------- */
+.modal-scrim {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 1;
+    transition-property: opacity;
+    transition-duration: 0.2s;
+}
+
+.modal-scrim.hidden {
+    display: none;
+    opacity: 0;
+}
+
+.modal-dialog {
+    width: 100%;
+    max-width: 480px;
+    background-color: #121215;
+    border-width: 1px;
+    border-color: #27272a;
+    border-radius: 18px;
+    padding: 24px;
+    flex-direction: column;
+}
+
+.modal-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom-width: 1px;
+    border-bottom-color: #18181b;
+    padding-bottom: 12px;
+}
+
+.modal-title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: #fafafa;
+    letter-spacing: -0.2px;
+    padding: 0;
+}
+
+.modal-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background-color: rgba(39, 39, 42, 0.6);
+    border-width: 1px;
+    border-color: #27272a;
+    color: #a1a1aa;
+    align-items: center;
+    justify-content: center;
+    cursor: link;
+    font-size: 14px;
+    -unity-font-style: bold;
+    padding: 0;
+}
+
+.modal-close-btn:hover {
+    background-color: #27272a;
+    color: #ffffff;
+}
+
+.modal-body {
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+
+.modal-field-group {
+    margin-bottom: 14px;
+}
+
+.modal-field-label {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: #a1a1aa;
+    margin-bottom: 6px;
+    padding: 0;
+}
+
+.modal-input {
+    background-color: #09090b;
+    border-width: 1px;
+    border-color: #27272a;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #f4f4f5;
+    font-size: 14px;
+}
+
+.modal-input:focus {
+    border-color: #71717a;
+}
+
+.modal-options-row {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.option-chip-btn {
+    flex-grow: 1;
+    min-height: 38px;
+    border-radius: 8px;
+    background-color: #18181b;
+    border-width: 1px;
+    border-color: #27272a;
+    color: #a1a1aa;
+    font-size: 12px;
+    -unity-font-style: bold;
+    align-items: center;
+    justify-content: center;
+    cursor: link;
+    padding: 8px 12px;
+    margin: 4px;
+    transition-property: background-color, border-color, color;
+    transition-duration: 0.15s;
+}
+
+.option-chip-btn:hover {
+    background-color: #27272a;
+    color: #e4e4e7;
+}
+
+.option-chip-btn--selected {
+    background-color: #f4f4f5;
+    border-color: #ffffff;
+    color: #09090b;
+}
+
+.option-chip-btn--selected:hover {
+    background-color: #ffffff;
+    color: #09090b;
+}
+
+.modal-footer-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+.modal-btn-cancel {
+    min-height: 42px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background-color: #18181b;
+    border-width: 1px;
+    border-color: #27272a;
+    color: #a1a1aa;
+    font-size: 13px;
+    -unity-font-style: bold;
+    cursor: link;
+    margin-right: 10px;
+}
+
+.modal-btn-cancel:hover {
+    background-color: #27272a;
+    color: #f4f4f5;
+}
+
+.modal-btn-confirm {
+    min-height: 42px;
+    padding: 10px 24px;
+    border-radius: 10px;
+    background-color: #f4f4f5;
+    border-width: 1px;
+    border-color: #ffffff;
+    color: #09090b;
+    font-size: 13px;
+    -unity-font-style: bold;
+    cursor: link;
+}
+
+.modal-btn-confirm:hover {
+    background-color: #ffffff;
+}
+
+/* Room Directory List Styles */
+.room-list-scroll {
+    max-height: 220px;
+    border-width: 1px;
+    border-color: #27272a;
+    border-radius: 10px;
+    background-color: #09090b;
+    padding: 6px;
+}
+
+.room-list-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: #121215;
+    border-width: 1px;
+    border-color: #1e1e22;
+    margin-bottom: 6px;
+}
+
+.room-list-item:hover {
+    background-color: #18181b;
+    border-color: #27272a;
+}
+
+.room-item-title {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: #fafafa;
+    padding: 0;
+}
+
+.room-item-info {
+    font-size: 11px;
+    color: #71717a;
+    padding: 0;
+}
+
+.room-item-join-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    background-color: #27272a;
+    border-width: 1px;
+    border-color: #3f3f46;
+    color: #fafafa;
+    font-size: 11.5px;
+    -unity-font-style: bold;
+    cursor: link;
+}
+
+.room-item-join-btn:hover {
+    background-color: #f4f4f5;
+    color: #09090b;
+}
+
+/* ----------------------------------------------------------------------------
+   Responsive Classes: Portrait & Mobile Adaptations
+   ---------------------------------------------------------------------------- */
+.is-portrait .lobby-header {
+    padding: 16px 20px 8px 20px;
+    justify-content: space-between;
+}
+
+.is-portrait .lobby-main-container {
+    max-width: 100%;
+    padding: 12px 18px;
+}
+
+.is-portrait .lobby-title {
+    font-size: 30px;
+}
+
+.is-portrait .lobby-footer {
+    padding: 14px 20px;
+    flex-direction: column;
+    align-items: center;
+}
+
+.is-portrait .footer-info-row {
+    margin-bottom: 8px;
+}
+
+.is-portrait .footer-links-row {
+    margin-top: 4px;
+}
+
+.is-narrow-screen .lobby-header {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.is-narrow-screen .profile-card {
+    margin-bottom: 10px;
+}
+
+.is-narrow-screen .header-controls {
+    align-self: flex-end;
+}
+
+.is-mobile .action-card-btn,
+.is-mobile .lobby-menu-btn {
+    min-height: 68px;
+    padding: 16px 20px;
+}
+
+.is-mobile .header-icon-btn {
+    width: 38px;
+    height: 38px;
+}
