@@ -1,6 +1,7 @@
 ﻿using Assets.Script.TienLen;
 using Assets.Script.TienLen.Game;
 using Fusion;
+using System;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -11,11 +12,17 @@ namespace Assets.Script.NetWorkScript {
         private TienLenGameController controller;
         private ILocalPlayerService localPlayerService;
 
+        public event Action<TienLenNetWorkPlayer> OnPlayerDataUpdated;
+
         [Networked] public PlayerRef PlayerRef { get; set; }
-        [Networked] public NetworkString<_16> PlayerName { get; set; }
-        [Networked] public int AvatarId { get; set; }
-        [Networked] public int Level { get; set; }
-        [Networked] public long Money { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public NetworkString<_16> PlayerName { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public int AvatarId { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public int Level { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public long Money { get; set; }
+
+        private void OnNetworkPlayerDataChanged() {
+            OnPlayerDataUpdated?.Invoke(this);
+        }
 
         [Inject]
         public void Construct( ILocalPlayerService localPlayerService, TienLenGameController controller ) {
@@ -59,6 +66,7 @@ namespace Assets.Script.NetWorkScript {
             AvatarId = avatarId;
             Level = level;
             Money = money;
+            OnPlayerDataUpdated?.Invoke(this);
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]

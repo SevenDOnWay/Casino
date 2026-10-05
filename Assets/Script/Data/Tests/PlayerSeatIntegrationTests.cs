@@ -46,14 +46,14 @@ namespace Assets.Script.Data.Tests {
             levelText = levelObj.AddComponent<TextMeshPro>();
 
             infoView = seatObject.AddComponent<PlayerInfoView>();
-            //infoView.Initialize(
-            //    avatar: avatarRenderer,
-            //    nameText: nameText,
-            //    money: moneyText,
-            //    levelText: levelText,
-            //    turnTimer: timer,
-            //    infoRoot: container
-            //);
+            infoView.Initialize(
+                avatar: avatarRenderer,
+                nameText: nameText,
+                money: moneyText,
+                levelText: levelText,
+                turnTimer: timer,
+                infoRoot: container
+            );
 
             seat = seatObject.AddComponent<PlayerSeat>();
             seat.SetInfoView(infoView);

@@ -10,7 +10,7 @@ namespace Assets.Script.TienLen.Player {
     /// </summary>
     public class TienLenPlayer {
         public int Id { get; }
-        public string PlayerName { get; }
+        public string PlayerName { get; private set; }
         public int AvatarId { get; set; } = 0;
         public int Level { get; set; } = 1;
         public long Money { get; set; } = 10000;
@@ -47,6 +47,16 @@ namespace Assets.Script.TienLen.Player {
             Money = tienLenNetWorkPlayer.Money > 0 ? tienLenNetWorkPlayer.Money : 10000;
             IsHuman = true;
             Hand = new PlayerHand();
+        }
+
+        public void UpdateFromNetwork( TienLenNetWorkPlayer netPlayer ) {
+            if ( netPlayer == null ) return;
+            if ( !string.IsNullOrEmpty((string)netPlayer.PlayerName) ) {
+                PlayerName = (string)netPlayer.PlayerName;
+            }
+            AvatarId = netPlayer.AvatarId;
+            Level = netPlayer.Level > 0 ? netPlayer.Level : 1;
+            Money = netPlayer.Money > 0 ? netPlayer.Money : 10000;
         }
 
         public bool HasCards( List<Card> cards ) {

@@ -270,9 +270,12 @@ namespace Assets.Script.TienLen.Game {
                 if ( seatedPlayers.TryGetValue(seatIndex, out var existingPlayer)
                     && existingPlayer != null
                     && (existingPlayer.Id == netPlayer.PlayerRef.PlayerId || string.Equals(existingPlayer.PlayerName, (string)netPlayer.PlayerName)) ) {
+                    existingPlayer.UpdateFromNetwork(netPlayer);
                     newSeatedPlayers[seatIndex] = existingPlayer;
                 }
                 else {
+                    netPlayer.OnPlayerDataUpdated -= HandleNetPlayerDataUpdated;
+                    netPlayer.OnPlayerDataUpdated += HandleNetPlayerDataUpdated;
                     newSeatedPlayers[seatIndex] = new TienLenPlayer(netPlayer);
                 }
             }
@@ -317,6 +320,25 @@ namespace Assets.Script.TienLen.Game {
             }
 
             Debug.Log($"[SeatManager] Seats changed, occupied={seatedPlayers.Count}, revision={SeatRevision}");
+        }
+
+        private void HandleNetPlayerDataUpdated( TienLenNetWorkPlayer netPlayer ) {
+            if ( netPlayer == null ) return;
+
+            foreach ( var kvp in networkOccupiedSeats ) {
+                int seat = kvp.Key;
+                var netObj = kvp.Value;
+                if ( netObj != null && netObj.TryGetComponent<TienLenNetWorkPlayer>(out var seatedNetPlayer) ) {
+                    if ( seatedNetPlayer == netPlayer ) {
+                        if ( seatedPlayers.TryGetValue(seat, out var logicPlayer) && logicPlayer != null ) {
+                            logicPlayer.UpdateFromNetwork(netPlayer);
+                            SeatRevision++;
+                            Debug.Log($"[SeatManager] Player data synced for seat {seat}: {netPlayer.PlayerName}, Avatar={netPlayer.AvatarId}, Level={netPlayer.Level}, Money={netPlayer.Money}");
+                        }
+                        break;
+                    }
+                }
+            }
         }
     }
 }

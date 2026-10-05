@@ -12,6 +12,7 @@ namespace Assets.Script.TienLen.UI {
         [Header("Avatar & Profile")]
         [SerializeField] private AvatarDatabaseSO avatarDatabase;
         [SerializeField] private SpriteRenderer avatar;
+        [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text money;
         [SerializeField] private TMP_Text levelText;
 
@@ -20,6 +21,7 @@ namespace Assets.Script.TienLen.UI {
 
         public AvatarDatabaseSO AvatarDatabase => avatarDatabase;
         public SpriteRenderer Avatar => avatar;
+        public TMP_Text NameText => nameText;
         public TMP_Text MoneyText => money;
         public TMP_Text LevelText => levelText;
         public ClockWipe TurnTimer => turnTimer;
@@ -29,21 +31,39 @@ namespace Assets.Script.TienLen.UI {
             this.avatarDatabase = avatarDatabase;
         }
 
+        public void Initialize(
+            SpriteRenderer avatar = null,
+            TMP_Text nameText = null,
+            TMP_Text money = null,
+            TMP_Text levelText = null,
+            ClockWipe turnTimer = null,
+            GameObject infoRoot = null ) {
+            this.avatar = avatar;
+            this.nameText = nameText;
+            this.money = money;
+            this.levelText = levelText;
+            this.turnTimer = turnTimer;
+        }
+
         public void SetPlayerInfo( TienLenPlayer player ) {
             if ( player == null ) return;
 
-            avatarDatabase.TryGetAvatarSprite(player.AvatarId, out Sprite avatarSprite);
+            if ( nameText != null ) nameText.text = player.PlayerName;
+            if ( levelText != null ) levelText.text = $"Lv.{player.Level}";
 
-            avatar.sprite = avatarSprite;
-            money.text = FormatMoney(player.Money);
-            levelText.text = $"player.Level";
+            if ( avatarDatabase != null ) {
+                avatarDatabase.TryGetAvatarSprite(player.AvatarId, out Sprite avatarSprite);
+                if ( avatar != null ) avatar.sprite = avatarSprite;
+            }
 
+            if ( money != null ) money.text = FormatMoney(player.Money);
 
             SetVisible(true);
             StopTurnTimer();
         }
 
         public void Clear() {
+            if ( nameText != null ) nameText.text = string.Empty;
             if ( avatar != null ) avatar.sprite = null;
             if ( money != null ) money.text = string.Empty;
             if ( levelText != null ) levelText.text = string.Empty;
@@ -53,7 +73,9 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void UpdateMoney( long newAmount ) {
-            money.text = FormatMoney(newAmount);
+            if ( money != null ) {
+                money.text = FormatMoney(newAmount);
+            }
         }
 
         public void UpdateMoney( int newAmount ) {
@@ -63,6 +85,7 @@ namespace Assets.Script.TienLen.UI {
         public void SetVisible( bool visible ) {
             gameObject.SetActive(visible);
 
+            if ( nameText != null ) nameText.gameObject.SetActive(visible);
             if ( avatar != null ) avatar.gameObject.SetActive(visible);
             if ( money != null ) money.gameObject.SetActive(visible);
             if ( levelText != null ) levelText.gameObject.SetActive(visible);

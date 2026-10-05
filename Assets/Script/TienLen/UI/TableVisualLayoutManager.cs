@@ -89,6 +89,9 @@ namespace Assets.Script.TienLen.UI {
                         !ReferenceEquals(slot.tienLenPlayer, assignment.player) ) {
                         slot.BindPlayer(assignment.player, assignment.netSeat);
                     }
+                    else {
+                        slot.UpdatePlayerVisuals();
+                    }
                 }
                 else {
                     if ( slot.IsOccupied ) {
