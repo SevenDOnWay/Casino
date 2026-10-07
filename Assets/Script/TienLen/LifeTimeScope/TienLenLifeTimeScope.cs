@@ -1,6 +1,7 @@
 ﻿using Assets.Script.Data.Models;
 using Assets.Script.Data.Repositories;
 using Assets.Script.Data.Services;
+using Assets.Script.Data.SO;
 using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Effects;
@@ -15,10 +16,16 @@ using VContainer.Unity;
 namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope {
         [SerializeField] private TienLenNetWorkPlayer prefab;
+        [SerializeField] private AvatarDatabaseSO avatarDatabase;
         [SerializeField] private bool useMockRepository = false;
         [SerializeField] private string apiBaseUrl = "http://localhost:5000/api";
 
         protected override void Configure( IContainerBuilder builder ) {
+            // ScriptableObject Assets / Databases
+            if ( avatarDatabase != null ) {
+                builder.RegisterInstance(avatarDatabase).AsSelf();
+            }
+
             // Data Layer
             if ( useMockRepository ) {
                 builder.Register<MockPlayerRepository>(Lifetime.Singleton)

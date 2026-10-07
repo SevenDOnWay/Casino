@@ -29,8 +29,10 @@ namespace Assets.Script.TienLen.UI {
         public GameObject InfoRoot => infoRoot;
 
         [Inject]
-        public void Construct( AvatarDatabaseSO avatarDatabase ) {
-            this.avatarDatabase = avatarDatabase;
+        public void Construct( AvatarDatabaseSO avatarDatabase = null ) {
+            if ( avatarDatabase != null ) {
+                this.avatarDatabase = avatarDatabase;
+            }
         }
 
         public void Initialize(

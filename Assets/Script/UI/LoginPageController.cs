@@ -5,10 +5,12 @@ using Assets.Script.Data.Models;
 using Assets.Script.Data.Repositories;
 using Assets.Script.Data.Services;
 using Assets.Script.UI.Components;
+using Assets.Script.UI.SO;
 using Cysharp.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
+using UnityEngine.UI;
 using VContainer;
 
 namespace Assets.Script.UI {
@@ -19,10 +21,9 @@ namespace Assets.Script.UI {
     }
 
     /// <summary>
-    /// UI Toolkit controller managing the modern login & register interface.
-    /// Supports email/password authentication, validation, mode toggling, and backend integration.
+    /// uGUI controller managing the modern login & register interface.
+    /// Supports email/password authentication, validation, mode toggling, theme switching, and backend integration.
     /// </summary>
-    [RequireComponent(typeof(UIDocument))]
     public class LoginPageController : MonoBehaviour {
         [Header("Configuration")]
         [SerializeField] private bool startWithDarkTheme = true;
@@ -30,52 +31,94 @@ namespace Assets.Script.UI {
         [SerializeField] private bool useMockIfUninjected = false;
         [SerializeField] private string defaultApiUrl = "http://localhost:5000/api";
 
+        [Header("Theme Palettes")]
+        [SerializeField] private LoginThemePaletteSO darkThemePalette;
+        [SerializeField] private LoginThemePaletteSO lightThemePalette;
+        [SerializeField] private Image screenBackground;
+        [SerializeField] private Image cardBackground;
+        [SerializeField] private Image cardBorder;
+
+        [Header("Header & Theme Toggle")]
+        [SerializeField] private Button themeToggleBtn;
+        [SerializeField] private TextMeshProUGUI themeToggleIcon;
+        [SerializeField] private Image themeToggleBtnBg;
+        [SerializeField] private Image themeToggleBtnBorder;
+        [SerializeField] private TextMeshProUGUI brandTitle;
+        [SerializeField] private Image brandLogoBg;
+        [SerializeField] private TextMeshProUGUI brandLogoIcon;
+
+        [Header("Alert Feedback Banner")]
+        [SerializeField] private GameObject alertBox;
+        [SerializeField] private Image alertBg;
+        [SerializeField] private Image alertBorder;
+        [SerializeField] private TextMeshProUGUI alertText;
+
+        [Header("Social Sign-In")]
+        [SerializeField] private SocialLoginButtonUGUI googleLoginBtn;
+        [SerializeField] private SocialLoginButtonUGUI facebookLoginBtn;
+
+        [Header("Divider")]
+        [SerializeField] private Image dividerLineLeft;
+        [SerializeField] private Image dividerLineRight;
+        [SerializeField] private Image dividerBadgeBg;
+        [SerializeField] private TextMeshProUGUI dividerBadgeText;
+
+        [Header("Card Typography")]
+        [SerializeField] private TextMeshProUGUI cardTitle;
+        [SerializeField] private TextMeshProUGUI cardSubtitle;
+
+        [Header("Form - Email Field")]
+        [SerializeField] private TextMeshProUGUI emailLabel;
+        [SerializeField] private TMP_InputField emailInput;
+        [SerializeField] private Image emailInputBg;
+        [SerializeField] private Image emailInputBorder;
+        [SerializeField] private TextMeshProUGUI emailError;
+
+        [Header("Form - Password Field")]
+        [SerializeField] private TextMeshProUGUI passwordLabel;
+        [SerializeField] private TMP_InputField passwordInput;
+        [SerializeField] private Image passwordInputBg;
+        [SerializeField] private Image passwordInputBorder;
+        [SerializeField] private TextMeshProUGUI passwordError;
+        [SerializeField] private Button togglePasswordBtn;
+        [SerializeField] private TextMeshProUGUI togglePasswordIcon;
+        [SerializeField] private Button forgotPasswordBtn;
+        [SerializeField] private TextMeshProUGUI forgotPasswordBtnText;
+
+        [Header("Form - Remember Me")]
+        [SerializeField] private GameObject rememberRow;
+        [SerializeField] private Toggle rememberToggle;
+        [SerializeField] private TextMeshProUGUI rememberToggleLabel;
+
+        [Header("Form - Submit Button")]
+        [SerializeField] private Button submitBtn;
+        [SerializeField] private Image submitBtnBg;
+        [SerializeField] private TextMeshProUGUI submitBtnText;
+        [SerializeField] private GameObject submitSpinner;
+        [SerializeField] private TextMeshProUGUI submitSpinnerText;
+
+        [Header("Footer & Secondary Actions")]
+        [SerializeField] private GameObject signupPromptRow;
+        [SerializeField] private TextMeshProUGUI signupPromptText;
+        [SerializeField] private Button signUpBtn;
+        [SerializeField] private TextMeshProUGUI signUpBtnText;
+        [SerializeField] private TextMeshProUGUI copyrightText;
+        [SerializeField] private Button privacyBtn;
+        [SerializeField] private TextMeshProUGUI privacyBtnText;
+        [SerializeField] private Button termsBtn;
+        [SerializeField] private TextMeshProUGUI termsBtnText;
+        [SerializeField] private Button supportBtn;
+        [SerializeField] private TextMeshProUGUI supportBtnText;
+
         [Inject]
         private IAuthService authService;
 
-        // Visual Tree References
-        private UIDocument uiDocument;
-        private VisualElement root;
-
-        // Header & Theme
-        private Button themeToggleBtn;
-        private Label themeToggleIcon;
         private bool isDarkTheme = true;
-
-        // Alerts & Feedback
-        private VisualElement alertBox;
-        private Label alertText;
-        private Coroutine alertDismissCoroutine;
-
-        // Form Elements
-        private Label cardTitle;
-        private Label cardSubtitle;
-        private TextField emailInput;
-        private Label emailError;
-        private TextField passwordInput;
-        private Label passwordError;
-        private Button togglePasswordBtn;
-        private Label togglePasswordIcon;
-        private VisualElement rememberRow;
-        private Toggle rememberToggle;
-        private Button forgotPasswordBtn;
-
-        // Submit Button & Loading Indicator
-        private Button submitBtn;
-        private Label submitBtnText;
-        private Label submitSpinner;
-        private bool isSubmitting;
-        private bool isPasswordVisible;
-
-        // Footer & Secondary Actions
-        private VisualElement signupPromptRow;
-        private Label signupPromptText;
-        private Button signUpBtn;
-        private Button privacyBtn;
-        private Button termsBtn;
-        private Button supportBtn;
-
         private bool isRegisterMode = false;
+        private bool isSubmitting = false;
+        private bool isPasswordVisible = false;
+        private Coroutine alertDismissCoroutine;
+        private Coroutine spinnerCoroutine;
 
         // Events for external decoupling
         public event Action<string, string, bool> OnLoginRequested;
@@ -89,9 +132,18 @@ namespace Assets.Script.UI {
         );
 
         private void Awake() {
-            uiDocument = GetComponent<UIDocument>();
             EnsureAuthService();
         }
+
+#if UNITY_EDITOR
+        private void OnValidate() {
+            if ( !Application.isPlaying ) {
+                isDarkTheme = startWithDarkTheme;
+                ApplyThemeVisuals();
+                UpdateModeVisuals();
+            }
+        }
+#endif
 
         private void EnsureAuthService() {
             if ( authService == null ) {
@@ -103,128 +155,72 @@ namespace Assets.Script.UI {
         }
 
         private void OnEnable() {
-            InitializeUI();
+            BindUI();
+            isDarkTheme = startWithDarkTheme;
+            ApplyThemeVisuals();
+            UpdateModeVisuals();
+            HideAlert();
+            ClearAllFieldErrors();
         }
 
         private void OnDisable() {
             UnbindUI();
         }
 
-        /// <summary>
-        /// Queries and binds all UI Toolkit visual elements.
-        /// </summary>
-        public void InitializeUI() {
-            if ( uiDocument == null ) {
-                uiDocument = GetComponent<UIDocument>();
-            }
-
-            if ( uiDocument == null || uiDocument.rootVisualElement == null ) {
-                return;
-            }
-
-            root = uiDocument.rootVisualElement;
-
-            // 1. Header & Theme
-            themeToggleBtn = root.Q<Button>("theme-toggle-btn");
-            themeToggleIcon = root.Q<Label>("theme-toggle-icon");
-            if ( themeToggleBtn != null ) {
-                themeToggleBtn.clicked += ToggleTheme;
-            }
-
-            isDarkTheme = startWithDarkTheme;
-            ApplyThemeVisuals();
-
-            // 2. Alert Box
-            alertBox = root.Q<VisualElement>("alert-box");
-            alertText = root.Q<Label>("alert-text");
-            HideAlert();
-
-            // 3. Social Sign-In Buttons
-            BindSocialButtons();
-
-            // 4. Form Controls
-            cardTitle = root.Q<Label>(className: "auth-card__title");
-            cardSubtitle = root.Q<Label>(className: "auth-card__subtitle");
-
-            emailInput = root.Q<TextField>("email-input");
-            emailError = root.Q<Label>("email-error");
-
-            passwordInput = root.Q<TextField>("password-input");
-            passwordError = root.Q<Label>("password-error");
-            togglePasswordBtn = root.Q<Button>("toggle-password-btn");
-            togglePasswordIcon = root.Q<Label>("toggle-password-icon");
-            forgotPasswordBtn = root.Q<Button>("forgot-password-btn");
-
-            rememberRow = root.Q<VisualElement>("remember-row");
-            rememberToggle = root.Q<Toggle>("remember-toggle");
-
-            if ( togglePasswordBtn != null ) togglePasswordBtn.clicked += TogglePasswordVisibility;
-            if ( forgotPasswordBtn != null ) forgotPasswordBtn.clicked += HandleForgotPassword;
+        private void BindUI() {
+            if ( themeToggleBtn != null ) themeToggleBtn.onClick.AddListener(ToggleTheme);
+            if ( togglePasswordBtn != null ) togglePasswordBtn.onClick.AddListener(TogglePasswordVisibility);
+            if ( forgotPasswordBtn != null ) forgotPasswordBtn.onClick.AddListener(HandleForgotPassword);
+            if ( submitBtn != null ) submitBtn.onClick.AddListener(HandleSubmit);
+            if ( signUpBtn != null ) signUpBtn.onClick.AddListener(ToggleAuthMode);
+            if ( privacyBtn != null ) privacyBtn.onClick.AddListener(HandlePrivacyPolicy);
+            if ( termsBtn != null ) termsBtn.onClick.AddListener(HandleTermsOfService);
+            if ( supportBtn != null ) supportBtn.onClick.AddListener(HandleSupport);
 
             if ( emailInput != null ) {
-                emailInput.RegisterValueChangedCallback(_ => ClearFieldError(emailInput, emailError));
+                emailInput.onValueChanged.AddListener(_ => ClearFieldError(emailInputBorder, emailError));
             }
 
             if ( passwordInput != null ) {
-                passwordInput.RegisterValueChangedCallback(_ => ClearFieldError(passwordInput, passwordError));
+                passwordInput.onValueChanged.AddListener(_ => ClearFieldError(passwordInputBorder, passwordError));
             }
 
-            // 5. Submit Button
-            submitBtn = root.Q<Button>("submit-btn");
-            submitBtnText = root.Q<Label>("submit-btn-text");
-            submitSpinner = root.Q<Label>("submit-spinner");
-
-            if ( submitBtn != null ) {
-                submitBtn.clicked += HandleSubmit;
+            if ( googleLoginBtn != null ) {
+                googleLoginBtn.OnClicked += HandleSocialLogin;
             }
 
-            // 6. Footer Links & Mode Toggle
-            signupPromptRow = root.Q<VisualElement>("signup-prompt-row");
-            signupPromptText = root.Q<Label>(className: "signup-prompt-text");
-            signUpBtn = root.Q<Button>("sign-up-btn");
-            privacyBtn = root.Q<Button>("privacy-btn");
-            termsBtn = root.Q<Button>("terms-btn");
-            supportBtn = root.Q<Button>("support-btn");
-
-            if ( signUpBtn != null ) signUpBtn.clicked += ToggleAuthMode;
-            if ( privacyBtn != null ) privacyBtn.clicked += HandlePrivacyPolicy;
-            if ( termsBtn != null ) termsBtn.clicked += HandleTermsOfService;
-            if ( supportBtn != null ) supportBtn.clicked += HandleSupport;
-
-            UpdateModeVisuals();
+            if ( facebookLoginBtn != null ) {
+                facebookLoginBtn.OnClicked += HandleSocialLogin;
+            }
         }
 
         private void UnbindUI() {
-            if ( themeToggleBtn != null ) themeToggleBtn.clicked -= ToggleTheme;
-            if ( togglePasswordBtn != null ) togglePasswordBtn.clicked -= TogglePasswordVisibility;
-            if ( forgotPasswordBtn != null ) forgotPasswordBtn.clicked -= HandleForgotPassword;
-            if ( submitBtn != null ) submitBtn.clicked -= HandleSubmit;
-            if ( signUpBtn != null ) signUpBtn.clicked -= ToggleAuthMode;
-            if ( privacyBtn != null ) privacyBtn.clicked -= HandlePrivacyPolicy;
-            if ( termsBtn != null ) termsBtn.clicked -= HandleTermsOfService;
-            if ( supportBtn != null ) supportBtn.clicked -= HandleSupport;
-        }
+            if ( themeToggleBtn != null ) themeToggleBtn.onClick.RemoveListener(ToggleTheme);
+            if ( togglePasswordBtn != null ) togglePasswordBtn.onClick.RemoveListener(TogglePasswordVisibility);
+            if ( forgotPasswordBtn != null ) forgotPasswordBtn.onClick.RemoveListener(HandleForgotPassword);
+            if ( submitBtn != null ) submitBtn.onClick.RemoveListener(HandleSubmit);
+            if ( signUpBtn != null ) signUpBtn.onClick.RemoveListener(ToggleAuthMode);
+            if ( privacyBtn != null ) privacyBtn.onClick.RemoveListener(HandlePrivacyPolicy);
+            if ( termsBtn != null ) termsBtn.onClick.RemoveListener(HandleTermsOfService);
+            if ( supportBtn != null ) supportBtn.onClick.RemoveListener(HandleSupport);
 
-        private void BindSocialButtons() {
-            SocialLoginButton.BindTemplateInstance(
-                root,
-                "google-login-btn",
-                SocialAuthProvider.Google,
-                ( provider, name ) => HandleSocialLogin(provider, name)
-            );
+            if ( emailInput != null ) emailInput.onValueChanged.RemoveAllListeners();
+            if ( passwordInput != null ) passwordInput.onValueChanged.RemoveAllListeners();
 
-            SocialLoginButton.BindTemplateInstance(
-                root,
-                "facebook-login-btn",
-                SocialAuthProvider.Facebook,
-                ( provider, name ) => HandleSocialLogin(provider, name)
-            );
+            if ( googleLoginBtn != null ) {
+                googleLoginBtn.OnClicked -= HandleSocialLogin;
+            }
+
+            if ( facebookLoginBtn != null ) {
+                facebookLoginBtn.OnClicked -= HandleSocialLogin;
+            }
         }
 
         public void ToggleAuthMode() {
             isRegisterMode = !isRegisterMode;
             UpdateModeVisuals();
             HideAlert();
+            ClearAllFieldErrors();
         }
 
         private void UpdateModeVisuals() {
@@ -233,16 +229,16 @@ namespace Assets.Script.UI {
                 if ( cardSubtitle != null ) cardSubtitle.text = "Enter your email & password to sign up";
                 if ( submitBtnText != null ) submitBtnText.text = "Sign up";
                 if ( signupPromptText != null ) signupPromptText.text = "Already have an account?";
-                if ( signUpBtn != null ) signUpBtn.text = "Sign in";
-                if ( rememberRow != null ) rememberRow.style.display = DisplayStyle.None;
+                if ( signUpBtnText != null ) signUpBtnText.text = "Sign in";
+                if ( rememberRow != null ) rememberRow.SetActive(false);
             }
             else {
                 if ( cardTitle != null ) cardTitle.text = "Welcome back";
                 if ( cardSubtitle != null ) cardSubtitle.text = "Enter your details to access your account";
                 if ( submitBtnText != null ) submitBtnText.text = "Sign in";
                 if ( signupPromptText != null ) signupPromptText.text = "Don't have an account?";
-                if ( signUpBtn != null ) signUpBtn.text = "Create an account";
-                if ( rememberRow != null ) rememberRow.style.display = DisplayStyle.Flex;
+                if ( signUpBtnText != null ) signUpBtnText.text = "Create an account";
+                if ( rememberRow != null ) rememberRow.SetActive(true);
             }
         }
 
@@ -251,26 +247,26 @@ namespace Assets.Script.UI {
 
             HideAlert();
 
-            string email = emailInput?.value?.Trim() ?? string.Empty;
-            string password = passwordInput?.value ?? string.Empty;
-            bool rememberMe = rememberToggle?.value ?? false;
+            string email = emailInput != null ? emailInput.text.Trim() : string.Empty;
+            string password = passwordInput != null ? passwordInput.text : string.Empty;
+            bool rememberMe = rememberToggle != null && rememberToggle.isOn;
 
             bool isValid = true;
 
             if ( string.IsNullOrEmpty(email) || !EmailRegex.IsMatch(email) ) {
-                ShowFieldError(emailInput, emailError, "Please enter a valid email address.");
+                ShowFieldError(emailInputBorder, emailError, "Please enter a valid email address.");
                 isValid = false;
             }
             else {
-                ClearFieldError(emailInput, emailError);
+                ClearFieldError(emailInputBorder, emailError);
             }
 
             if ( string.IsNullOrEmpty(password) || password.Length < 6 ) {
-                ShowFieldError(passwordInput, passwordError, "Password must be at least 6 characters.");
+                ShowFieldError(passwordInputBorder, passwordError, "Password must be at least 6 characters.");
                 isValid = false;
             }
             else {
-                ClearFieldError(passwordInput, passwordError);
+                ClearFieldError(passwordInputBorder, passwordError);
             }
 
             if ( !isValid ) {
@@ -363,10 +359,10 @@ namespace Assets.Script.UI {
         }
 
         public void HandleForgotPassword() {
-            string email = emailInput?.value?.Trim() ?? string.Empty;
+            string email = emailInput != null ? emailInput.text.Trim() : string.Empty;
 
             if ( string.IsNullOrEmpty(email) || !EmailRegex.IsMatch(email) ) {
-                ShowFieldError(emailInput, emailError, "Please enter a valid email address first.");
+                ShowFieldError(emailInputBorder, emailError, "Please enter a valid email address first.");
                 ShowAlert("Please provide a valid email address to send the reset link.", AlertType.Error);
                 return;
             }
@@ -379,10 +375,14 @@ namespace Assets.Script.UI {
             if ( passwordInput == null ) return;
 
             isPasswordVisible = !isPasswordVisible;
-            passwordInput.isPasswordField = !isPasswordVisible;
+            passwordInput.contentType = isPasswordVisible
+                ? TMP_InputField.ContentType.Standard
+                : TMP_InputField.ContentType.Password;
+
+            passwordInput.ForceLabelUpdate();
 
             if ( togglePasswordIcon != null ) {
-                togglePasswordIcon.text = isPasswordVisible ? "Ø" : "👁";
+                togglePasswordIcon.text = isPasswordVisible ? "HIDE" : "SHOW";
             }
         }
 
@@ -392,23 +392,67 @@ namespace Assets.Script.UI {
         }
 
         private void ApplyThemeVisuals() {
-            if ( root == null ) return;
-
-            var screen = root.Q<VisualElement>("login-screen");
-            if ( screen != null ) {
-                if ( isDarkTheme ) {
-                    screen.RemoveFromClassList("theme-light");
-                    screen.AddToClassList("theme-dark");
-                }
-                else {
-                    screen.RemoveFromClassList("theme-dark");
-                    screen.AddToClassList("theme-light");
-                }
-            }
+            LoginThemePaletteSO palette = isDarkTheme ? darkThemePalette : lightThemePalette;
 
             if ( themeToggleIcon != null ) {
                 themeToggleIcon.text = isDarkTheme ? "☼" : "☽";
             }
+
+            if ( palette == null ) return;
+
+            if ( screenBackground != null ) screenBackground.color = palette.screenBackgroundColor;
+            if ( cardBackground != null ) cardBackground.color = palette.cardBackgroundColor;
+            if ( cardBorder != null ) cardBorder.color = palette.cardBorderColor;
+
+            if ( brandTitle != null ) brandTitle.color = palette.titleTextColor;
+            if ( brandLogoBg != null ) brandLogoBg.color = palette.submitButtonBg;
+            if ( brandLogoIcon != null ) brandLogoIcon.color = palette.submitButtonText;
+
+            if ( themeToggleBtnBg != null ) themeToggleBtnBg.color = palette.socialButtonBg;
+            if ( themeToggleBtnBorder != null ) themeToggleBtnBorder.color = palette.socialButtonBorder;
+            if ( themeToggleIcon != null ) themeToggleIcon.color = palette.secondaryTextColor;
+
+            if ( cardTitle != null ) cardTitle.color = palette.titleTextColor;
+            if ( cardSubtitle != null ) cardSubtitle.color = palette.subtitleTextColor;
+
+            if ( emailLabel != null ) emailLabel.color = palette.labelTextColor;
+            if ( emailInputBg != null ) emailInputBg.color = palette.inputBackgroundColor;
+            if ( emailInputBorder != null ) emailInputBorder.color = palette.inputBorderColor;
+            if ( emailInput != null && emailInput.textComponent != null ) emailInput.textComponent.color = palette.inputTextColor;
+            if ( emailInput != null && emailInput.placeholder is TextMeshProUGUI emailPh ) emailPh.color = palette.inputPlaceholderColor;
+
+            if ( passwordLabel != null ) passwordLabel.color = palette.labelTextColor;
+            if ( passwordInputBg != null ) passwordInputBg.color = palette.inputBackgroundColor;
+            if ( passwordInputBorder != null ) passwordInputBorder.color = palette.inputBorderColor;
+            if ( passwordInput != null && passwordInput.textComponent != null ) passwordInput.textComponent.color = palette.inputTextColor;
+            if ( passwordInput != null && passwordInput.placeholder is TextMeshProUGUI passPh ) passPh.color = palette.inputPlaceholderColor;
+            if ( togglePasswordIcon != null ) togglePasswordIcon.color = palette.secondaryTextColor;
+            if ( forgotPasswordBtnText != null ) forgotPasswordBtnText.color = palette.secondaryTextColor;
+
+            if ( rememberToggleLabel != null ) rememberToggleLabel.color = palette.secondaryTextColor;
+
+            if ( submitBtnBg != null ) submitBtnBg.color = palette.submitButtonBg;
+            if ( submitBtnText != null ) submitBtnText.color = palette.submitButtonText;
+
+            if ( dividerLineLeft != null ) dividerLineLeft.color = palette.dividerLineColor;
+            if ( dividerLineRight != null ) dividerLineRight.color = palette.dividerLineColor;
+            if ( dividerBadgeBg != null ) dividerBadgeBg.color = palette.dividerBadgeBg;
+            if ( dividerBadgeText != null ) dividerBadgeText.color = palette.dividerBadgeText;
+
+            if ( googleLoginBtn != null ) {
+                googleLoginBtn.ApplyThemeColors(palette.socialButtonBg, palette.socialButtonBorder, palette.socialButtonText);
+            }
+            if ( facebookLoginBtn != null ) {
+                facebookLoginBtn.ApplyThemeColors(palette.socialButtonBg, palette.socialButtonBorder, palette.socialButtonText);
+            }
+
+            if ( signupPromptText != null ) signupPromptText.color = palette.secondaryTextColor;
+            if ( signUpBtnText != null ) signUpBtnText.color = palette.titleTextColor;
+
+            if ( copyrightText != null ) copyrightText.color = palette.secondaryTextColor;
+            if ( privacyBtnText != null ) privacyBtnText.color = palette.secondaryTextColor;
+            if ( termsBtnText != null ) termsBtnText.color = palette.secondaryTextColor;
+            if ( supportBtnText != null ) supportBtnText.color = palette.secondaryTextColor;
         }
 
         public void ShowAlert( string message, AlertType type, float autoHideDuration = 0f ) {
@@ -419,21 +463,26 @@ namespace Assets.Script.UI {
                 alertDismissCoroutine = null;
             }
 
-            alertBox.RemoveFromClassList("alert-box--error");
-            alertBox.RemoveFromClassList("alert-box--success");
-            alertBox.RemoveFromClassList("hidden");
+            LoginThemePaletteSO palette = isDarkTheme ? darkThemePalette : lightThemePalette;
 
-            switch ( type ) {
-                case AlertType.Error:
-                    alertBox.AddToClassList("alert-box--error");
-                    break;
-                case AlertType.Success:
-                case AlertType.Info:
-                    alertBox.AddToClassList("alert-box--success");
-                    break;
+            if ( palette != null && alertBg != null ) {
+                switch ( type ) {
+                    case AlertType.Error:
+                        alertBg.color = palette.alertErrorBg;
+                        alertText.color = palette.alertErrorText;
+                        if ( alertBorder != null ) alertBorder.color = new Color(palette.alertErrorText.r, palette.alertErrorText.g, palette.alertErrorText.b, 0.35f);
+                        break;
+                    case AlertType.Success:
+                    case AlertType.Info:
+                        alertBg.color = palette.alertSuccessBg;
+                        alertText.color = palette.alertSuccessText;
+                        if ( alertBorder != null ) alertBorder.color = new Color(palette.alertSuccessText.r, palette.alertSuccessText.g, palette.alertSuccessText.b, 0.35f);
+                        break;
+                }
             }
 
             alertText.text = message;
+            alertBox.SetActive(true);
 
             if ( autoHideDuration > 0f ) {
                 alertDismissCoroutine = StartCoroutine(DismissAlertAfter(autoHideDuration));
@@ -442,7 +491,7 @@ namespace Assets.Script.UI {
 
         public void HideAlert() {
             if ( alertBox != null ) {
-                alertBox.AddToClassList("hidden");
+                alertBox.SetActive(false);
             }
         }
 
@@ -452,24 +501,38 @@ namespace Assets.Script.UI {
             alertDismissCoroutine = null;
         }
 
-        private void ShowFieldError( TextField field, Label errorLabel, string message ) {
-            if ( field != null ) field.AddToClassList("input--error");
+        private void ShowFieldError( Image border, TextMeshProUGUI errorLabel, string message ) {
+            if ( border != null ) {
+                border.color = new Color32(244, 63, 94, 255);
+            }
             if ( errorLabel != null ) {
                 errorLabel.text = message;
-                errorLabel.RemoveFromClassList("hidden");
+                errorLabel.gameObject.SetActive(true);
             }
         }
 
-        private void ClearFieldError( TextField field, Label errorLabel ) {
-            if ( field != null ) field.RemoveFromClassList("input--error");
-            if ( errorLabel != null ) errorLabel.AddToClassList("hidden");
+        private void ClearFieldError( Image border, TextMeshProUGUI errorLabel ) {
+            if ( border != null ) {
+                LoginThemePaletteSO palette = isDarkTheme ? darkThemePalette : lightThemePalette;
+                if ( palette != null ) {
+                    border.color = palette.inputBorderColor;
+                }
+            }
+            if ( errorLabel != null ) {
+                errorLabel.gameObject.SetActive(false);
+            }
+        }
+
+        private void ClearAllFieldErrors() {
+            ClearFieldError(emailInputBorder, emailError);
+            ClearFieldError(passwordInputBorder, passwordError);
         }
 
         private void SetSubmittingState( bool submitting ) {
             isSubmitting = submitting;
 
             if ( submitBtn != null ) {
-                submitBtn.SetEnabled(!submitting);
+                submitBtn.interactable = !submitting;
             }
 
             if ( submitBtnText != null ) {
@@ -479,8 +542,28 @@ namespace Assets.Script.UI {
             }
 
             if ( submitSpinner != null ) {
-                if ( submitting ) submitSpinner.RemoveFromClassList("hidden");
-                else submitSpinner.AddToClassList("hidden");
+                submitSpinner.SetActive(submitting);
+                if ( submitting ) {
+                    if ( spinnerCoroutine != null ) StopCoroutine(spinnerCoroutine);
+                    spinnerCoroutine = StartCoroutine(AnimateSpinner());
+                }
+                else {
+                    if ( spinnerCoroutine != null ) {
+                        StopCoroutine(spinnerCoroutine);
+                        spinnerCoroutine = null;
+                    }
+                }
+            }
+        }
+
+        private IEnumerator AnimateSpinner() {
+            if ( submitSpinner == null ) yield break;
+            RectTransform spinnerRect = submitSpinner.GetComponent<RectTransform>();
+            while ( isSubmitting ) {
+                if ( spinnerRect != null ) {
+                    spinnerRect.Rotate(0f, 0f, -360f * Time.deltaTime * 2f);
+                }
+                yield return null;
             }
         }
 

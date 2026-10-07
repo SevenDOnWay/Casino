@@ -3,16 +3,16 @@ using System.Collections.Generic;
 
 namespace Assets.Script.Data.Models {
     [Serializable]
-    public class LoginRequest {
+    public abstract class AuthRequest {
         public string email;
         public string password;
     }
 
     [Serializable]
-    public class RegisterRequest {
-        public string email;
-        public string password;
-    }
+    public class LoginRequest : AuthRequest { }
+
+    [Serializable]
+    public class RegisterRequest : AuthRequest { }
 
     [Serializable]
     public class UpdateProfileRequest {

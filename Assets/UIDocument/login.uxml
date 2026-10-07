@@ -20,7 +20,7 @@
                 </ui:VisualElement>
                 <ui:VisualElement name="login-form" class="login-form" style="flex-shrink: 0;">
                     <ui:VisualElement name="email-group" class="form-group">
-                        <ui:Label text="Email address" class="form-label"/>
+                        <ui:Label text="Email address" class="form-label" style="-unity-font-definition: url(&quot;project://database/Assets/Photon/Fusion/Runtime/RuntimeAssets/Roboto-Regular.ttf?fileID=12800000&amp;guid=5b587a998c6994e4a9a7e724729f140e&amp;type=3#Roboto-Regular&quot;);"/>
                         <ui:TextField name="email-input" placeholder-text="name@example.com" class="form-input" style="font-size: 15px;"/>
                         <ui:Label name="email-error" text="Please enter a valid email address." class="field-error-label hidden"/>
                     </ui:VisualElement>
@@ -32,7 +32,7 @@
                         <ui:VisualElement class="password-input-container">
                             <ui:TextField name="password-input" password="true" placeholder-text="password" class="form-input password-input" style="font-size: 15px;"/>
                             <ui:Button name="toggle-password-btn" tooltip="Show / Hide Password" class="toggle-password-btn">
-                                <ui:Label name="toggle-password-icon" text="👁" class="eye-icon"/>
+                                <ui:Label name="toggle-password-icon" text="SHOW" class="eye-icon"/>
                             </ui:Button>
                         </ui:VisualElement>
                         <ui:Label name="password-error" text="Password must be at least 6 characters." class="field-error-label hidden"/>

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b6a2e39d040a2b41b99655d48ba235e, type: 3}
+  m_Name: LoginThemePalette_Light
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.UI.SO.LoginThemePaletteSO
+  isDarkTheme: 0
+  screenBackgroundColor: {r: 0.972549, g: 0.98039216, b: 0.9882353, a: 1}
+  cardBackgroundColor: {r: 1, g: 1, b: 1, a: 0.9607843}
+  cardBorderColor: {r: 0, g: 0, b: 0, a: 0.08}
+  titleTextColor: {r: 0.05882353, g: 0.09019608, b: 0.16470589, a: 1}
+  subtitleTextColor: {r: 0.39215687, g: 0.45490196, b: 0.54509807, a: 1}
+  labelTextColor: {r: 0.2, g: 0.25490198, b: 0.33333334, a: 1}
+  secondaryTextColor: {r: 0.39215687, g: 0.45490196, b: 0.54509807, a: 1}
+  inputBackgroundColor: {r: 1, g: 1, b: 1, a: 0.9}
+  inputBorderColor: {r: 0, g: 0, b: 0, a: 0.15}
+  inputFocusedBorderColor: {r: 0.05882353, g: 0.09019608, b: 0.16470589, a: 1}
+  inputTextColor: {r: 0.05882353, g: 0.09019608, b: 0.16470589, a: 1}
+  inputPlaceholderColor: {r: 0, g: 0, b: 0, a: 0.4}
+  submitButtonBg: {r: 0.03529412, g: 0.03529412, b: 0.043137256, a: 1}
+  submitButtonText: {r: 0.95686275, g: 0.95686275, b: 0.9607843, a: 1}
+  socialButtonBg: {r: 1, g: 1, b: 1, a: 1}
+  socialButtonBorder: {r: 0, g: 0, b: 0, a: 0.12}
+  socialButtonText: {r: 0.05882353, g: 0.09019608, b: 0.16470589, a: 1}
+  dividerLineColor: {r: 0, g: 0, b: 0, a: 0.1}
+  dividerBadgeBg: {r: 1, g: 1, b: 1, a: 1}
+  dividerBadgeText: {r: 0.5803922, g: 0.6392157, b: 0.72156864, a: 1}
+  alertErrorBg: {r: 1, g: 0.94509804, b: 0.9490196, a: 1}
+  alertErrorText: {r: 0.88235295, g: 0.11372549, b: 0.28235295, a: 1}
+  alertSuccessBg: {r: 0.9411765, g: 0.99215686, b: 0.95686275, a: 1}
+  alertSuccessText: {r: 0.08235294, g: 0.5019608, b: 0.23921569, a: 1}

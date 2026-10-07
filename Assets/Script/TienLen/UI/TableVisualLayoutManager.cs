@@ -12,8 +12,8 @@ namespace Assets.Script.TienLen.UI {
     /// Maps network seat indices to visual slots using SeatProvider.
     /// </summary>
     public class TableVisualLayoutManager : MonoBehaviour {
-        [Header("Dependencies")]
-        private SeatProvider seatProvider;
+        [Header("Scene Dependencies (Serialized / Injected)")]
+        [SerializeField] private SeatProvider seatProvider;
 
         private PlayerSeat[] visualSlots;
 
@@ -23,8 +23,10 @@ namespace Assets.Script.TienLen.UI {
         private PlayerRef latestLocalPlayer;
 
         [Inject]
-        void Construct( SeatProvider seatProvider ) {
-            this.seatProvider = seatProvider;
+        public void Construct( SeatProvider seatProvider = null ) {
+            if ( seatProvider != null ) {
+                this.seatProvider = seatProvider;
+            }
         }
 
         /// <summary>
