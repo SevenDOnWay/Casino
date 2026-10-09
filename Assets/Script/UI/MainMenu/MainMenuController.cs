@@ -139,11 +139,25 @@ namespace Assets.Script.UI {
                 networkController = FindFirstObjectByType<TienLenNetworkController>();
             }
 
+            // MainMenuScene has no LifetimeScope of its own, so pull the persistent
+            // services out of the application root container before falling back.
+            RootLifeTimeScope.Ensure()?.InjectGameObject(gameObject);
+
             EnsureServices();
         }
 
         private void EnsureServices() {
-            if (profileService == null) {
+            var root = RootLifeTimeScope.Ensure();
+            if ( profileService == null && root != null &&
+                 root.TryResolve(out IPlayerProfileService resolvedProfile) ) {
+                profileService = resolvedProfile;
+                root.TryResolve(out IAuthService resolvedAuthService);
+                root.TryResolve(out ILocalPlayerService resolvedLocalPlayerService);
+                authService ??= resolvedAuthService;
+                localPlayerService ??= resolvedLocalPlayerService;
+            }
+
+            if ( profileService == null ) {
                 IPlayerRepository repo = useMockIfUninjected
                     ? new MockPlayerRepository()
                     : new RestPlayerRepository(defaultApiUrl);
@@ -152,7 +166,7 @@ namespace Assets.Script.UI {
                 profileService = new PlayerProfileService(repo, authService);
             }
 
-            if (localPlayerService == null) {
+            if ( localPlayerService == null ) {
                 localPlayerService = new LocalPlayerService(profileService);
             }
         }

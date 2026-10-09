@@ -24,6 +24,7 @@ namespace Assets.Script.UI.MainMenu {
         [SerializeField] Button changeSubmitButton;
         [SerializeField] TextMeshProUGUI changeSubmitButtonText;
         [SerializeField] GameObject alertPanel;
+        [SerializeField] Image alertPanelImage;
         [SerializeField] TextMeshProUGUI alertText;
 
 
@@ -37,6 +38,11 @@ namespace Assets.Script.UI.MainMenu {
             this.authService = authService;
         }
 
+        void Awake() {
+            // SignInScene owns the persistent root container, pull the auth session from it.
+            RootLifeTimeScope.Ensure()?.InjectGameObject(gameObject);
+        }
+
         void OnEnable() {
             submitButton.onClick.AddListener(OnSubmitClicked);
             changeSubmitButton.onClick.AddListener(OnChangeSubmitClicked);
@@ -44,7 +50,11 @@ namespace Assets.Script.UI.MainMenu {
 
         private void OnSubmitClicked() {
             ReadInput(out string email, out string password, out bool rememberMe);
-            if ( !ValidateInput(email, password) ) ShowAlert("Please fill in all required fields.", AlertType.Error, 5f);
+            
+            if ( !ValidateInput(email, password) ) {
+                ShowAlert("Please fill in all required fields.", AlertType.Error, 5f);
+                return;
+            }
 
             AuthRequest dto = CreateAuthRequest(email, password);
             SendRequest(dto);
@@ -54,7 +64,7 @@ namespace Assets.Script.UI.MainMenu {
 
         private async void SendRequest( AuthRequest request ) {
             try {
-                var response = await authService.LoginAsync(request.email, request.password);
+                var response = await authService.LoginAsync(request.email, request.password); //TODO: Change this to RegisterAsync if isSignInMode is false, and handle the response accordingly.
 
                 if ( response != null && response.isSuccess ) {
                     string name = response.profile?.displayName ?? "Player";
@@ -113,20 +123,21 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         IEnumerator ShowAlertCoroutine( string message, AlertType type, float duration ) {
+            alertPanel.SetActive(true);
+            alertText.text = message;
+
             switch ( type ) {
                 case AlertType.Success:
-                    alertPanel.GetComponent<Image>().color = new Color(69, 129, 18);
+                    alertPanelImage.color = new Color32(69, 129, 18, 255);
                     break;
                 case AlertType.Error:
-                    alertPanel.GetComponent<Image>().color = new Color(185, 47, 46);
+                    alertPanelImage.color = new Color32(185, 47, 46, 255);
                     break;
                 case AlertType.Info:
-                    alertPanel.GetComponent<Image>().color = new Color(212, 231, 177);
+                    alertPanelImage.color = new Color32(212, 231, 177, 255);
                     break;
             }
 
-            alertPanel.SetActive(true);
-            alertText.text = message;
 
             yield return new WaitForSeconds(duration);
 

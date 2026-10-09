@@ -1,7 +1,4 @@
-﻿using Assets.Script.Data.Models;
-using Assets.Script.Data.Repositories;
-using Assets.Script.Data.Services;
-using Assets.Script.Data.SO;
+﻿using Assets.Script.Data.SO;
 using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Effects;
@@ -17,34 +14,27 @@ namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope {
         [SerializeField] private TienLenNetWorkPlayer prefab;
         [SerializeField] private AvatarDatabaseSO avatarDatabase;
-        [SerializeField] private bool useMockRepository = false;
-        [SerializeField] private string apiBaseUrl = "http://localhost:5000/api";
+
+        protected override void Awake() {
+            // Guarantee a persistent root exists even when play mode is started directly
+            // in this scene (the root scope normally lives in the bootstrap scene).
+            RootLifeTimeScope.Ensure();
+
+            base.Awake();
+        }
+
+        /// <summary>
+        /// Persistent services (IAuthService, IPlayerProfileService, ILocalPlayerService,
+        /// IPlayerRepository) are registered by the root scope, so this scene scope only
+        /// registers game/match specific services.
+        /// </summary>
+        protected override LifetimeScope FindParent() => RootLifeTimeScope.Instance;
 
         protected override void Configure( IContainerBuilder builder ) {
-            // ScriptableObject Assets / Databases
+            // ScriptableObject Assets / Databases (scene-local copy)
             if ( avatarDatabase != null ) {
                 builder.RegisterInstance(avatarDatabase).AsSelf();
             }
-
-            // Data Layer
-            if ( useMockRepository ) {
-                builder.Register<MockPlayerRepository>(Lifetime.Singleton)
-                       .As<IPlayerRepository>()
-                       .As<IDataRepository<PlayerProfileData>>();
-            }
-            else {
-                builder.Register<RestPlayerRepository>(Lifetime.Singleton)
-                       .WithParameter("baseUrl", apiBaseUrl)
-                       .As<IPlayerRepository>()
-                       .As<IDataRepository<PlayerProfileData>>();
-            }
-
-            builder.Register<AuthService>(Lifetime.Singleton).As<IAuthService>();
-            builder.Register<PlayerProfileService>(Lifetime.Singleton).As<IPlayerProfileService>();
-
-            builder.Register<LocalPlayerService>(Lifetime.Singleton)
-                   .As<ILocalPlayerService>()
-                   .AsSelf();
 
             builder.RegisterComponentInNewPrefab(prefab, Lifetime.Scoped);
 

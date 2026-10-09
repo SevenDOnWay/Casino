@@ -132,6 +132,8 @@ namespace Assets.Script.UI {
         );
 
         private void Awake() {
+            // Pull the persistent auth session out of the application root container.
+            RootLifeTimeScope.Ensure()?.InjectGameObject(gameObject);
             EnsureAuthService();
         }
 
@@ -146,6 +148,11 @@ namespace Assets.Script.UI {
 #endif
 
         private void EnsureAuthService() {
+            if ( authService == null && RootLifeTimeScope.Ensure() != null ) {
+                RootLifeTimeScope.Instance.TryResolve(out IAuthService resolvedAuthService);
+                authService = resolvedAuthService;
+            }
+
             if ( authService == null ) {
                 IPlayerRepository repo = useMockIfUninjected
                     ? new MockPlayerRepository()

@@ -106,11 +106,6 @@ namespace Assets.Script.Data.Repositories {
                 Debug.LogWarning($"[RestPlayerRepository] Request error ({url}): {ex.Message} -> Response: {webRequest.downloadHandler?.text}");
             }
 
-            if ( webRequest.result == UnityWebRequest.Result.ConnectionError ||
-                 webRequest.result == UnityWebRequest.Result.ProtocolError ) {
-                return webRequest.downloadHandler?.text;
-            }
-
             return webRequest.downloadHandler?.text;
         }
 

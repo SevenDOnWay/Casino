@@ -439,6 +439,7 @@ MonoBehaviour:
   changeSubmitButton: {fileID: 1893433484}
   changeSubmitButtonText: {fileID: 1651249762}
   alertPanel: {fileID: 905652404}
+  alertPanelImage: {fileID: 905652406}
   alertText: {fileID: 1837649275}
 --- !u!1 &271885227
 GameObject:
