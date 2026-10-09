@@ -26,7 +26,7 @@ namespace Assets.Script.TienLen.UI {
     public class UiManager : NetworkBehaviour {
         [Header("Dependencies")]
         [SerializeField] private TienLenGameController tienLenGameController;
-        [SerializeField] private LobbySessionController lobbySessionController;
+        [SerializeField] private SessionController lobbySessionController;
         [SerializeField] private SeatManager seatManager;
 
         [Header("UI Views")]

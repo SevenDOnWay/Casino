@@ -12,7 +12,7 @@ namespace Assets.Script.TienLen.Game {
     /// Authoritative lobby controller. Handles player joins, leaves,
     /// network player object spawning, and seat registration.
     /// </summary>
-    public class LobbySessionController : NetworkBehaviour, INetworkRunnerCallbacks {
+    public class SessionController : NetworkBehaviour, INetworkRunnerCallbacks {
         [Header("Scene Dependencies (Serialized / Injected)")]
         [SerializeField] private SeatManager seatManager;
         [SerializeField] private TienLenGameController gameController;

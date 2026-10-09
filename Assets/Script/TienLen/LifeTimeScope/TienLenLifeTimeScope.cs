@@ -45,7 +45,7 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.Register<TienLenRuleValidator>(Lifetime.Singleton);
 
             // Session & Table State
-            builder.RegisterComponentInHierarchy<LobbySessionController>();
+            builder.RegisterComponentInHierarchy<SessionController>();
             builder.RegisterComponentInHierarchy<TienLenGameController>();
             builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
             builder.RegisterComponentInHierarchy<SeatProvider>();
