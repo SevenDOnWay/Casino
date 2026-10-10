@@ -16,29 +16,23 @@ namespace Assets.Script.NetWorkScript {
 
         private NetworkRunner runner;
 
+        public event Action<List<SessionInfo>> SessionListUpdated;
+
         public void Start() {
             runner = Instantiate(runnerPrefab);
             runner.AddCallbacks(this);
         }
 
-        public void HostRoom( string roomName, int playerCount = 4 ) {
+        public void HostRoom( string roomName, int betStake, int playerCount = 4 ) {
             string target = string.IsNullOrEmpty(roomName) ? testRoomName : roomName;
-            _ = StartSimulation(runner, GameMode.Host, target, playerCount);
+            _ = StartSimulation(runner, GameMode.Host, target, betStake, playerCount);
         }
 
-        public void JoinRoom( string roomName ) {
+        public void JoinRoom( string roomName, int betStake ) {
             string target = string.IsNullOrEmpty(roomName) ? testRoomName : roomName;
-            _ = StartSimulation(runner, GameMode.Client, target);
+            _ = StartSimulation(runner, GameMode.Client, target, betStake);
         }
 
-        public async void HostRoomButton() {
-            await StartSimulation(runner, GameMode.Host, testRoomName, 4);
-        }
-
-        public async void JoinRoomButton( string roomName ) {
-            string targetRoom = string.IsNullOrEmpty(roomName) ? testRoomName : roomName;
-            await StartSimulation(runner, GameMode.Client, targetRoom);
-        }
 
         private SceneRef GetGameplaySceneRef() {
             var sceneIndex = SceneUtility.GetBuildIndexByScenePath(gameplaySceneName);
@@ -48,11 +42,14 @@ namespace Assets.Script.NetWorkScript {
             return SceneRef.FromIndex(sceneIndex);
         }
 
-        private async Task<StartGameResult> StartSimulation( NetworkRunner runner, GameMode mode, string sessionName, int playerCount = 4 ) {
+
+        private async Task<StartGameResult> StartSimulation( NetworkRunner runner, GameMode mode, string sessionName, int betStake, int playerCount = 4 ) {
             var sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
             if ( sceneManager == null ) {
                 sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
             }
+
+            Dictionary<string, SessionProperty> sessionProperties = new (){{ "BetStake", betStake.ToString() }};
 
             var sceneRef = GetGameplaySceneRef();
 
@@ -60,6 +57,7 @@ namespace Assets.Script.NetWorkScript {
             {
                 GameMode = mode,
                 SessionName = sessionName,
+                SessionProperties = sessionProperties,
                 PlayerCount = playerCount,
                 Scene = sceneRef,
                 SceneManager = sceneManager
@@ -129,6 +127,10 @@ namespace Assets.Script.NetWorkScript {
             }
         }
 
+        public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) {
+            SessionListUpdated?.Invoke(sessionList);
+        }
+
         #region INetworkRunnerCallbacks
 
         public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
@@ -144,7 +146,6 @@ namespace Assets.Script.NetWorkScript {
         public void OnInput( NetworkRunner runner, NetworkInput input ) { }
         public void OnInputMissing( NetworkRunner runner, PlayerRef player, NetworkInput input ) { }
         void INetworkRunnerCallbacks.OnConnectedToServer( NetworkRunner runner ) { }
-        public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) { }
         public void OnCustomAuthenticationResponse( NetworkRunner runner, Dictionary<string, object> data ) { }
 
         public void OnSceneLoadDone( NetworkRunner runner ) { }

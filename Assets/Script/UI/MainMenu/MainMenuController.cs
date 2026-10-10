@@ -505,14 +505,14 @@ namespace Assets.Script.UI {
         // Action Handlers
         // =====================================================================
         private void HandleQuickJoin() {
-            Debug.Log("[MainMenuController] Quick Join requested. Matching with active table...");
-            OnQuickJoinRequested?.Invoke();
+            //Debug.Log("[MainMenuController] Quick Join requested. Matching with active table...");
+            //OnQuickJoinRequested?.Invoke();
 
-            if (networkController != null) {
-                networkController.JoinRoom("QuickMatch");
-            } else {
-                LoadGameplayScene();
-            }
+            //if (networkController != null) {
+            //    networkController.JoinRoom("QuickMatch");
+            //} else {
+            //    LoadGameplayScene();
+            //}
         }
 
         private void HandleConfirmHostTable() {
@@ -544,15 +544,15 @@ namespace Assets.Script.UI {
         }
 
         private void HandleJoinTable(string roomCode) {
-            Debug.Log($"[MainMenuController] Joining room '{roomCode}'...");
-            CloseModal(modalSearchTables);
-            OnJoinTableRequested?.Invoke(roomCode);
+            //Debug.Log($"[MainMenuController] Joining room '{roomCode}'...");
+            //CloseModal(modalSearchTables);
+            //OnJoinTableRequested?.Invoke(roomCode);
 
-            if (networkController != null) {
-                networkController.JoinRoom(roomCode);
-            } else {
-                LoadGameplayScene();
-            }
+            //if (networkController != null) {
+            //    networkController.JoinRoom(roomCode);
+            //} else {
+            //    LoadGameplayScene();
+            //}
         }
 
         private void HandleSoloPractice() {

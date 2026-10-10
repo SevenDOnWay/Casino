@@ -454,14 +454,14 @@ namespace Assets.Script.UI.MainMenu {
         // Play actions
         // =====================================================================
         private void HandleQuickJoin() {
-            Debug.Log("[MainMenuUI] Quick Join requested. Matching with an active table...");
-            OnQuickJoinRequested?.Invoke();
+            //Debug.Log("[MainMenuUI] Quick Join requested. Matching with an active table...");
+            //OnQuickJoinRequested?.Invoke();
 
-            if (networkController != null) {
-                networkController.JoinRoom("QuickMatch");
-            } else {
-                LoadGameplayScene();
-            }
+            //if (networkController != null) {
+            //    networkController.JoinRoom("QuickMatch");
+            //} else {
+            //    LoadGameplayScene();
+            //}
         }
 
         private void HandleConfirmHost() {
@@ -485,21 +485,21 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         private void HandleJoinByCode() {
-            string code = inputRoomCode != null ? inputRoomCode.text.Trim() : string.Empty;
-            if (string.IsNullOrEmpty(code)) {
-                Debug.LogWarning("[MainMenuUI] Please enter a valid room code.");
-                return;
-            }
+            //string code = inputRoomCode != null ? inputRoomCode.text.Trim() : string.Empty;
+            //if (string.IsNullOrEmpty(code)) {
+            //    Debug.LogWarning("[MainMenuUI] Please enter a valid room code.");
+            //    return;
+            //}
 
-            Debug.Log($"[MainMenuUI] Joining room '{code}'...");
-            CloseSearchPanel();
-            OnJoinTableRequested?.Invoke(code);
+            //Debug.Log($"[MainMenuUI] Joining room '{code}'...");
+            //CloseSearchPanel();
+            //OnJoinTableRequested?.Invoke(code);
 
-            if (networkController != null) {
-                networkController.JoinRoom(code);
-            } else {
-                LoadGameplayScene();
-            }
+            //if (networkController != null) {
+            //    networkController.JoinRoom(code);
+            //} else {
+            //    LoadGameplayScene();
+            //}
         }
 
         // =====================================================================
