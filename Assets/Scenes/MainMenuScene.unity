@@ -5913,7 +5913,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1652483848}
-  - component: {fileID: 1652483845}
   m_Layer: 0
   m_Name: MainMenuUI
   m_TagString: Untagged
@@ -5921,65 +5920,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1652483845
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1652483844}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2ff541edd21541ed84f0012e1f3afb5c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.UI.MainMenu.MainMenuUIController
-  config: {fileID: 11400000, guid: d6277b74df5db574f895a74b896aab06, type: 2}
-  avatarDatabase: {fileID: 0}
-  useMockIfUninjected: 1
-  defaultApiUrl: http://localhost:5000/api
-  networkController: {fileID: 0}
-  playerInfoPanel: {fileID: 0}
-  avatarImage: {fileID: 0}
-  avatarInitialsText: {fileID: 0}
-  playerNameText: {fileID: 0}
-  playerLevelText: {fileID: 0}
-  playerMoneyText: {fileID: 0}
-  btnOpenProfile: {fileID: 0}
-  playOptionsPanel: {fileID: 0}
-  btnQuickJoin: {fileID: 0}
-  btnHostTable: {fileID: 0}
-  btnSearchTable: {fileID: 0}
-  profilePanel: {fileID: 0}
-  inputDisplayName: {fileID: 0}
-  btnAvatarPrev: {fileID: 0}
-  btnAvatarNext: {fileID: 0}
-  profileAvatarPreview: {fileID: 0}
-  profileAvatarNameText: {fileID: 0}
-  btnSaveProfile: {fileID: 0}
-  btnCancelProfile: {fileID: 0}
-  hostPanel: {fileID: 0}
-  inputTableName: {fileID: 0}
-  stakeDisplayText: {fileID: 0}
-  btnGameTypeCasual: {fileID: 0}
-  btnGameTypeRanked: {fileID: 0}
-  btnGameTypeFast: {fileID: 0}
-  gameTypeText: {fileID: 0}
-  btnStake1k: {fileID: 0}
-  btnStake5k: {fileID: 0}
-  btnStake20k: {fileID: 0}
-  btnStake100k: {fileID: 0}
-  btnPlayers2: {fileID: 0}
-  btnPlayers3: {fileID: 0}
-  btnPlayers4: {fileID: 0}
-  togglePrivateRoom: {fileID: 0}
-  btnConfirmHost: {fileID: 0}
-  btnCancelHost: {fileID: 0}
-  searchPanel: {fileID: 0}
-  inputRoomCode: {fileID: 0}
-  btnJoinByCode: {fileID: 0}
-  btnCloseSearch: {fileID: 0}
-  selectedColor: {r: 0.204, g: 0.827, b: 0.6, a: 1}
-  normalColor: {r: 0.22, g: 0.24, b: 0.28, a: 1}
 --- !u!4 &1652483848
 Transform:
   m_ObjectHideFlags: 0
