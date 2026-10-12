@@ -131,11 +131,11 @@ namespace Assets.Script.UI {
             RegexOptions.Compiled | RegexOptions.IgnoreCase
         );
 
-        private void Awake() {
-            // Pull the persistent auth session out of the application root container.
-            RootLifeTimeScope.Ensure()?.InjectGameObject(gameObject);
-            EnsureAuthService();
-        }
+        //private void Awake() {
+        //    // Pull the persistent auth session out of the application root container.
+        //    RootLifeTimeScope.Ensure()?.InjectGameObject(gameObject);
+        //    EnsureAuthService();
+        //}
 
 #if UNITY_EDITOR
         private void OnValidate() {
@@ -147,19 +147,19 @@ namespace Assets.Script.UI {
         }
 #endif
 
-        private void EnsureAuthService() {
-            if ( authService == null && RootLifeTimeScope.Ensure() != null ) {
-                RootLifeTimeScope.Instance.TryResolve(out IAuthService resolvedAuthService);
-                authService = resolvedAuthService;
-            }
+        //private void EnsureAuthService() {
+        //    if ( authService == null && RootLifeTimeScope.Ensure() != null ) {
+        //        RootLifeTimeScope.Instance.TryResolve(out IAuthService resolvedAuthService);
+        //        authService = resolvedAuthService;
+        //    }
 
-            if ( authService == null ) {
-                IPlayerRepository repo = useMockIfUninjected
-                    ? new MockPlayerRepository()
-                    : new RestPlayerRepository(defaultApiUrl);
-                authService = new AuthService(repo);
-            }
-        }
+        //    if ( authService == null ) {
+        //        IPlayerRepository repo = useMockIfUninjected
+        //            ? new MockPlayerRepository()
+        //            : new RestPlayerRepository(defaultApiUrl);
+        //        authService = new AuthService(repo);
+        //    }
+        //}
 
         private void OnEnable() {
             BindUI();
@@ -294,7 +294,7 @@ namespace Assets.Script.UI {
             OnLoginRequested?.Invoke(email, password, rememberMe);
 
             try {
-                EnsureAuthService();
+                //EnsureAuthService();
                 var response = await authService.LoginAsync(email, password);
 
                 SetSubmittingState(false);
@@ -324,7 +324,7 @@ namespace Assets.Script.UI {
             OnRegisterRequested?.Invoke(email, password);
 
             try {
-                EnsureAuthService();
+                //EnsureAuthService();
                 var response = await authService.RegisterAsync(email, password);
 
                 SetSubmittingState(false);

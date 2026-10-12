@@ -38,10 +38,10 @@ namespace Assets.Script.UI.MainMenu {
             this.authService = authService;
         }
 
-        void Awake() {
-            // SignInScene owns the persistent root container, pull the auth session from it.
-            RootLifeTimeScope.Ensure()?.InjectGameObject(gameObject);
-        }
+        //void Awake() {
+        //    // SignInScene owns the persistent root container, pull the auth session from it.
+        //    RootLifeTimeScope.Ensure()?.InjectGameObject(gameObject);
+        //}
 
         void OnEnable() {
             submitButton.onClick.AddListener(OnSubmitClicked);
@@ -50,11 +50,15 @@ namespace Assets.Script.UI.MainMenu {
 
         private void OnSubmitClicked() {
             ReadInput(out string email, out string password, out bool rememberMe);
-            
+
             if ( !ValidateInput(email, password) ) {
                 ShowAlert("Please fill in all required fields.", AlertType.Error, 5f);
                 return;
             }
+
+#if UNITY_EDITOR
+            CheckForAdmin();
+#endif
 
             AuthRequest dto = CreateAuthRequest(email, password);
             SendRequest(dto);
@@ -147,6 +151,16 @@ namespace Assets.Script.UI.MainMenu {
         private void NavigateToNextScene() {
             SceneManager.LoadSceneAsync(nextSceneName);
         }
+
+
+
+        private void CheckForAdmin() {
+            if ( emailInputField.text == "admin" && passwordInputField.text == "admin" ) {
+                Debug.Log("Admin credentials detected. Navigating to AdminScene.");
+                NavigateToNextScene();
+            }
+        }
+
     }
 
 }

@@ -1,4 +1,5 @@
 ﻿using Assets.Script.NetWorkScript;
+using Cysharp.Threading.Tasks.Triggers;
 using Fusion;
 using JetBrains.Annotations;
 using System;
@@ -6,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
 using VContainer;
 using static UnityEngine.Rendering.CoreUtils;
 
@@ -18,16 +20,17 @@ namespace Assets.Script.UI.MainMenu.Panel {
             public int index;
         }
 
-        private Dictionary<string, SessionEntry> sessionEntries = new Dictionary<string, SessionEntry>();
-        List<SessionInfo>  availableSessions = new List<SessionInfo>();
-
         [Header("Dependencies")]
         [Inject] TienLenNetworkController networkController;
 
+        [SerializeField] Button closeButton;
         [SerializeField] GameObject betButtonPrefab;
         [SerializeField] GameObject sessionButtonPrefab;
         [SerializeField] Transform betButtonContainer;
         [SerializeField] Transform sessionButtonContainer;
+
+        private Dictionary<string, SessionEntry> sessionEntries = new Dictionary<string, SessionEntry>();
+        List<SessionInfo>  availableSessions = new List<SessionInfo>();
 
         Dictionary<int,int > dic = new Dictionary<int, int>() {
             {0, 5}, {1,10}, {2,20}, {3,50} ,{4, 100 }
@@ -40,10 +43,12 @@ namespace Assets.Script.UI.MainMenu.Panel {
         }
 
         void OnEnable() {
+            closeButton.onClick.AddListener(() => gameObject.SetActive(false));
             networkController.SessionListUpdated += OnSessionListUpdated;
         }
 
         void OnDisable() {
+            closeButton.onClick.RemoveAllListeners();
             networkController.SessionListUpdated -= OnSessionListUpdated;
         }
 

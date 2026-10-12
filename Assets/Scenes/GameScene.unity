@@ -289,7 +289,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.TienLenGameController
   uiManager: {fileID: 1967596348}
-  tableVisualLayoutManager: {fileID: 0}
+  tableVisualLayoutManager: {fileID: 1611512765}
   minPlayersToStart: 2
   _IsGameStarted:
     RawValue: 0
@@ -398,10 +398,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7612670617904368543, guid: ea88e677d86c915458f91fc326229e57, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ea88e677d86c915458f91fc326229e57, type: 3}
 --- !u!4 &335409599 stripped
 Transform:
@@ -1002,9 +999,6 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   prefab: {fileID: 38872888978625927, guid: 324c1b15187ebc544a0d5a2a8d0cbf6f, type: 3}
-  avatarDatabase: {fileID: 11400000, guid: 58f96e23b1024344ca21894d01b1e389, type: 2}
-  useMockRepository: 0
-  apiBaseUrl: http://localhost:5000/api
 --- !u!4 &633747304
 Transform:
   m_ObjectHideFlags: 0
@@ -1166,10 +1160,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7612670617904368543, guid: ea88e677d86c915458f91fc326229e57, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ea88e677d86c915458f91fc326229e57, type: 3}
 --- !u!4 &779398714 stripped
 Transform:
@@ -1919,10 +1910,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7612670617904368543, guid: ea88e677d86c915458f91fc326229e57, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ea88e677d86c915458f91fc326229e57, type: 3}
 --- !u!4 &1921171626 stripped
 Transform:
@@ -1938,10 +1926,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1937543991}
-  - component: {fileID: 1937543990}
   - component: {fileID: 1937543989}
+  - component: {fileID: 1937543992}
   m_Layer: 0
-  m_Name: LobbySessionController
+  m_Name: SessionController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1965,23 +1953,8 @@ MonoBehaviour:
   Flags: 262146
   NestedObjects: []
   NetworkedBehaviours:
-  - {fileID: 1937543990}
+  - {fileID: 1937543992}
   ForceRemoteRenderTimeframe: 0
---- !u!114 &1937543990
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1937543988}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3a58c837622c15840bba93928ac4ae3a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.LobbySessionController
-  seatManager: {fileID: 2034101244}
-  gameController: {fileID: 183374122}
-  networkPlayerPrefab: {fileID: 6573136436725559624, guid: 324c1b15187ebc544a0d5a2a8d0cbf6f, type: 3}
 --- !u!4 &1937543991
 Transform:
   m_ObjectHideFlags: 0
@@ -1997,6 +1970,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1937543992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1937543988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ead83c3bd91b9643b3383a1c103b4d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.SessionController
+  seatManager: {fileID: 0}
+  gameController: {fileID: 0}
+  networkPlayerPrefab: {fileID: 6573136436725559624, guid: 324c1b15187ebc544a0d5a2a8d0cbf6f, type: 3}
 --- !u!1 &1967596339
 GameObject:
   m_ObjectHideFlags: 0
@@ -2152,7 +2140,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.UiManager
   tienLenGameController: {fileID: 183374122}
-  lobbySessionController: {fileID: 1937543990}
+  lobbySessionController: {fileID: 0}
   seatManager: {fileID: 2034101244}
   sessionDisplayUI: {fileID: 1967596341}
   startGameUI: {fileID: 428874638}
@@ -2841,10 +2829,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7612670617904368543, guid: ea88e677d86c915458f91fc326229e57, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ea88e677d86c915458f91fc326229e57, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

@@ -24,15 +24,17 @@ namespace Assets.Script.NetWorkScript {
         }
 
         public void HostRoom( string roomName, int betStake, int playerCount = 4 ) {
-            string target = string.IsNullOrEmpty(roomName) ? testRoomName : roomName;
-            _ = StartSimulation(runner, GameMode.Host, target, betStake, playerCount);
+            _ = StartSimulation(runner, GameMode.Host, roomName, betStake, playerCount);
         }
 
         public void JoinRoom( string roomName, int betStake ) {
-            string target = string.IsNullOrEmpty(roomName) ? testRoomName : roomName;
-            _ = StartSimulation(runner, GameMode.Client, target, betStake);
+            _ = StartSimulation(runner, GameMode.Client, roomName, betStake);
         }
 
+        public void QuickPlay() {
+            //TODO: Implement quick play logic, e.g., find a session with the lowest bet stake or create a new one if none are available.
+            Debug.Log("QuickPlay is not implemented yet.");
+        }
 
         private SceneRef GetGameplaySceneRef() {
             var sceneIndex = SceneUtility.GetBuildIndexByScenePath(gameplaySceneName);
@@ -70,6 +72,12 @@ namespace Assets.Script.NetWorkScript {
             return result;
         }
 
+        public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) {
+            Debug.Log($"[SessionListUpdated] Received {sessionList.Count} sessions.");
+            SessionListUpdated?.Invoke(sessionList);
+        }
+
+        #region Host Migration
         private void OnHostMigrationResume( NetworkRunner newRunner ) {
             Debug.Log("[HostMigration] Resuming Host on new Host instance...");
 
@@ -127,9 +135,7 @@ namespace Assets.Script.NetWorkScript {
             }
         }
 
-        public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) {
-            SessionListUpdated?.Invoke(sessionList);
-        }
+        #endregion
 
         #region INetworkRunnerCallbacks
 

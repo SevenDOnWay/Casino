@@ -11,8 +11,8 @@ namespace Assets.Script.UI.MainMenu {
     public class PlayerProfileUI: MonoBehaviour {
         [Header("Dependencies")]
         [Inject] IPlayerProfileService playerProfileService;
+        [Inject] AvatarDatabaseSO avatarDatabase;
 
-        [SerializeField] AvatarDatabaseSO avatarDatabase;
         [SerializeField] Image avatar;
         [SerializeField] TextMeshProUGUI playerName;
         [SerializeField] TextMeshProUGUI playerLevel;

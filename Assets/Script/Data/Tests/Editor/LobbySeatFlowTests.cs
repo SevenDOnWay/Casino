@@ -49,9 +49,7 @@ namespace Assets.Script.Data.Tests {
             infoView = seatObject.AddComponent<PlayerInfoView>();
             infoView.Initialize(
                 avatar: avatarRenderer,
-                nameText: nameText,
                 money: moneyText,
-                levelText: levelText,
                 turnTimer: timer,
                 infoRoot: container
             );

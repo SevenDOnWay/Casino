@@ -24,9 +24,7 @@ namespace Assets.Script.TienLen.UI {
 
         [Inject]
         public void Construct( SeatProvider seatProvider = null ) {
-            if ( seatProvider != null ) {
-                this.seatProvider = seatProvider;
-            }
+            this.seatProvider = seatProvider;
         }
 
         /// <summary>

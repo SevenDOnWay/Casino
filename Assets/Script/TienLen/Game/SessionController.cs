@@ -14,11 +14,11 @@ namespace Assets.Script.TienLen.Game {
     /// </summary>
     public class SessionController : NetworkBehaviour, INetworkRunnerCallbacks {
         [Header("Scene Dependencies (Serialized / Injected)")]
-        [SerializeField] private SeatManager seatManager;
-        [SerializeField] private TienLenGameController gameController;
+        [Inject] private SeatManager seatManager;
+        [Inject] private TienLenGameController gameController;
 
-        private IPlayerRegisterService playerRegisterService;
-        private ISeatQueryService seatQueryService;
+        [Inject] private IPlayerRegisterService playerRegisterService;
+        [Inject] private ISeatQueryService seatQueryService;
 
         public IPlayerRegisterService RegisterService => playerRegisterService ?? seatManager;
         public ISeatQueryService SeatQuery => seatQueryService ?? seatManager;
@@ -27,15 +27,6 @@ namespace Assets.Script.TienLen.Game {
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
 
-        [Inject]
-        public void Construct(
-            IPlayerRegisterService playerRegisterService = null,
-            ISeatQueryService seatQueryService = null,
-            TienLenGameController gameController = null ) {
-            if ( playerRegisterService != null ) this.playerRegisterService = playerRegisterService;
-            if ( seatQueryService != null ) this.seatQueryService = seatQueryService;
-            if ( gameController != null ) this.gameController = gameController;
-        }
 
         public override void Spawned() {
             Runner.AddCallbacks(this);

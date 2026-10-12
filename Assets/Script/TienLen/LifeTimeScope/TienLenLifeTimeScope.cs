@@ -13,28 +13,11 @@ using VContainer.Unity;
 namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope {
         [SerializeField] private TienLenNetWorkPlayer prefab;
-        [SerializeField] private AvatarDatabaseSO avatarDatabase;
 
-        protected override void Awake() {
-            // Guarantee a persistent root exists even when play mode is started directly
-            // in this scene (the root scope normally lives in the bootstrap scene).
-            RootLifeTimeScope.Ensure();
 
-            base.Awake();
-        }
-
-        /// <summary>
-        /// Persistent services (IAuthService, IPlayerProfileService, ILocalPlayerService,
-        /// IPlayerRepository) are registered by the root scope, so this scene scope only
-        /// registers game/match specific services.
-        /// </summary>
-        protected override LifetimeScope FindParent() => RootLifeTimeScope.Instance;
 
         protected override void Configure( IContainerBuilder builder ) {
             // ScriptableObject Assets / Databases (scene-local copy)
-            if ( avatarDatabase != null ) {
-                builder.RegisterInstance(avatarDatabase).AsSelf();
-            }
 
             builder.RegisterComponentInNewPrefab(prefab, Lifetime.Scoped);
 

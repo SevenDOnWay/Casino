@@ -62,6 +62,7 @@ namespace Assets.Script.TienLen.UI {
             if ( infoView != null ) {
                 infoView.SetPlayerInfo(player);
             }
+            SetVisible(true);
         }
 
         public void UpdatePlayerVisuals() {
@@ -69,6 +70,10 @@ namespace Assets.Script.TienLen.UI {
                 infoView.SetPlayerInfo(tienLenPlayer);
             }
         }
+        public void SetVisible( bool visible ) {
+            gameObject.SetActive(visible);
+        }
+
 
         /// <summary>
         /// Clears all player visuals and cards from this seat slot.
@@ -78,12 +83,14 @@ namespace Assets.Script.TienLen.UI {
                 cardHolder.Clear();
             }
 
-            tienLenPlayer = null;
-            BoundSeatIndex = -1;
-
             if ( infoView != null ) {
                 infoView.Clear();
             }
+
+            tienLenPlayer = null;
+            BoundSeatIndex = -1;
+
+            SetVisible(false);
         }
 
         /// <summary>
@@ -106,6 +113,7 @@ namespace Assets.Script.TienLen.UI {
         public int GetVisualIndex() {
             return visualIndex;
         }
+
 
         #region Turn Timer
 
@@ -137,7 +145,5 @@ namespace Assets.Script.TienLen.UI {
         }
 
         #endregion
-
-        public static string FormatMoney( long amount ) => PlayerInfoView.FormatMoney(amount);
     }
 }
