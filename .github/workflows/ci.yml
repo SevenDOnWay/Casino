@@ -25,6 +25,7 @@ jobs:
     permissions:
       contents: read
       checks: write
+
     steps:
       - uses: actions/checkout@v6
         with:
@@ -34,10 +35,15 @@ jobs:
         with:
           path: Library
           key: Library-${{ runner.os }}-${{ hashFiles('Packages/packages-lock.json', 'ProjectSettings/ProjectVersion.txt') }}
-          restore-keys: Library-${{ runner.os }}-
+          restore-keys: |
+            Library-${{ runner.os }}-
 
-      - uses: game-ci/unity-test-runner@v4
+      # Run Unity tests. Continue so reports can be uploaded
+      # and summarized even when the test runner fails.
+      - name: Run Unity EditMode tests
         id: tests
+        uses: game-ci/unity-test-runner@v4
+        continue-on-error: true
         env:
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -45,11 +51,183 @@ jobs:
         with:
           unityVersion: auto
           testMode: EditMode
+          artifactsPath: artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity EditMode Test Results
 
-      - uses: actions/upload-artifact@v7
+      # Preserve raw XML reports and other runner artifacts.
+      - name: Upload Unity test results
         if: always()
+        uses: actions/upload-artifact@v7
         with:
           name: Unity test results
           path: artifacts
           if-no-files-found: warn
+
+      # Produce a readable report in the Actions Summary tab.
+      - name: Add readable test failures to summary
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
+
+          files = glob.glob("artifacts/**/*.xml", recursive=True)
+
+          total = 0
+          passed = 0
+          failed = []
+          valid_reports = 0
+
+          for filename in files:
+              try:
+                  root = ET.parse(filename).getroot()
+                  valid_reports += 1
+              except (ET.ParseError, OSError) as error:
+                  print(f"Could not parse {filename}: {error}")
+                  continue
+
+              for test in root.iter("test-case"):
+                  total += 1
+                  result = test.get("result", "")
+                  name = (
+                      test.get("fullname")
+                      or test.get("name")
+                      or "Unknown test"
+                  )
+
+                  if result == "Passed":
+                      passed += 1
+
+                  elif result in ("Failed", "Error"):
+                      failure = test.find("failure")
+                      message = ""
+                      stack_trace = ""
+
+                      if failure is not None:
+                          message_node = failure.find("message")
+                          stack_node = failure.find("stack-trace")
+
+                          if message_node is not None and message_node.text:
+                              message = message_node.text.strip()
+
+                          if stack_node is not None and stack_node.text:
+                              stack_trace = stack_node.text.strip()
+
+                      failed.append(
+                          (name, result, message, stack_trace, filename)
+                      )
+
+          runner_outcome = os.environ.get(
+              "TEST_OUTCOME", "unknown"
+          )
+
+          with open(
+              os.environ["GITHUB_STEP_SUMMARY"], "a"
+          ) as summary:
+              summary.write("## Unity EditMode test results\n\n")
+              summary.write(f"- Total: **{total}**\n")
+              summary.write(f"- Passed: **{passed}**\n")
+              summary.write(f"- Failed: **{len(failed)}**\n")
+              summary.write(
+                  f"- Test runner outcome: **{runner_outcome}**\n"
+              )
+              summary.write(
+                  f"- Valid XML reports: **{valid_reports}**\n\n"
+              )
+
+              if failed:
+                  summary.write("### Failed tests\n\n")
+
+                  for name, result, message, stack, filename in failed:
+                      summary.write(f"#### `{name}` — {result}\n\n")
+                      summary.write(f"Report: `{filename}`\n\n")
+
+                      if message:
+                          summary.write(f"**Message:** {message}\n\n")
+
+                      if stack:
+                          summary.write("**Stack trace:**\n\n")
+                          summary.write("```text\n")
+                          summary.write(stack)
+                          summary.write("\n```\n\n")
+
+              if total == 0:
+                  summary.write(
+                      "⚠️ No test cases were found in valid XML reports.\n\n"
+                  )
+              elif not failed:
+                  summary.write("All discovered test cases passed.\n")
+
+          print(
+              f"Discovered {total} tests: {passed} passed, "
+              f"{len(failed)} failed."
+          )
+          PY
+
+      # Ensure missing reports or runner failures cannot pass CI.
+      - name: Validate Unity test results
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import glob
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+
+          files = glob.glob("artifacts/**/*.xml", recursive=True)
+
+          valid_reports = 0
+          total = 0
+          failed = 0
+
+          for filename in files:
+              try:
+                  root = ET.parse(filename).getroot()
+                  valid_reports += 1
+              except (ET.ParseError, OSError) as error:
+                  print(f"Could not parse {filename}: {error}")
+                  continue
+
+              for test in root.iter("test-case"):
+                  total += 1
+
+                  if test.get("result") in ("Failed", "Error"):
+                      failed += 1
+
+          errors = []
+          runner_outcome = os.environ.get(
+              "TEST_OUTCOME", "unknown"
+          )
+
+          if runner_outcome != "success":
+              errors.append(
+                  f"Unity test runner did not succeed: {runner_outcome}"
+              )
+
+          if valid_reports == 0:
+              errors.append("No valid Unity XML reports were found.")
+
+          if total == 0:
+              errors.append(
+                  "No test cases were found in the XML reports."
+              )
+
+          if failed:
+              errors.append(f"{failed} Unity test(s) failed.")
+
+          if errors:
+              print("Unity CI validation failed:")
+              for error in errors:
+                  print(f"- {error}")
+              sys.exit(1)
+
+          print(f"All {total} discovered Unity tests passed.")
+          PY
