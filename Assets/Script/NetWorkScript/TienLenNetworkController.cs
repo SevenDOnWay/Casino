@@ -1,11 +1,14 @@
+using Assets.Script.TienLen.Game;
 using Fusion;
 using Fusion.Sockets;
+using Photon.Realtime;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Assets.Script.TienLen.Game;
 
 namespace Assets.Script.NetWorkScript {
     public class TienLenNetworkController : MonoBehaviour, INetworkRunnerCallbacks {
@@ -31,9 +34,38 @@ namespace Assets.Script.NetWorkScript {
             _ = StartSimulation(runner, GameMode.Client, roomName, betStake);
         }
 
-        public void QuickPlay() {
-            //TODO: Implement quick play logic, e.g., find a session with the lowest bet stake or create a new one if none are available.
-            Debug.Log("QuickPlay is not implemented yet.");
+        public async Task<StartGameResult> QuickPlay( int betStake, int playerCount = 4 ) {
+            var sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
+            if ( sceneManager == null ) {
+                sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
+            }
+
+            var sessionProperties = new Dictionary<string, SessionProperty> {{ "BetStake", betStake.ToString() }};
+
+            var result = await runner.StartGame(new StartGameArgs{
+                GameMode = GameMode.AutoHostOrClient,
+
+                // No SessionName: find a compatible session automatically.
+                SessionProperties = sessionProperties,
+
+                SessionName = GenerateRandomRoomName(),
+                PlayerCount = playerCount,
+                Scene = GetGameplaySceneRef(),
+                SceneManager = sceneManager,
+
+                // Allow new tables to accept players and appear in the lobby.
+                IsOpen = true,
+                IsVisible = true,
+
+                MatchmakingMode = MatchmakingMode.FillRoom
+            });
+
+
+            if ( !result.Ok ) {
+                Debug.LogError($"Failed to start session: {result.ShutdownReason}");
+            }
+
+            return result;
         }
 
         private SceneRef GetGameplaySceneRef() {
@@ -75,6 +107,19 @@ namespace Assets.Script.NetWorkScript {
         public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) {
             Debug.Log($"[SessionListUpdated] Received {sessionList.Count} sessions.");
             SessionListUpdated?.Invoke(sessionList);
+        }
+
+        public string GenerateRandomRoomName() {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var stringBuilder = new StringBuilder(6);
+            var random = new System.Random();
+            
+            for ( int i = 0; i < 6; i++ ) {
+                int index = random.Next(chars.Length);
+                stringBuilder.Append(chars[index]);
+            }
+
+            return stringBuilder.ToString();
         }
 
         #region Host Migration
