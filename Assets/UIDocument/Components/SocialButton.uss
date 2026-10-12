@@ -1,0 +1,107 @@
+/* ============================================================================
+   SocialLoginButton Component Stylesheet
+   Reusable Social Authentication Button for UI Toolkit
+   ============================================================================ */
+
+.social-btn {
+    flex-grow: 1;
+    flex-basis: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-top: 0;
+    margin-bottom: 0;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(24, 24, 27, 0.9);
+    cursor: link;
+    transition-property: background-color, border-color, scale;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-out;
+}
+
+.social-btn:hover {
+    background-color: rgba(39, 39, 42, 1);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.social-btn:active {
+    background-color: rgba(63, 63, 70, 0.8);
+    scale: 0.98 0.98;
+}
+
+.social-btn__icon-container {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.social-btn__icon-badge {
+    font-size: 14px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    margin: 0;
+    padding: 0;
+}
+
+.social-btn__label {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: #f4f4f5;
+    -unity-text-align: middle-left;
+    margin: 0;
+    padding: 0;
+}
+
+/* Provider Specific Styles */
+.social-btn--google .social-btn__icon-badge {
+    color: #4285f4;
+}
+
+.social-btn--facebook {
+    border-color: rgba(24, 119, 242, 0.25);
+}
+
+.social-btn--facebook .social-btn__icon-badge {
+    color: #1877f2;
+    -unity-font-style: bold;
+    font-size: 16px;
+}
+
+.social-btn--apple .social-btn__icon-badge {
+    color: #f4f4f5;
+}
+
+/* Light Theme Overrides */
+.theme-light .social-btn {
+    background-color: #ffffff;
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+.theme-light .social-btn:hover {
+    background-color: #f8fafc;
+    border-color: rgba(0, 0, 0, 0.25);
+}
+
+.theme-light .social-btn:active {
+    background-color: #f1f5f9;
+}
+
+.theme-light .social-btn__label {
+    color: #1e293b;
+}
+
+.theme-light .social-btn--apple .social-btn__icon-badge {
+    color: #0f172a;
+}

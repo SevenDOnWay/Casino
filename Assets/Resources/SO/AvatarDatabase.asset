@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36e34e8f4efff894abadf4dfe1549666, type: 3}
+  m_Name: AvatarDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.Data.SO.AvatarDatabaseSO
+  avatars:
+  - avatarId: 0
+    avatarName: Yellow
+    avatarSprite: {fileID: 8884316054538865703, guid: 215087eac3a2ebb46949885471cc2915, type: 3}
+  - avatarId: 1
+    avatarName: Blue
+    avatarSprite: {fileID: -5036926067937223484, guid: 5ed5c2b98295b254892adfe765293e38, type: 3}
+  - avatarId: 2
+    avatarName: Red
+    avatarSprite: {fileID: -7294680070940990409, guid: 9ab596414e7461f4db3b42bf906966e9, type: 3}
+  - avatarId: 3
+    avatarName: Green
+    avatarSprite: {fileID: 4962679526896243618, guid: 4b78f133a9ef5ab459bd182a611509e1, type: 3}
+  - avatarId: 4
+    avatarName: Purple
+    avatarSprite: {fileID: -1590415787721692402, guid: 278d1e3b296f84a4eb228636c51ecf53, type: 3}
+  - avatarId: 5
+    avatarName: Pink
+    avatarSprite: {fileID: 6753661973359616204, guid: 38e1d1a4ecd3dcd47b9176923cc193fe, type: 3}

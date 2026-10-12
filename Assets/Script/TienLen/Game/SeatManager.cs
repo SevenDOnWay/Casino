@@ -68,7 +68,7 @@ namespace Assets.Script.TienLen.Game {
             }
 
             // Initial snapshot rebuild to pick up seats that already replicated (e.g. late-joining client).
-            _ = OnOccupiedSeatsChangedAsync();
+            OnOccupiedSeatsChangedInternal();
         }
 
         public void CleanupDisconnectedSeats() {
@@ -117,13 +117,13 @@ namespace Assets.Script.TienLen.Game {
                     retryAttempts = 0;
                 }
                 else {
-                    _ = OnOccupiedSeatsChangedAsync();
+                    OnOccupiedSeatsChangedInternal();
                 }
             }
 
             // Self-heal: the model must mirror every resolvable dict entry.
             if ( !retryPending && seatedPlayers.Count != ResolvedSeatCount ) {
-                _ = OnOccupiedSeatsChangedAsync();
+                OnOccupiedSeatsChangedInternal();
             }
         }
 
@@ -146,6 +146,7 @@ namespace Assets.Script.TienLen.Game {
 
             networkOccupiedSeats.Add(seatIndex, tienLenNetWorkPlayer.Object);
             Debug.Log($"[SeatManager] Registered player {tienLenNetWorkPlayer.PlayerRef.PlayerId} into seat {seatIndex}");
+            OnOccupiedSeatsChangedInternal();
         }
 
         public void UnregisterPlayer( PlayerRef player ) {
@@ -164,6 +165,7 @@ namespace Assets.Script.TienLen.Game {
             if ( foundSeat != -1 ) {
                 networkOccupiedSeats.Remove(foundSeat);
                 Debug.Log($"[SeatManager] Unregistered seat {foundSeat} for player {player.PlayerId}");
+                OnOccupiedSeatsChangedInternal();
                 return;
             }
 
@@ -251,10 +253,10 @@ namespace Assets.Script.TienLen.Game {
         #endregion
 
         private void OnOccupiedSeatsChanged() {
-            _ = OnOccupiedSeatsChangedAsync();
+            OnOccupiedSeatsChangedInternal();
         }
 
-        private async Task OnOccupiedSeatsChangedAsync() {
+        private void OnOccupiedSeatsChangedInternal() {
             var newSeatedPlayers = new Dictionary<int, TienLenPlayer>();
             bool hasUnresolved = false;
 
@@ -270,9 +272,12 @@ namespace Assets.Script.TienLen.Game {
                 if ( seatedPlayers.TryGetValue(seatIndex, out var existingPlayer)
                     && existingPlayer != null
                     && (existingPlayer.Id == netPlayer.PlayerRef.PlayerId || string.Equals(existingPlayer.PlayerName, (string)netPlayer.PlayerName)) ) {
+                    existingPlayer.UpdateFromNetwork(netPlayer);
                     newSeatedPlayers[seatIndex] = existingPlayer;
                 }
                 else {
+                    netPlayer.OnPlayerDataUpdated -= HandleNetPlayerDataUpdated;
+                    netPlayer.OnPlayerDataUpdated += HandleNetPlayerDataUpdated;
                     newSeatedPlayers[seatIndex] = new TienLenPlayer(netPlayer);
                 }
             }
@@ -317,6 +322,25 @@ namespace Assets.Script.TienLen.Game {
             }
 
             Debug.Log($"[SeatManager] Seats changed, occupied={seatedPlayers.Count}, revision={SeatRevision}");
+        }
+
+        private void HandleNetPlayerDataUpdated( TienLenNetWorkPlayer netPlayer ) {
+            if ( netPlayer == null ) return;
+
+            foreach ( var kvp in networkOccupiedSeats ) {
+                int seat = kvp.Key;
+                var netObj = kvp.Value;
+                if ( netObj != null && netObj.TryGetComponent<TienLenNetWorkPlayer>(out var seatedNetPlayer) ) {
+                    if ( seatedNetPlayer == netPlayer ) {
+                        if ( seatedPlayers.TryGetValue(seat, out var logicPlayer) && logicPlayer != null ) {
+                            logicPlayer.UpdateFromNetwork(netPlayer);
+                            SeatRevision++;
+                            Debug.Log($"[SeatManager] Player data synced for seat {seat}: {netPlayer.PlayerName}, Avatar={netPlayer.AvatarId}, Level={netPlayer.Level}, Money={netPlayer.Money}");
+                        }
+                        break;
+                    }
+                }
+            }
         }
     }
 }

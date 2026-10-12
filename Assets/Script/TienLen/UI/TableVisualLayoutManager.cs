@@ -12,8 +12,8 @@ namespace Assets.Script.TienLen.UI {
     /// Maps network seat indices to visual slots using SeatProvider.
     /// </summary>
     public class TableVisualLayoutManager : MonoBehaviour {
-        [Header("Dependencies")]
-        private SeatProvider seatProvider;
+        [Header("Scene Dependencies (Serialized / Injected)")]
+        [SerializeField] private SeatProvider seatProvider;
 
         private PlayerSeat[] visualSlots;
 
@@ -23,7 +23,7 @@ namespace Assets.Script.TienLen.UI {
         private PlayerRef latestLocalPlayer;
 
         [Inject]
-        void Construct( SeatProvider seatProvider ) {
+        public void Construct( SeatProvider seatProvider = null ) {
             this.seatProvider = seatProvider;
         }
 
@@ -89,6 +89,9 @@ namespace Assets.Script.TienLen.UI {
                         !ReferenceEquals(slot.tienLenPlayer, assignment.player) ) {
                         slot.BindPlayer(assignment.player, assignment.netSeat);
                     }
+                    else {
+                        slot.UpdatePlayerVisuals();
+                    }
                 }
                 else {
                     if ( slot.IsOccupied ) {
@@ -136,7 +139,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public CardHolder GetCardHolderForSeat( int networkSeatIndex ) {
-            return GetSeatByNetworkIndex(networkSeatIndex)?.cardHolder;
+            return GetSeatByNetworkIndex(networkSeatIndex)?.CardHolder;
         }
 
         private void EnsureVisualSlots() {
@@ -162,7 +165,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public CardHolder GetLocalCardHolder() {
-            return GetLocalSeat()?.cardHolder;
+            return GetLocalSeat()?.CardHolder;
         }
 
         public IReadOnlyList<PlayerSeat> GetAllVisualSlots() {

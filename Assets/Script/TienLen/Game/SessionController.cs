@@ -12,21 +12,21 @@ namespace Assets.Script.TienLen.Game {
     /// Authoritative lobby controller. Handles player joins, leaves,
     /// network player object spawning, and seat registration.
     /// </summary>
-    public class LobbySessionController : NetworkBehaviour, INetworkRunnerCallbacks {
-        [Header("Dependencies")]
-        private IPlayerRegisterService playerRegisterService;
-        private ISeatQueryService seatQueryService;
-        private TienLenGameController gameController;
+    public class SessionController : NetworkBehaviour, INetworkRunnerCallbacks {
+        [Header("Scene Dependencies (Serialized / Injected)")]
+        [Inject] private SeatManager seatManager;
+        [Inject] private TienLenGameController gameController;
+
+        [Inject] private IPlayerRegisterService playerRegisterService;
+        [Inject] private ISeatQueryService seatQueryService;
+
+        public IPlayerRegisterService RegisterService => playerRegisterService ?? seatManager;
+        public ISeatQueryService SeatQuery => seatQueryService ?? seatManager;
+        public TienLenGameController GameController => gameController;
 
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
 
-        [Inject]
-        void Construct( IPlayerRegisterService playerRegisterService, ISeatQueryService seatQueryService, TienLenGameController gameController ) {
-            this.playerRegisterService = playerRegisterService;
-            this.seatQueryService = seatQueryService;
-            this.gameController = gameController;
-        }
 
         public override void Spawned() {
             Runner.AddCallbacks(this);
@@ -56,13 +56,13 @@ namespace Assets.Script.TienLen.Game {
             Debug.Log($"[Lobby] Player joined: {player.PlayerId}");
 
             if ( runner.IsResume ) {
-                if ( seatQueryService != null && seatQueryService.TryGetSeat(player, out _) ) {
+                if ( SeatQuery != null && SeatQuery.TryGetSeat(player, out _) ) {
                     Debug.Log($"[Lobby] Player {player.PlayerId} already has a restored seat from snapshot.");
                     return;
                 }
 
-                if ( seatQueryService != null ) {
-                    var networkPlayerMap = seatQueryService.GetNetworkPlayerMap();
+                if ( SeatQuery != null ) {
+                    var networkPlayerMap = SeatQuery.GetNetworkPlayerMap();
                     foreach ( var kvp in networkPlayerMap ) {
                         if ( kvp.Value != null && kvp.Value.PlayerRef == player ) {
                             Debug.Log($"[Lobby] Found matching network player for {player.PlayerId} at seat {kvp.Key}.");
@@ -76,7 +76,7 @@ namespace Assets.Script.TienLen.Game {
 
             TienLenNetWorkPlayer networkPlayer = SpawnNetworkPlayer(player);
             if ( networkPlayer != null ) {
-                playerRegisterService.RegisterPlayer(networkPlayer);
+                RegisterService?.RegisterPlayer(networkPlayer);
                 Debug.Log($"[Lobby] Spawned and registered network player '{networkPlayer.PlayerName}' for {player.PlayerId}");
             }
         }
@@ -84,7 +84,7 @@ namespace Assets.Script.TienLen.Game {
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
             if ( !Object.HasStateAuthority ) return;
             RemovePlayer(player);
-            gameController?.HandlePlayerLeftMidGame(player);
+            GameController?.HandlePlayerLeftMidGame(player);
         }
 
         private TienLenNetWorkPlayer SpawnNetworkPlayer( PlayerRef player ) {
@@ -104,11 +104,19 @@ namespace Assets.Script.TienLen.Game {
                 }
             );
 
+            if ( networkPlayer == null && networkPlayerObject != null ) {
+                networkPlayer = networkPlayerObject.GetComponent<TienLenNetWorkPlayer>();
+                if ( networkPlayer != null ) {
+                    networkPlayer.PlayerRef = player;
+                    networkPlayer.PlayerName = $"Player {player.PlayerId}";
+                }
+            }
+
             return networkPlayer;
         }
 
         private bool CheckPlayerCanJoin( PlayerRef player ) {
-            if ( seatQueryService != null && seatQueryService.TryGetSeat(player, out _) ) {
+            if ( SeatQuery != null && SeatQuery.TryGetSeat(player, out _) ) {
                 Debug.LogWarning($"[Lobby] Player {player.PlayerId} already has a registered seat. Skipping spawn.");
                 return false;
             }
@@ -123,8 +131,8 @@ namespace Assets.Script.TienLen.Game {
             Debug.Log($"[Lobby] Player left: {player.PlayerId}");
 
             NetworkObject netObj = null;
-            if ( seatQueryService != null ) {
-                foreach ( var kvp in seatQueryService.GetNetworkPlayerMap() ) {
+            if ( SeatQuery != null ) {
+                foreach ( var kvp in SeatQuery.GetNetworkPlayerMap() ) {
                     if ( kvp.Value != null && kvp.Value.PlayerRef == player ) {
                         netObj = kvp.Value.Object;
                         break;
@@ -132,7 +140,7 @@ namespace Assets.Script.TienLen.Game {
                 }
             }
 
-            playerRegisterService?.UnregisterPlayer(player);
+            RegisterService?.UnregisterPlayer(player);
 
             if ( netObj != null ) {
                 Runner.Despawn(netObj);

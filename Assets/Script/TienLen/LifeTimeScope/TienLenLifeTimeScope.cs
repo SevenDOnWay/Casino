@@ -1,4 +1,5 @@
-﻿using Assets.Script.NetWorkScript;
+﻿using Assets.Script.Data.SO;
+using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Effects;
 using Assets.Script.TienLen.Game;
@@ -13,10 +14,10 @@ namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope {
         [SerializeField] private TienLenNetWorkPlayer prefab;
 
+
+
         protected override void Configure( IContainerBuilder builder ) {
-            builder.Register<LocalPlayerService>(Lifetime.Singleton)
-                   .As<ILocalPlayerService>()
-                   .AsSelf();
+            // ScriptableObject Assets / Databases (scene-local copy)
 
             builder.RegisterComponentInNewPrefab(prefab, Lifetime.Scoped);
 
@@ -27,7 +28,7 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.Register<TienLenRuleValidator>(Lifetime.Singleton);
 
             // Session & Table State
-            builder.RegisterComponentInHierarchy<LobbySessionController>();
+            builder.RegisterComponentInHierarchy<SessionController>();
             builder.RegisterComponentInHierarchy<TienLenGameController>();
             builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
             builder.RegisterComponentInHierarchy<SeatProvider>();

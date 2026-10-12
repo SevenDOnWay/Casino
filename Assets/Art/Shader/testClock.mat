@@ -44,7 +44,7 @@ Material:
     - _Clockwise: 0
     - _EdgeSmooth: 0.005
     - _EnableExternalAlpha: 0
-    - _FillAmount: 0.967
+    - _FillAmount: 1
     - _ShowEmpty: 0.1
     - _ZWrite: 0
     m_Colors:

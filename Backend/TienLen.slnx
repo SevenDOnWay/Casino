@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TienLen.Server.Tests/TienLen.Server.Tests.csproj" />
+  <Project Path="TienLen.Server/TienLen.Server.csproj" />
+</Solution>

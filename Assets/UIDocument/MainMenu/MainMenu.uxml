@@ -1,0 +1,393 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns:custom="Assets.Script.UI.Components" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UIDocument/MainMenu/MainMenu.uss"/>
+    <Style src="project://database/Assets/UIDocument/Components/LobbyActionButton.uss"/>
+
+    <!-- ROOT CONTAINER -->
+    <ui:VisualElement name="main-menu-root" class="main-menu-root">
+        <ui:VisualElement name="safe-area-container" class="safe-area-container">
+            
+            <!-- TOP HEADER / STATUS BAR -->
+            <ui:VisualElement name="lobby-header" class="lobby-header">
+                
+                <!-- TOP-LEFT: Player Profile Container -->
+                <ui:VisualElement name="profile-card" class="profile-card" tooltip="View Profile Details">
+                    <!-- Minimal Avatar with Monochromatic Border -->
+                    <ui:VisualElement name="avatar-frame" class="avatar-frame">
+                        <ui:VisualElement name="avatar-image" class="avatar-image hidden"/>
+                        <ui:Label name="avatar-placeholder-text" text="P1" class="avatar-placeholder-text"/>
+                        <!-- Emerald status dot -->
+                        <ui:VisualElement name="avatar-status-dot" class="avatar-status-dot"/>
+                    </ui:VisualElement>
+
+                    <!-- Player Identity & Currencies -->
+                    <ui:VisualElement name="profile-info" class="profile-info">
+                        <ui:VisualElement name="profile-name-row" class="profile-name-row">
+                            <ui:Label name="player-name-label" text="PLAYER_01" class="player-name-label"/>
+                            <ui:Label name="player-lvl-tag" text="LVL 42" class="player-lvl-tag"/>
+                        </ui:VisualElement>
+
+                        <!-- Currencies in Pale Tones -->
+                        <ui:VisualElement name="currencies-row" class="currencies-row">
+                            <!-- Coins / Credits -->
+                            <ui:VisualElement name="currency-cr-pill" class="currency-pill">
+                                <ui:Label text="CR" class="currency-tag"/>
+                                <ui:Label name="currency-cr-amount" text="148,250" class="currency-amount"/>
+                            </ui:VisualElement>
+
+                            <!-- Gems / Tokens -->
+                            <ui:VisualElement name="currency-tk-pill" class="currency-pill">
+                                <ui:Label text="TK" class="currency-tag"/>
+                                <ui:Label name="currency-tk-amount" text="1,890" class="currency-amount"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- TOP-RIGHT: Minimal Controls -->
+                <ui:VisualElement name="header-controls" class="header-controls">
+                    <!-- Latency Tag -->
+                    <ui:VisualElement name="latency-pill" class="latency-pill">
+                        <ui:VisualElement class="latency-dot"/>
+                        <ui:Label name="latency-text" text="24ms" class="latency-text"/>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="header-divider"/>
+
+                    <!-- Messages / Notification Button -->
+                    <ui:Button name="btn-notifications" tooltip="Notifications &amp; Messages" class="header-icon-btn">
+                        <ui:Label text="🔔" class="header-icon-label"/>
+                    </ui:Button>
+
+                    <!-- Settings Button -->
+                    <ui:Button name="btn-settings" tooltip="Settings" class="header-icon-btn">
+                        <ui:Label text="⚙" class="header-icon-label"/>
+                    </ui:Button>
+                </ui:VisualElement>
+
+            </ui:VisualElement>
+
+            <!-- CENTER: Vertical Stack Game Modes (Inside ScrollView for mobile responsiveness) -->
+            <ui:ScrollView name="lobby-main-scroll" class="lobby-main-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
+                <ui:VisualElement name="lobby-main-container" class="lobby-main-container">
+                    
+                    <!-- Minimalist Title -->
+                    <ui:VisualElement name="lobby-title-block" class="lobby-title-block">
+                        <ui:Label text="TABLE MATCHMAKING" class="lobby-subtitle"/>
+                        <ui:Label text="ARENA LOBBY" class="lobby-title"/>
+                    </ui:VisualElement>
+
+                    <!-- Vertically Stacked Game Action Buttons -->
+                    <ui:VisualElement name="lobby-actions-stack" class="lobby-actions-stack">
+                        
+                        <!-- Option 1: Quick Join (Primary Solid Pale/White Action) -->
+                        <custom:LobbyActionButton 
+                            name="btn-quick-join" 
+                            variant="Primary" 
+                            title="Quick Join" 
+                            subtitle="Immediate match based on skill" 
+                            icon-glyph="⚡" 
+                            badge-text="4.2k active" 
+                            show-chevron="true"/>
+
+                        <!-- Option 2: Host Table (Clean Monochrome Outline) -->
+                        <custom:LobbyActionButton 
+                            name="btn-host-table" 
+                            variant="Outline" 
+                            title="Host Table" 
+                            subtitle="Create custom stakes &amp; room rules" 
+                            icon-glyph="＋" 
+                            show-chevron="true"/>
+
+                        <!-- Option 3: Search Tables (Clean Monochrome Outline) -->
+                        <custom:LobbyActionButton 
+                            name="btn-search-tables" 
+                            variant="Outline" 
+                            title="Search Tables" 
+                            subtitle="Filter public lobbies or enter code" 
+                            icon-glyph="🔍" 
+                            show-chevron="true"/>
+
+                        <!-- Option 4: Solo Practice (Subtle Muted Outline) -->
+                        <custom:LobbyActionButton 
+                            name="btn-solo-practice" 
+                            variant="Muted" 
+                            title="Solo Practice" 
+                            subtitle="Warm-up against offline bots" 
+                            icon-glyph="🤖" 
+                            badge-text="Free" 
+                            show-chevron="false"/>
+
+                    </ui:VisualElement>
+
+                </ui:VisualElement>
+            </ui:ScrollView>
+
+            <!-- FOOTER STATUS BAR -->
+            <ui:VisualElement name="lobby-footer" class="lobby-footer">
+                <ui:VisualElement name="footer-info-row" class="footer-info-row">
+                    <ui:Label name="footer-server-label" text="SERVER: NORTH-AMERICA" class="footer-server-label"/>
+                    <ui:Label text="/" class="footer-divider"/>
+                    <ui:Label name="footer-version-label" text="v2.1.0" class="footer-version-label"/>
+                </ui:VisualElement>
+
+                <ui:VisualElement name="footer-links-row" class="footer-links-row">
+                    <ui:Button name="btn-rules" text="Rules" class="footer-link-btn"/>
+                    <ui:Button name="btn-leaderboard" text="Leaderboard" class="footer-link-btn"/>
+                    <ui:Button name="btn-support" text="Support" class="footer-link-btn"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+
+        <!-- ========================================================================= -->
+        <!-- MODAL OVERLAYS (Extensible System)                                        -->
+        <!-- ========================================================================= -->
+
+        <!-- MODAL 1: Host Table Dialog -->
+        <ui:VisualElement name="modal-host-table" class="modal-scrim hidden">
+            <ui:VisualElement class="modal-dialog">
+                <ui:VisualElement class="modal-header">
+                    <ui:Label text="HOST A TABLE" class="modal-title"/>
+                    <ui:Button name="btn-close-host-modal" text="✕" class="modal-close-btn"/>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="modal-body">
+                    <!-- Room Name Input -->
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="TABLE NAME" class="modal-field-label"/>
+                        <ui:TextField name="input-host-table-name" value="PLAYER_01's Table" class="modal-input"/>
+                    </ui:VisualElement>
+
+                    <!-- Player Count Selection -->
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="MAX PLAYERS" class="modal-field-label"/>
+                        <ui:VisualElement class="modal-options-row">
+                            <ui:Button name="btn-players-2" text="2 Players" class="option-chip-btn"/>
+                            <ui:Button name="btn-players-3" text="3 Players" class="option-chip-btn"/>
+                            <ui:Button name="btn-players-4" text="4 Players (Standard)" class="option-chip-btn option-chip-btn--selected"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <!-- Stakes Selection -->
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="STAKES / BUY-IN" class="modal-field-label"/>
+                        <ui:VisualElement class="modal-options-row">
+                            <ui:Button name="btn-stake-1k" text="1,000 CR" class="option-chip-btn option-chip-btn--selected"/>
+                            <ui:Button name="btn-stake-5k" text="5,000 CR" class="option-chip-btn"/>
+                            <ui:Button name="btn-stake-20k" text="20,000 CR" class="option-chip-btn"/>
+                            <ui:Button name="btn-stake-100k" text="100,000 CR" class="option-chip-btn"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <!-- Private Table Toggle -->
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Toggle name="toggle-private-room" label="Private Room (Invite code required)" value="false"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="modal-footer-actions">
+                    <ui:Button name="btn-cancel-host" text="Cancel" class="modal-btn-cancel"/>
+                    <ui:Button name="btn-confirm-host" text="Create Table" class="modal-btn-confirm"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- MODAL 2: Search Tables Dialog -->
+        <ui:VisualElement name="modal-search-tables" class="modal-scrim hidden">
+            <ui:VisualElement class="modal-dialog">
+                <ui:VisualElement class="modal-header">
+                    <ui:Label text="SEARCH TABLES" class="modal-title"/>
+                    <ui:Button name="btn-close-search-modal" text="✕" class="modal-close-btn"/>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="modal-body">
+                    <!-- Direct Code Entry -->
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="ENTER ROOM CODE OR FILTER" class="modal-field-label"/>
+                        <ui:VisualElement style="flex-direction: row;">
+                            <ui:TextField name="input-room-code" placeholder-text="e.g. ARENA-982" class="modal-input" style="flex-grow: 1;"/>
+                            <ui:Button name="btn-join-code" text="Join" class="modal-btn-confirm" style="min-height: 40px; padding: 0 16px; margin-left: 8px;"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <!-- Active Public Tables List -->
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="ACTIVE PUBLIC LOBBIES" class="modal-field-label"/>
+                        <ui:ScrollView name="room-list-scroll" class="room-list-scroll" mode="Vertical">
+                            <!-- Items will be populated dynamically or default samples -->
+                            <ui:VisualElement class="room-list-item">
+                                <ui:VisualElement>
+                                    <ui:Label text="High Stakes Masters" class="room-item-title"/>
+                                    <ui:Label text="3/4 Players • 20,000 CR" class="room-item-info"/>
+                                </ui:VisualElement>
+                                <ui:Button text="Join" class="room-item-join-btn"/>
+                            </ui:VisualElement>
+
+                            <ui:VisualElement class="room-list-item">
+                                <ui:VisualElement>
+                                    <ui:Label text="Casual Speed Run" class="room-item-title"/>
+                                    <ui:Label text="2/4 Players • 1,000 CR" class="room-item-info"/>
+                                </ui:VisualElement>
+                                <ui:Button text="Join" class="room-item-join-btn"/>
+                            </ui:VisualElement>
+
+                            <ui:VisualElement class="room-list-item">
+                                <ui:VisualElement>
+                                    <ui:Label text="Night Owl Table" class="room-item-title"/>
+                                    <ui:Label text="1/4 Players • 5,000 CR" class="room-item-info"/>
+                                </ui:VisualElement>
+                                <ui:Button text="Join" class="room-item-join-btn"/>
+                            </ui:VisualElement>
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="modal-footer-actions">
+                    <ui:Button name="btn-refresh-rooms" text="Refresh" class="modal-btn-cancel"/>
+                    <ui:Button name="btn-close-search" text="Close" class="modal-btn-confirm"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- MODAL 3: Settings Dialog -->
+        <ui:VisualElement name="modal-settings" class="modal-scrim hidden">
+            <ui:VisualElement class="modal-dialog">
+                <ui:VisualElement class="modal-header">
+                    <ui:Label text="SETTINGS" class="modal-title"/>
+                    <ui:Button name="btn-close-settings-modal" text="✕" class="modal-close-btn"/>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="modal-body">
+                    <!-- Audio Sliders -->
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="MASTER VOLUME" class="modal-field-label"/>
+                        <ui:Slider name="slider-master-volume" low-value="0" high-value="100" value="80"/>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="SOUND EFFECTS (SFX)" class="modal-field-label"/>
+                        <ui:Slider name="slider-sfx-volume" low-value="0" high-value="100" value="100"/>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="MUSIC (BGM)" class="modal-field-label"/>
+                        <ui:Slider name="slider-bgm-volume" low-value="0" high-value="100" value="70"/>
+                    </ui:VisualElement>
+
+                    <!-- Server Region Picker -->
+                    <ui:VisualElement class="modal-field-group">
+                        <ui:Label text="MATCHMAKING REGION" class="modal-field-label"/>
+                        <ui:VisualElement class="modal-options-row">
+                            <ui:Button name="btn-region-na" text="NA (North America)" class="option-chip-btn option-chip-btn--selected"/>
+                            <ui:Button name="btn-region-eu" text="EU (Europe)" class="option-chip-btn"/>
+                            <ui:Button name="btn-region-asia" text="ASIA (Asia-Pacific)" class="option-chip-btn"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <!-- Log Out / Account Action -->
+                    <ui:VisualElement class="modal-field-group" style="margin-top: 10px;">
+                        <ui:Button name="btn-logout" text="Log Out / Switch Account" class="modal-btn-cancel" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="modal-footer-actions">
+                    <ui:Button name="btn-save-settings" text="Done" class="modal-btn-confirm"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- MODAL 4: Leaderboard Dialog -->
+        <ui:VisualElement name="modal-leaderboard" class="modal-scrim hidden">
+            <ui:VisualElement class="modal-dialog">
+                <ui:VisualElement class="modal-header">
+                    <ui:Label text="LEADERBOARD" class="modal-title"/>
+                    <ui:Button name="btn-close-leaderboard-modal" text="✕" class="modal-close-btn"/>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="modal-body">
+                    <ui:ScrollView class="room-list-scroll" mode="Vertical">
+                        <ui:VisualElement class="room-list-item">
+                            <ui:VisualElement>
+                                <ui:Label text="#1 👑 DragonMaster" class="room-item-title" style="color: #fbbf24;"/>
+                                <ui:Label text="Rating: 2,840 • 88% Winrate" class="room-item-info"/>
+                            </ui:VisualElement>
+                            <ui:Label text="1,450,000 CR" class="currency-amount"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="room-list-item">
+                            <ui:VisualElement>
+                                <ui:Label text="#2 🥈 ShadowAce" class="room-item-title"/>
+                                <ui:Label text="Rating: 2,610 • 79% Winrate" class="room-item-info"/>
+                            </ui:VisualElement>
+                            <ui:Label text="980,000 CR" class="currency-amount"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="room-list-item">
+                            <ui:VisualElement>
+                                <ui:Label text="#3 🥉 RoyalFlush" class="room-item-title"/>
+                                <ui:Label text="Rating: 2,490 • 72% Winrate" class="room-item-info"/>
+                            </ui:VisualElement>
+                            <ui:Label text="650,000 CR" class="currency-amount"/>
+                        </ui:VisualElement>
+                    </ui:ScrollView>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="modal-footer-actions">
+                    <ui:Button name="btn-close-leaderboard" text="Close" class="modal-btn-confirm"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- MODAL 5: Rules & Guide Dialog -->
+        <ui:VisualElement name="modal-rules" class="modal-scrim hidden">
+            <ui:VisualElement class="modal-dialog">
+                <ui:VisualElement class="modal-header">
+                    <ui:Label text="RULES &amp; OBJECTIVES" class="modal-title"/>
+                    <ui:Button name="btn-close-rules-modal" text="✕" class="modal-close-btn"/>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="modal-body">
+                    <ui:Label text="• Objective: Be the first player to discard all cards from your hand." class="modal-field-label" style="margin-bottom: 8px; color: #e4e4e7;"/>
+                    <ui:Label text="• Rank Order: 3 (Lowest) → 4 → 5 ... K → A → 2 (Highest)." class="modal-field-label" style="margin-bottom: 8px; color: #a1a1aa;"/>
+                    <ui:Label text="• Suit Order: Spades (♠) &lt; Clubs (♣) &lt; Diamonds (♦) &lt; Hearts (♥)." class="modal-field-label" style="margin-bottom: 8px; color: #a1a1aa;"/>
+                    <ui:Label text="• Combinations: Singles, Pairs, Triples, Straights (3+ cards), 3/4 Pairs Pine (Chặt Heo / Bombs)." class="modal-field-label" style="margin-bottom: 8px; color: #a1a1aa;"/>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="modal-footer-actions">
+                    <ui:Button name="btn-close-rules" text="Got it" class="modal-btn-confirm"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- MODAL 6: Notifications Dialog -->
+        <ui:VisualElement name="modal-notifications" class="modal-scrim hidden">
+            <ui:VisualElement class="modal-dialog">
+                <ui:VisualElement class="modal-header">
+                    <ui:Label text="NOTIFICATIONS" class="modal-title"/>
+                    <ui:Button name="btn-close-notifications-modal" text="✕" class="modal-close-btn"/>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="modal-body">
+                    <ui:ScrollView class="room-list-scroll" mode="Vertical">
+                        <ui:VisualElement class="room-list-item">
+                            <ui:VisualElement>
+                                <ui:Label text="🎁 Daily Login Bonus Ready" class="room-item-title" style="color: #34d399;"/>
+                                <ui:Label text="Claim +5,000 CR for logging in today!" class="room-item-info"/>
+                            </ui:VisualElement>
+                            <ui:Button name="btn-claim-bonus" text="Claim" class="room-item-join-btn"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="room-list-item">
+                            <ui:VisualElement>
+                                <ui:Label text="⚡ Season 2 Arena Started" class="room-item-title"/>
+                                <ui:Label text="Climb the leaderboards for exclusive titles." class="room-item-info"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:ScrollView>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="modal-footer-actions">
+                    <ui:Button name="btn-close-notifications" text="Close" class="modal-btn-confirm"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,6 +1,7 @@
 ﻿using Assets.Script.TienLen;
 using Assets.Script.TienLen.Game;
 using Fusion;
+using System;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -11,8 +12,17 @@ namespace Assets.Script.NetWorkScript {
         private TienLenGameController controller;
         private ILocalPlayerService localPlayerService;
 
+        public event Action<TienLenNetWorkPlayer> OnPlayerDataUpdated;
+
         [Networked] public PlayerRef PlayerRef { get; set; }
-        [Networked] public NetworkString<_16> PlayerName { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public NetworkString<_16> PlayerName { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public int AvatarId { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public int Level { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public long Money { get; set; }
+
+        private void OnNetworkPlayerDataChanged() {
+            OnPlayerDataUpdated?.Invoke(this);
+        }
 
         [Inject]
         public void Construct( ILocalPlayerService localPlayerService, TienLenGameController controller ) {
@@ -30,8 +40,33 @@ namespace Assets.Script.NetWorkScript {
 
             if ( Object.HasInputAuthority && localPlayerService != null ) {
                 localPlayerService.SetLocalNetworkPlayer(this);
-                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' ({PlayerRef.PlayerId}).");
+
+                string name = localPlayerService.GetName() ?? "Player";
+                int avatar = localPlayerService.GetAvatarId();
+                int lvl = localPlayerService.GetLevel();
+                long money = localPlayerService.GetMoney();
+
+                if ( Object.HasStateAuthority ) {
+                    PlayerName = name;
+                    AvatarId = avatar;
+                    Level = lvl;
+                    Money = money;
+                }
+                else {
+                    RPCSetPlayerData(name, avatar, lvl, money);
+                }
+
+                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' ({PlayerRef.PlayerId}) Avatar={AvatarId} Level={Level} Money={Money}.");
             }
+        }
+
+        [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
+        public void RPCSetPlayerData( string name, int avatarId, int level, long money ) {
+            PlayerName = name;
+            AvatarId = avatarId;
+            Level = level;
+            Money = money;
+            OnPlayerDataUpdated?.Invoke(this);
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]

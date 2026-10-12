@@ -16,18 +16,24 @@ namespace Assets.Script.NetWorkScript {
 
         private NetworkRunner runner;
 
+        public event Action<List<SessionInfo>> SessionListUpdated;
+
         public void Start() {
             runner = Instantiate(runnerPrefab);
             runner.AddCallbacks(this);
         }
 
-        public async void HostRoomButton() {
-            await StartSimulation(runner, GameMode.Host, testRoomName, 4);
+        public void HostRoom( string roomName, int betStake, int playerCount = 4 ) {
+            _ = StartSimulation(runner, GameMode.Host, roomName, betStake, playerCount);
         }
 
-        public async void JoinRoomButton( string roomName ) {
-            string targetRoom = string.IsNullOrEmpty(roomName) ? testRoomName : roomName;
-            await StartSimulation(runner, GameMode.Client, targetRoom);
+        public void JoinRoom( string roomName, int betStake ) {
+            _ = StartSimulation(runner, GameMode.Client, roomName, betStake);
+        }
+
+        public void QuickPlay() {
+            //TODO: Implement quick play logic, e.g., find a session with the lowest bet stake or create a new one if none are available.
+            Debug.Log("QuickPlay is not implemented yet.");
         }
 
         private SceneRef GetGameplaySceneRef() {
@@ -38,11 +44,14 @@ namespace Assets.Script.NetWorkScript {
             return SceneRef.FromIndex(sceneIndex);
         }
 
-        private async Task<StartGameResult> StartSimulation( NetworkRunner runner, GameMode mode, string sessionName, int playerCount = 4 ) {
+
+        private async Task<StartGameResult> StartSimulation( NetworkRunner runner, GameMode mode, string sessionName, int betStake, int playerCount = 4 ) {
             var sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
             if ( sceneManager == null ) {
                 sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
             }
+
+            Dictionary<string, SessionProperty> sessionProperties = new (){{ "BetStake", betStake.ToString() }};
 
             var sceneRef = GetGameplaySceneRef();
 
@@ -50,6 +59,7 @@ namespace Assets.Script.NetWorkScript {
             {
                 GameMode = mode,
                 SessionName = sessionName,
+                SessionProperties = sessionProperties,
                 PlayerCount = playerCount,
                 Scene = sceneRef,
                 SceneManager = sceneManager
@@ -62,6 +72,12 @@ namespace Assets.Script.NetWorkScript {
             return result;
         }
 
+        public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) {
+            Debug.Log($"[SessionListUpdated] Received {sessionList.Count} sessions.");
+            SessionListUpdated?.Invoke(sessionList);
+        }
+
+        #region Host Migration
         private void OnHostMigrationResume( NetworkRunner newRunner ) {
             Debug.Log("[HostMigration] Resuming Host on new Host instance...");
 
@@ -119,6 +135,8 @@ namespace Assets.Script.NetWorkScript {
             }
         }
 
+        #endregion
+
         #region INetworkRunnerCallbacks
 
         public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
@@ -134,7 +152,6 @@ namespace Assets.Script.NetWorkScript {
         public void OnInput( NetworkRunner runner, NetworkInput input ) { }
         public void OnInputMissing( NetworkRunner runner, PlayerRef player, NetworkInput input ) { }
         void INetworkRunnerCallbacks.OnConnectedToServer( NetworkRunner runner ) { }
-        public void OnSessionListUpdated( NetworkRunner runner, List<SessionInfo> sessionList ) { }
         public void OnCustomAuthenticationResponse( NetworkRunner runner, Dictionary<string, object> data ) { }
 
         public void OnSceneLoadDone( NetworkRunner runner ) { }

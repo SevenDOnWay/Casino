@@ -3,21 +3,24 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 namespace Assets.Script.TienLen.UI {
+    /// <summary>
+    /// Container for a visual table seat representing a player.
+    /// Delegates player identity UI (Avatar, Name, Money, Level) and turn timer indicator to PlayerInfoView,
+    /// and manages CardHolder and seat assignment state.
+    /// </summary>
     [System.Serializable]
     public class PlayerSeat : MonoBehaviour {
+        [Header("Slot Configuration")]
         [SerializeField, FormerlySerializedAs("seatIndex")]
-        private int visualIndex; // Visual slot index (0 = bottom, then clockwise)
+        private int visualIndex; // Visual slot index (0 = bottom / local player, then clockwise)
 
-        public TienLenPlayer tienLenPlayer;
+        [Header("Player Info Visuals")]
+        [SerializeField] private PlayerInfoView infoView;
 
-        public CardHolder cardHolder;
-        public Transform cardHolderPosition;
+        [Header("Card Container")]
+        [SerializeField] private CardHolder cardHolder;
 
-        [Header("Avatar")]
-        [SerializeField] private SpriteRenderer spriteRenderer;
-
-        [Header("Timer / Turn Indicator")]
-        [SerializeField] private ClockWipe timerClockWipe;
+        public TienLenPlayer tienLenPlayer { get; private set; }
 
         /// <summary>True when this visual slot currently displays a player.</summary>
         public bool IsOccupied => tienLenPlayer != null;
@@ -27,22 +30,18 @@ namespace Assets.Script.TienLen.UI {
         /// </summary>
         public int BoundSeatIndex { get; private set; } = -1;
 
-        private void Awake() {
-            EnsureClockWipe();
+        public PlayerInfoView InfoView => infoView;
+
+        public CardHolder CardHolder { get => cardHolder; }
+
+        public void SetInfoView( PlayerInfoView view ) {
+            infoView = view;
         }
 
-        private void EnsureClockWipe() {
-            if ( timerClockWipe == null ) {
-                timerClockWipe = GetComponentInChildren<ClockWipe>(true);
-                if ( timerClockWipe == null && spriteRenderer != null ) {
-                    timerClockWipe = spriteRenderer.GetComponent<ClockWipe>();
-                    if ( timerClockWipe == null ) {
-                        timerClockWipe = spriteRenderer.gameObject.AddComponent<ClockWipe>();
-                    }
-                }
-            }
-        }
 
+        /// <summary>
+        /// Binds domain player model and network seat index to this visual seat container.
+        /// </summary>
         public void BindPlayer( TienLenPlayer player, int networkSeatIndex ) {
             if ( player == null ) {
                 Debug.LogError("[PlayerSeat] Cannot bind a null player.");
@@ -60,19 +59,51 @@ namespace Assets.Script.TienLen.UI {
             tienLenPlayer = player;
             BoundSeatIndex = networkSeatIndex;
 
-            ChangeAvatar(true);
-            StopTurnTimer();
+            if ( infoView != null ) {
+                infoView.SetPlayerInfo(player);
+            }
+            SetVisible(true);
         }
 
+        public void UpdatePlayerVisuals() {
+            if ( infoView != null && tienLenPlayer != null ) {
+                infoView.SetPlayerInfo(tienLenPlayer);
+            }
+        }
+        public void SetVisible( bool visible ) {
+            gameObject.SetActive(visible);
+        }
+
+
+        /// <summary>
+        /// Clears all player visuals and cards from this seat slot.
+        /// </summary>
         public void ClearSeat() {
             if ( cardHolder != null ) {
                 cardHolder.Clear();
             }
 
+            if ( infoView != null ) {
+                infoView.Clear();
+            }
+
             tienLenPlayer = null;
             BoundSeatIndex = -1;
-            ChangeAvatar(false);
-            StopTurnTimer();
+
+            SetVisible(false);
+        }
+
+        /// <summary>
+        /// Updates the displayed money value on this seat.
+        /// </summary>
+        public void UpdateMoney( long newAmount ) {
+            if ( tienLenPlayer != null ) {
+                tienLenPlayer.Money = newAmount;
+            }
+
+            if ( infoView != null ) {
+                infoView.UpdateMoney(newAmount);
+            }
         }
 
         public void setVisualIndex( int index ) {
@@ -83,43 +114,36 @@ namespace Assets.Script.TienLen.UI {
             return visualIndex;
         }
 
-        public void ChangeAvatar( bool isAvatarVisible ) {
-            if ( spriteRenderer == null ) return;
-            if ( spriteRenderer.gameObject == null ) return;
-            spriteRenderer.gameObject.SetActive(isAvatarVisible);
-        }
 
+        #region Turn Timer
+
+        /// <summary>
+        /// Starts and displays the turn timer ring with an initial progress value.
+        /// </summary>
         public void StartTurnTimer( float initialProgress = 1f ) {
-            EnsureClockWipe();
-            if ( timerClockWipe != null ) {
-                if ( !timerClockWipe.gameObject.activeSelf ) {
-                    timerClockWipe.gameObject.SetActive(true);
-                }
-                timerClockWipe.SetProgress(initialProgress);
+            if ( infoView != null ) {
+                infoView.StartTurnTimer(initialProgress);
             }
         }
 
+        /// <summary>
+        /// Updates the remaining turn time on the dedicated timer indicator.
+        /// </summary>
         public void UpdateTurnTimer( float remainingProgress01 ) {
-            EnsureClockWipe();
-            if ( timerClockWipe != null ) {
-                if ( !timerClockWipe.gameObject.activeSelf ) {
-                    timerClockWipe.gameObject.SetActive(true);
-                }
-                timerClockWipe.SetProgress(remainingProgress01);
+            if ( infoView != null ) {
+                infoView.UpdateTurnTimer(remainingProgress01);
             }
         }
 
+        /// <summary>
+        /// Safely hides the turn timer indicator without modifying player avatar visibility.
+        /// </summary>
         public void StopTurnTimer() {
-            EnsureClockWipe();
-            if ( timerClockWipe != null ) {
-                if ( spriteRenderer != null && timerClockWipe.gameObject == spriteRenderer.gameObject ) {
-                    timerClockWipe.ResetToDefault();
-                }
-                else {
-                    timerClockWipe.SetProgress(0f);
-                    timerClockWipe.gameObject.SetActive(false);
-                }
+            if ( infoView != null ) {
+                infoView.StopTurnTimer();
             }
         }
+
+        #endregion
     }
 }
