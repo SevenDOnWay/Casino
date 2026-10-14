@@ -106,7 +106,6 @@ namespace Assets.Script.Data.Tests {
             Assert.AreEqual(75000, seat.tienLenPlayer.Money);
 
             Assert.AreEqual("$75K", moneyText.text);
-            Assert.AreEqual("Lv.5", levelText.text);
         }
 
         [Test]

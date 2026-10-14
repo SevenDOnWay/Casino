@@ -20,21 +20,45 @@ namespace Assets.Script.NetWorkScript {
         private NetworkRunner runner;
 
         public event Action<List<SessionInfo>> SessionListUpdated;
+        public string CurrentLobbyId { get; private set; }
+
+        public static string GetLobbyId( int betStake, int channel = 1 ) {
+            int safeChannel = channel < 1 ? 1 : channel;
+            return $"Bet_{betStake}_Ch_{safeChannel}";
+        }
 
         public void Start() {
             runner = Instantiate(runnerPrefab);
             runner.AddCallbacks(this);
         }
 
-        public void HostRoom( string roomName, int betStake, int playerCount = 4 ) {
-            _ = StartSimulation(runner, GameMode.Host, roomName, betStake, playerCount);
+        public void HostRoom( string roomName, int betStake, int playerCount = 4, int channel = 1 ) {
+            _ = StartSimulation(runner, GameMode.Host, roomName, betStake, playerCount, channel);
         }
 
-        public void JoinRoom( string roomName, int betStake ) {
-            _ = StartSimulation(runner, GameMode.Client, roomName, betStake);
+        public void JoinRoom( string roomName, int betStake, int channel = 1 ) {
+            _ = StartSimulation(runner, GameMode.Client, roomName, betStake, 4, channel);
         }
 
-        public async Task<StartGameResult> QuickPlay( int betStake, int playerCount = 4 ) {
+        public async Task<StartGameResult> JoinBetLobby( int betStake, int channel = 1 ) {
+            if ( runner == null ) {
+                runner = Instantiate(runnerPrefab);
+                runner.AddCallbacks(this);
+            }
+
+            string lobbyId = GetLobbyId(betStake, channel);
+            Debug.Log($"[TienLenNetworkController] Joining session lobby: {lobbyId}");
+            var result = await runner.JoinSessionLobby(SessionLobby.Custom, lobbyId);
+            if ( result.Ok ) {
+                CurrentLobbyId = lobbyId;
+            }
+            else {
+                Debug.LogError($"[TienLenNetworkController] Failed to join lobby '{lobbyId}': {result.ShutdownReason}");
+            }
+            return result;
+        }
+
+        public async Task<StartGameResult> QuickPlay( int betStake, int playerCount = 4, int channel = 1 ) {
             var sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
             if ( sceneManager == null ) {
                 sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
@@ -45,7 +69,8 @@ namespace Assets.Script.NetWorkScript {
             var result = await runner.StartGame(new StartGameArgs{
                 GameMode = GameMode.AutoHostOrClient,
 
-                // No SessionName: find a compatible session automatically.
+                // Find or host a session in the specific bet lobby
+                CustomLobbyName = GetLobbyId(betStake, channel),
                 SessionProperties = sessionProperties,
 
                 SessionName = GenerateRandomRoomName(),
@@ -77,7 +102,7 @@ namespace Assets.Script.NetWorkScript {
         }
 
 
-        private async Task<StartGameResult> StartSimulation( NetworkRunner runner, GameMode mode, string sessionName, int betStake, int playerCount = 4 ) {
+        private async Task<StartGameResult> StartSimulation( NetworkRunner runner, GameMode mode, string sessionName, int betStake, int playerCount = 4, int channel = 1 ) {
             var sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
             if ( sceneManager == null ) {
                 sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
@@ -91,6 +116,7 @@ namespace Assets.Script.NetWorkScript {
             {
                 GameMode = mode,
                 SessionName = sessionName,
+                CustomLobbyName = GetLobbyId(betStake, channel),
                 SessionProperties = sessionProperties,
                 PlayerCount = playerCount,
                 Scene = sceneRef,
