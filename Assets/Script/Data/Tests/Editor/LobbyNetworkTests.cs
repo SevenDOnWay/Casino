@@ -61,5 +61,45 @@ namespace Assets.Script.Data.Tests {
 
             Object.DestroyImmediate(go);
         }
+
+        [Test]
+        public void BrowserPanel_ChannelNavigation_ClampsWithinBounds() {
+            var go = new GameObject("BrowserPanelTest");
+            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+
+            panel.SetChannel(999);
+            Assert.AreEqual(panel.MaxChannels, panel.CurrentChannel);
+
+            panel.SetChannel(-5);
+            Assert.AreEqual(1, panel.CurrentChannel);
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void BrowserPanel_NextPrevChannel_StepsCorrectly() {
+            var go = new GameObject("BrowserPanelTest");
+            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+
+            Assert.AreEqual(1, panel.CurrentChannel);
+
+            panel.NextChannel();
+            Assert.AreEqual(2, panel.CurrentChannel);
+
+            panel.NextChannel();
+            Assert.AreEqual(3, panel.CurrentChannel);
+
+            panel.PrevChannel();
+            Assert.AreEqual(2, panel.CurrentChannel);
+
+            panel.PrevChannel();
+            Assert.AreEqual(1, panel.CurrentChannel);
+
+            // Cannot go below 1
+            panel.PrevChannel();
+            Assert.AreEqual(1, panel.CurrentChannel);
+
+            Object.DestroyImmediate(go);
+        }
     }
 }

@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Fusion;
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -19,11 +20,19 @@ namespace Assets.Script.UI.MainMenu.Panel {
         [Header("Dependencies")]
         [Inject] TienLenNetworkController networkController;
 
+        [Header("Main UI")]
         [SerializeField] Button closeButton;
         [SerializeField] GameObject betButtonPrefab;
         [SerializeField] GameObject sessionButtonPrefab;
         [SerializeField] Transform betButtonContainer;
         [SerializeField] Transform sessionButtonContainer;
+
+        [Header("Channel / Sharding UI (Optional)")]
+        [SerializeField] private TMP_Dropdown channelDropdown;
+        [SerializeField] private Button nextChannelButton;
+        [SerializeField] private Button prevChannelButton;
+        [SerializeField] private TMP_Text channelText;
+        [SerializeField] private int maxChannels = 5;
 
         private Dictionary<string, SessionEntry> sessionEntries = new Dictionary<string, SessionEntry>();
         private List<SessionInfo> availableSessions = new List<SessionInfo>();
@@ -38,6 +47,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
 
         public int SelectedStake => selectedStake;
         public int CurrentChannel => currentChannel;
+        public int MaxChannels => maxChannels;
 
         public void SetNetworkControllerForTest( TienLenNetworkController controller ) {
             this.networkController = controller;
@@ -47,10 +57,20 @@ namespace Assets.Script.UI.MainMenu.Panel {
             selectedStake = stake;
         }
 
+        public void InitializeChannelUIForTest( TMP_Dropdown dropdown, Button nextBtn, Button prevBtn, TMP_Text text, int max = 5 ) {
+            this.channelDropdown = dropdown;
+            this.nextChannelButton = nextBtn;
+            this.prevChannelButton = prevBtn;
+            this.channelText = text;
+            this.maxChannels = max;
+            InitializeChannelUI();
+        }
+
         private void Awake() {
             if ( selectedStake == 0 && dic.TryGetValue(0, out int defaultStake) ) {
                 selectedStake = defaultStake;
             }
+            InitializeChannelUI();
         }
 
         void Start() {
@@ -70,6 +90,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
                 selectedStake = defaultStake;
             }
 
+            UpdateChannelUI();
             await SwitchLobby(selectedStake, currentChannel);
         }
 
@@ -84,6 +105,41 @@ namespace Assets.Script.UI.MainMenu.Panel {
 
             ClearSessionEntries();
             availableSessions.Clear();
+        }
+
+        private void OnDestroy() {
+            if ( channelDropdown != null ) {
+                channelDropdown.onValueChanged.RemoveListener(OnChannelDropdownChanged);
+            }
+            if ( nextChannelButton != null ) {
+                nextChannelButton.onClick.RemoveListener(NextChannel);
+            }
+            if ( prevChannelButton != null ) {
+                prevChannelButton.onClick.RemoveListener(PrevChannel);
+            }
+        }
+
+        private void InitializeChannelUI() {
+            if ( channelDropdown != null ) {
+                channelDropdown.ClearOptions();
+                var options = new List<string>();
+                for ( int i = 1; i <= maxChannels; i++ ) {
+                    options.Add($"Channel {i}");
+                }
+                channelDropdown.AddOptions(options);
+                channelDropdown.SetValueWithoutNotify(currentChannel - 1);
+                channelDropdown.onValueChanged.AddListener(OnChannelDropdownChanged);
+            }
+
+            if ( nextChannelButton != null ) {
+                nextChannelButton.onClick.AddListener(NextChannel);
+            }
+
+            if ( prevChannelButton != null ) {
+                prevChannelButton.onClick.AddListener(PrevChannel);
+            }
+
+            UpdateChannelUI();
         }
 
         private void OnCloseButtonClicked() {
@@ -116,8 +172,9 @@ namespace Assets.Script.UI.MainMenu.Panel {
 
         public async UniTask SwitchLobby( int stake, int channel = 1 ) {
             selectedStake = stake;
-            currentChannel = channel < 1 ? 1 : channel;
+            currentChannel = Mathf.Clamp(channel, 1, maxChannels);
 
+            UpdateChannelUI();
             ClearSessionEntries();
             availableSessions.Clear();
 
@@ -127,8 +184,45 @@ namespace Assets.Script.UI.MainMenu.Panel {
         }
 
         public void SetChannel( int channel ) {
-            if ( channel < 1 || channel == currentChannel ) return;
-            _ = SwitchLobby(selectedStake, channel);
+            int clampedChannel = Mathf.Clamp(channel, 1, maxChannels);
+            if ( clampedChannel == currentChannel && networkController != null && networkController.CurrentLobbyId == TienLenNetworkController.GetLobbyId(selectedStake, currentChannel) ) {
+                return;
+            }
+
+            currentChannel = clampedChannel;
+            UpdateChannelUI();
+            _ = SwitchLobby(selectedStake, currentChannel);
+        }
+
+        public void NextChannel() {
+            if ( currentChannel < maxChannels ) {
+                SetChannel(currentChannel + 1);
+            }
+        }
+
+        public void PrevChannel() {
+            if ( currentChannel > 1 ) {
+                SetChannel(currentChannel - 1);
+            }
+        }
+
+        private void OnChannelDropdownChanged( int index ) {
+            SetChannel(index + 1);
+        }
+
+        private void UpdateChannelUI() {
+            if ( channelText != null ) {
+                channelText.text = $"Channel {currentChannel}";
+            }
+            if ( channelDropdown != null && channelDropdown.value != currentChannel - 1 ) {
+                channelDropdown.SetValueWithoutNotify(currentChannel - 1);
+            }
+            if ( nextChannelButton != null ) {
+                nextChannelButton.interactable = currentChannel < maxChannels;
+            }
+            if ( prevChannelButton != null ) {
+                prevChannelButton.interactable = currentChannel > 1;
+            }
         }
 
         private void ClearSessionEntries() {
