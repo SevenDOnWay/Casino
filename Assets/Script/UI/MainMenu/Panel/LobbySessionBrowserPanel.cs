@@ -1,15 +1,11 @@
-﻿using Assets.Script.NetWorkScript;
-using Cysharp.Threading.Tasks.Triggers;
+using Assets.Script.NetWorkScript;
+using Cysharp.Threading.Tasks;
 using Fusion;
-using JetBrains.Annotations;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
 using UnityEngine.UI;
 using VContainer;
-using static UnityEngine.Rendering.CoreUtils;
 
 namespace Assets.Script.UI.MainMenu.Panel {
     public class LobbySessionBrowserPanel : MonoBehaviour {
@@ -30,46 +26,122 @@ namespace Assets.Script.UI.MainMenu.Panel {
         [SerializeField] Transform sessionButtonContainer;
 
         private Dictionary<string, SessionEntry> sessionEntries = new Dictionary<string, SessionEntry>();
-        List<SessionInfo>  availableSessions = new List<SessionInfo>();
+        private List<SessionInfo> availableSessions = new List<SessionInfo>();
 
-        Dictionary<int,int > dic = new Dictionary<int, int>() {
-            {0, 5}, {1,10}, {2,20}, {3,50} ,{4, 100 }
+        private Dictionary<int, int> dic = new Dictionary<int, int>() {
+            {0, 5}, {1, 10}, {2, 20}, {3, 50}, {4, 100}
         };
 
         private int selectedStake = 0;
+        private int currentChannel = 1;
+        private bool buttonsSpawned = false;
+
+        public int SelectedStake => selectedStake;
+        public int CurrentChannel => currentChannel;
+
+        public void SetNetworkControllerForTest( TienLenNetworkController controller ) {
+            this.networkController = controller;
+        }
+
+        public void SetSelectedStake( int stake ) {
+            selectedStake = stake;
+        }
+
+        private void Awake() {
+            if ( selectedStake == 0 && dic.TryGetValue(0, out int defaultStake) ) {
+                selectedStake = defaultStake;
+            }
+        }
 
         void Start() {
             SpawnButton();
         }
 
-        void OnEnable() {
-            closeButton.onClick.AddListener(() => gameObject.SetActive(false));
-            networkController.SessionListUpdated += OnSessionListUpdated;
+        private async void OnEnable() {
+            if ( closeButton != null ) {
+                closeButton.onClick.AddListener(OnCloseButtonClicked);
+            }
+
+            if ( networkController != null ) {
+                networkController.SessionListUpdated += OnSessionListUpdated;
+            }
+
+            if ( selectedStake == 0 && dic.TryGetValue(0, out int defaultStake) ) {
+                selectedStake = defaultStake;
+            }
+
+            await SwitchLobby(selectedStake, currentChannel);
         }
 
-        void OnDisable() {
-            closeButton.onClick.RemoveAllListeners();
-            networkController.SessionListUpdated -= OnSessionListUpdated;
+        private void OnDisable() {
+            if ( closeButton != null ) {
+                closeButton.onClick.RemoveListener(OnCloseButtonClicked);
+            }
+
+            if ( networkController != null ) {
+                networkController.SessionListUpdated -= OnSessionListUpdated;
+            }
+
+            ClearSessionEntries();
+            availableSessions.Clear();
+        }
+
+        private void OnCloseButtonClicked() {
+            gameObject.SetActive(false);
         }
 
         public void SpawnButton() {
+            if ( buttonsSpawned || betButtonPrefab == null || betButtonContainer == null ) return;
+
             for ( int i = 0; i < dic.Count; i++ ) {
-                var button = Instantiate(betButtonPrefab, transform);
-                button.transform.SetParent(betButtonContainer, false);
+                var button = Instantiate(betButtonPrefab, betButtonContainer, false);
 
                 BetButtonScript betButtonScript = button.GetComponent<BetButtonScript>();
-                betButtonScript.Init(i, dic[i].ToString(), this);
+                if ( betButtonScript != null ) {
+                    betButtonScript.Init(i, dic[i].ToString(), this);
+                }
+            }
+            buttonsSpawned = true;
+        }
+
+        public async void FindTable( int index ) {
+            if ( !dic.TryGetValue(index, out int newStake) ) return;
+            if ( newStake == selectedStake && networkController != null && networkController.CurrentLobbyId == TienLenNetworkController.GetLobbyId(selectedStake, currentChannel) ) {
+                return;
+            }
+
+            selectedStake = newStake;
+            await SwitchLobby(selectedStake, currentChannel);
+        }
+
+        public async UniTask SwitchLobby( int stake, int channel = 1 ) {
+            selectedStake = stake;
+            currentChannel = channel < 1 ? 1 : channel;
+
+            ClearSessionEntries();
+            availableSessions.Clear();
+
+            if ( networkController != null ) {
+                await networkController.JoinBetLobby(selectedStake, currentChannel);
             }
         }
 
-        public void FindTable( int index ) {
-            if ( !dic.TryGetValue(index, out selectedStake) ) return;
+        public void SetChannel( int channel ) {
+            if ( channel < 1 || channel == currentChannel ) return;
+            _ = SwitchLobby(selectedStake, channel);
+        }
 
-            RenderSession();
+        private void ClearSessionEntries() {
+            foreach ( var entry in sessionEntries.Values ) {
+                if ( entry != null && entry.GameObject != null ) {
+                    Destroy(entry.GameObject);
+                }
+            }
+            sessionEntries.Clear();
         }
 
         void OnSessionListUpdated( List<SessionInfo> sessionList ) {
-            availableSessions = sessionList;
+            availableSessions = sessionList ?? new List<SessionInfo>();
             RenderSession();
         }
 
@@ -86,33 +158,48 @@ namespace Assets.Script.UI.MainMenu.Panel {
                 if ( sessionEntries.TryGetValue(session.Name, out var entry) ) {
                     var script = entry.TableButtonScript;
 
-                    if ( script.playerCount != session.PlayerCount ) {
+                    if ( script != null && script.playerCount != session.PlayerCount ) {
                         script.UpdatePlayerCount(session.PlayerCount);
                     }
                 }
                 else {
-                    var button = Instantiate(sessionButtonPrefab, transform);
-                    button.transform.SetParent(sessionButtonContainer, false);
+                    if ( sessionButtonPrefab == null || sessionButtonContainer == null ) continue;
+
+                    var button = Instantiate(sessionButtonPrefab, sessionButtonContainer, false);
                     var script = button.GetComponent<TableButtonScript>();
-                    script.Init(session.Name, roomStake, networkController, session.PlayerCount, session.MaxPlayers);
+                    if ( script != null ) {
+                        script.Init(session.Name, roomStake, networkController, session.PlayerCount, session.MaxPlayers);
+                    }
+
                     sessionEntries[session.Name] = new SessionEntry {
                         GameObject = button,
                         TableButtonScript = script,
                         index = sessionEntries.Count
                     };
                 }
+            }
 
+            // Clean up removed / closed session entries
+            foreach ( var removedKey in existingSessionKeys ) {
+                if ( sessionEntries.TryGetValue(removedKey, out var entry) ) {
+                    if ( entry.GameObject != null ) {
+                        Destroy(entry.GameObject);
+                    }
+                    sessionEntries.Remove(removedKey);
+                }
             }
         }
-
-
 
         private bool TryGetStake( SessionInfo session, out int stake ) {
             stake = 0;
 
-            if ( session.Properties == null ||
-                !session.Properties.TryGetValue("Stake", out var property) )
+            if ( session.Properties == null )
                 return false;
+
+            if ( !session.Properties.TryGetValue("BetStake", out var property) &&
+                 !session.Properties.TryGetValue("Stake", out property) ) {
+                return false;
+            }
 
             try {
                 stake = Convert.ToInt32(property.PropertyValue);
@@ -122,7 +209,5 @@ namespace Assets.Script.UI.MainMenu.Panel {
                 return false;
             }
         }
-
-
     }
 }

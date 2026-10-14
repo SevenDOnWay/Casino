@@ -35,5 +35,31 @@ namespace Assets.Script.Data.Tests {
 
             Object.DestroyImmediate(go);
         }
+
+        [Test]
+        public void BrowserPanel_SetSelectedStake_UpdatesProperty() {
+            var go = new GameObject("BrowserPanelTest");
+            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+
+            panel.SetSelectedStake(50);
+            Assert.AreEqual(50, panel.SelectedStake);
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void BrowserPanel_FindTable_UpdatesStakeFromDictionary() {
+            var go = new GameObject("BrowserPanelTest");
+            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+
+            // Index 0 -> 5, Index 1 -> 10, Index 2 -> 20, Index 3 -> 50, Index 4 -> 100
+            panel.FindTable(3);
+            Assert.AreEqual(50, panel.SelectedStake);
+
+            panel.FindTable(1);
+            Assert.AreEqual(10, panel.SelectedStake);
+
+            Object.DestroyImmediate(go);
+        }
     }
 }
