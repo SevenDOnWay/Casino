@@ -37,11 +37,22 @@ namespace Assets.Script {
                    .As<IPlayerRepository>()
                    .As<IDataRepository<PlayerProfileData>>();
 
-
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // Development & Editor builds: unencrypted PlayerPrefs storage for easy debugging
+            builder.Register<PlayerPrefsTokenStorage>(Lifetime.Singleton).As<ITokenStorage>();
+#else
+            // Production Release builds: AES-encrypted secure storage
+            builder.Register<SecureTokenStorage>(Lifetime.Singleton).As<ITokenStorage>();
+#endif
             builder.Register<AuthService>(Lifetime.Singleton).As<IAuthService>();
             builder.Register<PlayerProfileService>(Lifetime.Singleton).As<IPlayerProfileService>();
             builder.Register<LocalPlayerService>(Lifetime.Singleton)
                    .As<ILocalPlayerService>()
+                   .AsSelf();
+
+            builder.Register<RestLobbyService>(Lifetime.Singleton)
+                   .WithParameter("baseUrl", apiBaseUrl)
+                   .As<ILobbyRestService>()
                    .AsSelf();
         }
 

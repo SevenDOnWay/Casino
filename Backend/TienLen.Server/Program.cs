@@ -17,12 +17,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 // 1. Database and Data Context
-builder.Services.AddSingleton<IMongoDbContext, MongoDbContext>();
+builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddSingleton<IDataBaseContext>(sp => sp.GetRequiredService<MongoDbContext>());
+builder.Services.AddSingleton<IDatabaseContext>(sp => sp.GetRequiredService<MongoDbContext>());
+#pragma warning disable CS0618
+builder.Services.AddSingleton<IMongoDbContext>(sp => sp.GetRequiredService<MongoDbContext>());
+#pragma warning restore CS0618
 
 // 2. Application Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
+builder.Services.AddScoped<ILobbyService, LobbyService>();
 
 // 3. Authentication & JWT
 var jwtKey = builder.Configuration["Jwt:Key"]

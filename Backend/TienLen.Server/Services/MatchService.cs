@@ -9,9 +9,9 @@ using TienLen.Server.Models;
 
 namespace TienLen.Server.Services {
     public class MatchService : IMatchService {
-        private readonly IMongoDbContext db;
+        private readonly IDataBaseContext db;
 
-        public MatchService( IMongoDbContext db ) {
+        public MatchService( IDataBaseContext db ) {
             this.db = db;
         }
 

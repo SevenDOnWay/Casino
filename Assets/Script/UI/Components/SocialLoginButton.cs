@@ -66,7 +66,7 @@ namespace Assets.Script.UI.Components {
         }
 
         public SocialLoginButton() {
-            AddToClassList("social-btn");
+            AddToClassList("social-betButton");
             BuildLayout();
             ApplyProviderDefaults();
             UpdateVisuals();
@@ -130,23 +130,23 @@ namespace Assets.Script.UI.Components {
                 iconBadgeLabel.text = iconBadge;
             }
 
-            RemoveFromClassList("social-btn--google");
-            RemoveFromClassList("social-btn--facebook");
-            RemoveFromClassList("social-btn--apple");
-            RemoveFromClassList("social-btn--discord");
+            RemoveFromClassList("social-betButton--google");
+            RemoveFromClassList("social-betButton--facebook");
+            RemoveFromClassList("social-betButton--apple");
+            RemoveFromClassList("social-betButton--discord");
 
             switch (provider) {
                 case SocialAuthProvider.Google:
-                    AddToClassList("social-btn--google");
+                    AddToClassList("social-betButton--google");
                     break;
                 case SocialAuthProvider.Facebook:
-                    AddToClassList("social-btn--facebook");
+                    AddToClassList("social-betButton--facebook");
                     break;
                 case SocialAuthProvider.Apple:
-                    AddToClassList("social-btn--apple");
+                    AddToClassList("social-betButton--apple");
                     break;
                 case SocialAuthProvider.Discord:
-                    AddToClassList("social-btn--discord");
+                    AddToClassList("social-betButton--discord");
                     break;
             }
         }
@@ -171,31 +171,31 @@ namespace Assets.Script.UI.Components {
             var btnContainer = rootElement?.Q<VisualElement>(elementName);
             if (btnContainer == null) return;
 
-            var button = btnContainer as Button ?? btnContainer.Q<Button>("social-btn");
+            var button = btnContainer as Button ?? btnContainer.Q<Button>("social-betButton");
             var label = btnContainer.Q<Label>("social-btn__label");
             var iconBadge = btnContainer.Q<Label>("social-btn__icon-badge");
 
             if (button != null) {
-                button.RemoveFromClassList("social-btn--google");
-                button.RemoveFromClassList("social-btn--facebook");
-                button.RemoveFromClassList("social-btn--apple");
+                button.RemoveFromClassList("social-betButton--google");
+                button.RemoveFromClassList("social-betButton--facebook");
+                button.RemoveFromClassList("social-betButton--apple");
 
                 string badgeText = "★";
                 string labelText = provider.ToString();
 
                 switch (provider) {
                     case SocialAuthProvider.Google:
-                        button.AddToClassList("social-btn--google");
+                        button.AddToClassList("social-betButton--google");
                         badgeText = "G";
                         labelText = "Google";
                         break;
                     case SocialAuthProvider.Facebook:
-                        button.AddToClassList("social-btn--facebook");
+                        button.AddToClassList("social-betButton--facebook");
                         badgeText = "f";
                         labelText = "Facebook";
                         break;
                     case SocialAuthProvider.Apple:
-                        button.AddToClassList("social-btn--apple");
+                        button.AddToClassList("social-betButton--apple");
                         badgeText = "";
                         labelText = "Apple";
                         break;

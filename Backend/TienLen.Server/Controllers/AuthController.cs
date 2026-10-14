@@ -46,5 +46,38 @@ namespace TienLen.Server.Controllers {
 
             return Ok(result);
         }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh( [FromBody] RefreshTokenRequestDto request ) {
+            if ( !ModelState.IsValid ) {
+                return BadRequest(new TokenRefreshResponseDto {
+                    IsSuccess = false,
+                    ErrorMessage = "Invalid refresh token request."
+                });
+            }
+
+            var result = await authService.RefreshTokenAsync(request);
+            if ( result == null || !result.IsSuccess ) {
+                return Unauthorized(result ?? new TokenRefreshResponseDto {
+                    IsSuccess = false,
+                    ErrorMessage = "Invalid, expired, or revoked refresh token."
+                });
+            }
+
+            return Ok(result);
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout( [FromBody] LogoutRequestDto request ) {
+            if ( !ModelState.IsValid ) {
+                return BadRequest(new ApiResponse<bool> {
+                    IsSuccess = false,
+                    Message = "Invalid logout request."
+                });
+            }
+
+            bool revoked = await authService.RevokeRefreshTokenAsync(request);
+            return Ok(ApiResponse<bool>.Success(revoked, "Logged out successfully."));
+        }
     }
 }

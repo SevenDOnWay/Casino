@@ -98,7 +98,7 @@ namespace Assets.Script.UI.Components {
         }
 
         public LobbyActionButton() {
-            AddToClassList("lobby-menu-btn");
+            AddToClassList("lobby-menu-betButton");
             BuildHierarchy();
             UpdateVariantStyle();
             UpdateAllText();
@@ -111,60 +111,60 @@ namespace Assets.Script.UI.Components {
 
         private void BuildHierarchy() {
             // Left block (Icon + Titles)
-            leftContainer = new VisualElement { name = "lobby-btn-left" };
-            leftContainer.AddToClassList("lobby-btn-left");
+            leftContainer = new VisualElement { name = "lobby-betButton-left" };
+            leftContainer.AddToClassList("lobby-betButton-left");
 
-            iconBox = new VisualElement { name = "lobby-btn-icon-box" };
-            iconBox.AddToClassList("lobby-btn-icon-box");
+            iconBox = new VisualElement { name = "lobby-betButton-icon-box" };
+            iconBox.AddToClassList("lobby-betButton-icon-box");
 
-            iconLabel = new Label { name = "lobby-btn-icon" };
-            iconLabel.AddToClassList("lobby-btn-icon");
+            iconLabel = new Label { name = "lobby-betButton-icon" };
+            iconLabel.AddToClassList("lobby-betButton-icon");
             iconBox.Add(iconLabel);
             leftContainer.Add(iconBox);
 
-            textContainer = new VisualElement { name = "lobby-btn-text-group" };
-            textContainer.AddToClassList("lobby-btn-text-group");
+            textContainer = new VisualElement { name = "lobby-betButton-text-group" };
+            textContainer.AddToClassList("lobby-betButton-text-group");
 
-            titleLabel = new Label { name = "lobby-btn-title" };
-            titleLabel.AddToClassList("lobby-btn-title");
+            titleLabel = new Label { name = "lobby-betButton-title" };
+            titleLabel.AddToClassList("lobby-betButton-title");
             textContainer.Add(titleLabel);
 
-            subtitleLabel = new Label { name = "lobby-btn-subtitle" };
-            subtitleLabel.AddToClassList("lobby-btn-subtitle");
+            subtitleLabel = new Label { name = "lobby-betButton-subtitle" };
+            subtitleLabel.AddToClassList("lobby-betButton-subtitle");
             textContainer.Add(subtitleLabel);
 
             leftContainer.Add(textContainer);
             Add(leftContainer);
 
             // Right block (Badge + Chevron)
-            rightContainer = new VisualElement { name = "lobby-btn-right" };
-            rightContainer.AddToClassList("lobby-btn-right");
+            rightContainer = new VisualElement { name = "lobby-betButton-right" };
+            rightContainer.AddToClassList("lobby-betButton-right");
 
-            badgeLabel = new Label { name = "lobby-btn-badge" };
-            badgeLabel.AddToClassList("lobby-btn-badge");
+            badgeLabel = new Label { name = "lobby-betButton-badge" };
+            badgeLabel.AddToClassList("lobby-betButton-badge");
             rightContainer.Add(badgeLabel);
 
-            chevronLabel = new Label { name = "lobby-btn-chevron", text = "→" };
-            chevronLabel.AddToClassList("lobby-btn-chevron");
+            chevronLabel = new Label { name = "lobby-betButton-chevron", text = "→" };
+            chevronLabel.AddToClassList("lobby-betButton-chevron");
             rightContainer.Add(chevronLabel);
 
             Add(rightContainer);
         }
 
         private void UpdateVariantStyle() {
-            RemoveFromClassList("lobby-menu-btn--primary");
-            RemoveFromClassList("lobby-menu-btn--outline");
-            RemoveFromClassList("lobby-menu-btn--muted");
+            RemoveFromClassList("lobby-menu-betButton--primary");
+            RemoveFromClassList("lobby-menu-betButton--outline");
+            RemoveFromClassList("lobby-menu-betButton--muted");
 
             switch (variant) {
                 case LobbyButtonVariant.Primary:
-                    AddToClassList("lobby-menu-btn--primary");
+                    AddToClassList("lobby-menu-betButton--primary");
                     break;
                 case LobbyButtonVariant.Outline:
-                    AddToClassList("lobby-menu-btn--outline");
+                    AddToClassList("lobby-menu-betButton--outline");
                     break;
                 case LobbyButtonVariant.Muted:
-                    AddToClassList("lobby-menu-btn--muted");
+                    AddToClassList("lobby-menu-betButton--muted");
                     break;
             }
         }
@@ -186,15 +186,15 @@ namespace Assets.Script.UI.Components {
         }
 
         private void OnPointerDown(PointerDownEvent evt) {
-            AddToClassList("lobby-menu-btn--active");
+            AddToClassList("lobby-menu-betButton--active");
         }
 
         private void OnPointerUp(PointerUpEvent evt) {
-            RemoveFromClassList("lobby-menu-btn--active");
+            RemoveFromClassList("lobby-menu-betButton--active");
         }
 
         private void OnPointerCancel(PointerCancelEvent evt) {
-            RemoveFromClassList("lobby-menu-btn--active");
+            RemoveFromClassList("lobby-menu-betButton--active");
         }
     }
 }

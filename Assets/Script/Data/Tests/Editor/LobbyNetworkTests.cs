@@ -1,3 +1,4 @@
+using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
 using NUnit.Framework;
 using UnityEngine;
@@ -127,6 +128,94 @@ namespace Assets.Script.Data.Tests {
             Assert.AreEqual("Channel 2", options[1]);
 
             Object.DestroyImmediate(go);
+        }
+
+        private class MockLobbyRestService : ILobbyRestService {
+            public int RegisteredCount { get; private set; }
+            public int HeartbeatCount { get; private set; }
+            public int UnregisterCount { get; private set; }
+
+            public Cysharp.Threading.Tasks.UniTask<ChannelQueryResponseDto> GetChannelsAsync( int betStake ) {
+                return Cysharp.Threading.Tasks.UniTask.FromResult(new ChannelQueryResponseDto {
+                    betStake = betStake,
+                    channels = new System.Collections.Generic.List<int> { 1, 2 },
+                    recommendedChannel = 2
+                });
+            }
+
+            public Cysharp.Threading.Tasks.UniTask<System.Collections.Generic.List<LobbySessionDto>> GetSessionsAsync( int betStake, int channel ) {
+                return Cysharp.Threading.Tasks.UniTask.FromResult(new System.Collections.Generic.List<LobbySessionDto>());
+            }
+
+            public Cysharp.Threading.Tasks.UniTask<bool> RegisterSessionAsync( string sessionName, int betStake, int channel, int playerCount = 1, int maxPlayers = 4 ) {
+                RegisteredCount++;
+                return Cysharp.Threading.Tasks.UniTask.FromResult(true);
+            }
+
+            public Cysharp.Threading.Tasks.UniTask<bool> SendHeartbeatAsync( string sessionName, int playerCount ) {
+                HeartbeatCount++;
+                return Cysharp.Threading.Tasks.UniTask.FromResult(true);
+            }
+
+            public Cysharp.Threading.Tasks.UniTask<bool> UnregisterSessionAsync( string sessionName ) {
+                UnregisterCount++;
+                return Cysharp.Threading.Tasks.UniTask.FromResult(true);
+            }
+
+            public Cysharp.Threading.Tasks.UniTask<QuickJoinResponseDto> QuickJoinAsync( int betStake ) {
+                return Cysharp.Threading.Tasks.UniTask.FromResult(new QuickJoinResponseDto {
+                    found = true,
+                    action = "join",
+                    sessionName = "ROOM123",
+                    channel = 1,
+                    betStake = betStake
+                });
+            }
+        }
+
+        [Test]
+        public void BrowserPanel_WithMockLobbyService_CanAssign() {
+            var go = new GameObject("BrowserPanelTest");
+            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+            var mockService = new MockLobbyRestService();
+
+            panel.SetLobbyRestServiceForTest(mockService);
+            Assert.IsNotNull(panel);
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void NetworkController_WithMockLobbyService_CanAssign() {
+            var go = new GameObject("NetworkControllerTest");
+            var controller = go.AddComponent<TienLenNetworkController>();
+            var mockService = new MockLobbyRestService();
+
+            controller.SetLobbyRestServiceForTest(mockService);
+            Assert.IsNotNull(controller);
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task MockLobbyRestService_SimulatesRegistrationAndHeartbeat() {
+            var mockService = new MockLobbyRestService();
+
+            bool reg = await mockService.RegisterSessionAsync("RoomA", 5, 1);
+            Assert.IsTrue(reg);
+            Assert.AreEqual(1, mockService.RegisteredCount);
+
+            bool hb = await mockService.SendHeartbeatAsync("RoomA", 2);
+            Assert.IsTrue(hb);
+            Assert.AreEqual(1, mockService.HeartbeatCount);
+
+            bool unreg = await mockService.UnregisterSessionAsync("RoomA");
+            Assert.IsTrue(unreg);
+            Assert.AreEqual(1, mockService.UnregisterCount);
+
+            var qj = await mockService.QuickJoinAsync(5);
+            Assert.IsTrue(qj.found);
+            Assert.AreEqual("ROOM123", qj.sessionName);
         }
     }
 }

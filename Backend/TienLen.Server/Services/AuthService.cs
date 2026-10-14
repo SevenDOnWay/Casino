@@ -2,8 +2,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using TienLen.Server.Data;
@@ -12,11 +14,14 @@ using TienLen.Server.Models;
 
 namespace TienLen.Server.Services {
     public class AuthService : IAuthService {
-        private readonly IMongoDbContext db;
+        private readonly IDataBaseContext db;
         private readonly IConfiguration configuration;
         private readonly IUserService userService;
 
-        public AuthService( IMongoDbContext db, IConfiguration configuration, IUserService userService ) {
+        private static readonly TimeSpan DefaultAccessTokenLifetime = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan DefaultRefreshTokenLifetime = TimeSpan.FromDays(30);
+
+        public AuthService( IDataBaseContext db, IConfiguration configuration, IUserService userService ) {
             this.db = db;
             this.configuration = configuration;
             this.userService = userService;
@@ -57,12 +62,16 @@ namespace TienLen.Server.Services {
 
             await db.Users.InsertOneAsync(newUser);
 
-            string token = GenerateJwtToken(newUser.Id, newUser.Email);
+            var accessLifetime = GetAccessTokenLifetime();
+            string token = GenerateJwtToken(newUser.Id, newUser.Email, accessLifetime);
+            var (refreshToken, _) = await CreateRefreshSessionAsync(newUser.Id);
             var profile = await userService.GetProfileAsync(newUser.Id);
 
             return new AuthResponseDto {
                 IsSuccess = true,
-                Token = token,
+                AccessToken = token,
+                RefreshToken = refreshToken,
+                AccessTokenExpiresAtUtc = DateTime.UtcNow.Add(accessLifetime),
                 Profile = profile
             };
         }
@@ -87,17 +96,137 @@ namespace TienLen.Server.Services {
                 };
             }
 
-            string token = GenerateJwtToken(user.Id, user.Email);
+            var accessLifetime = GetAccessTokenLifetime();
+            string token = GenerateJwtToken(user.Id, user.Email, accessLifetime);
+            var (refreshToken, _) = await CreateRefreshSessionAsync(user.Id);
             var profile = await userService.GetProfileAsync(user.Id);
 
             return new AuthResponseDto {
                 IsSuccess = true,
-                Token = token,
+                AccessToken = token,
+                RefreshToken = refreshToken,
+                AccessTokenExpiresAtUtc = DateTime.UtcNow.Add(accessLifetime),
                 Profile = profile
             };
         }
 
-        public string GenerateJwtToken( string userId, string email ) {
+        public async Task<TokenRefreshResponseDto?> RefreshTokenAsync( RefreshTokenRequestDto request ) {
+            if ( request == null || string.IsNullOrWhiteSpace(request.RefreshToken) ) {
+                return new TokenRefreshResponseDto {
+                    IsSuccess = false,
+                    ErrorMessage = "Refresh token is required."
+                };
+            }
+
+            string rawToken = request.RefreshToken.Trim();
+            string tokenHash = HashToken(rawToken);
+
+            if ( db.RefreshSessions == null ) {
+                return new TokenRefreshResponseDto {
+                    IsSuccess = false,
+                    ErrorMessage = "Refresh session service is not configured."
+                };
+            }
+
+            // Find session by current token hash or consumed token hash
+            var sessionCursor = await db.RefreshSessions.FindAsync(
+                s => s.CurrentTokenHash == tokenHash || s.ConsumedTokenHashes.Contains(tokenHash)
+            );
+            var session = await sessionCursor.FirstOrDefaultAsync();
+
+            if ( session == null ) {
+                return new TokenRefreshResponseDto {
+                    IsSuccess = false,
+                    ErrorMessage = "Invalid refresh token."
+                };
+            }
+
+            if ( session.RevokedAtUtc != null ) {
+                return new TokenRefreshResponseDto {
+                    IsSuccess = false,
+                    ErrorMessage = "Session has been revoked."
+                };
+            }
+
+            // Replay attack check: token was already consumed
+            if ( session.ConsumedTokenHashes != null && session.ConsumedTokenHashes.Contains(tokenHash) ) {
+                // Check 15s grace window for concurrent requests/retries
+                bool withinGraceWindow = session.LastUsedAtUtc.HasValue &&
+                    (DateTime.UtcNow - session.LastUsedAtUtc.Value).TotalSeconds <= 15;
+
+                if ( !withinGraceWindow ) {
+                    // Revoke session completely upon replay attack detection
+                    var revokeUpdate = Builders<RefreshSessionDocument>.Update
+                        .Set(s => s.RevokedAtUtc, DateTime.UtcNow);
+                    await db.RefreshSessions.UpdateOneAsync(s => s.Id == session.Id, revokeUpdate);
+
+                    return new TokenRefreshResponseDto {
+                        IsSuccess = false,
+                        ErrorMessage = "Refresh token reuse detected. Session has been revoked."
+                    };
+                }
+            }
+
+            if ( session.ExpiresAtUtc <= DateTime.UtcNow ) {
+                return new TokenRefreshResponseDto {
+                    IsSuccess = false,
+                    ErrorMessage = "Refresh token has expired."
+                };
+            }
+
+            // Fetch user for claims
+            var userCursor = await db.Users.FindAsync(u => u.Id == session.UserId);
+            var user = await userCursor.FirstOrDefaultAsync();
+            if ( user == null ) {
+                return new TokenRefreshResponseDto {
+                    IsSuccess = false,
+                    ErrorMessage = "User associated with session was not found."
+                };
+            }
+
+            // Token Rotation: generate new refresh token and hash
+            string newRawToken = GenerateSecureTokenString();
+            string newTokenHash = HashToken(newRawToken);
+
+            var accessLifetime = GetAccessTokenLifetime();
+            string newAccessToken = GenerateJwtToken(user.Id, user.Email, accessLifetime);
+            DateTime accessExpiresAt = DateTime.UtcNow.Add(accessLifetime);
+
+            var update = Builders<RefreshSessionDocument>.Update
+                .Push(s => s.ConsumedTokenHashes, tokenHash)
+                .Set(s => s.CurrentTokenHash, newTokenHash)
+                .Set(s => s.LastUsedAtUtc, DateTime.UtcNow);
+
+            await db.RefreshSessions.UpdateOneAsync(s => s.Id == session.Id, update);
+
+            return new TokenRefreshResponseDto {
+                IsSuccess = true,
+                AccessToken = newAccessToken,
+                RefreshToken = newRawToken,
+                ExpiresAt = accessExpiresAt
+            };
+        }
+
+        public async Task<bool> RevokeRefreshTokenAsync( LogoutRequestDto request ) {
+            if ( request == null || string.IsNullOrWhiteSpace(request.RefreshToken) ) {
+                return false;
+            }
+
+            if ( db.RefreshSessions == null ) return false;
+
+            string rawToken = request.RefreshToken.Trim();
+            string tokenHash = HashToken(rawToken);
+
+            var update = Builders<RefreshSessionDocument>.Update.Set(s => s.RevokedAtUtc, DateTime.UtcNow);
+            var result = await db.RefreshSessions.UpdateOneAsync(
+                s => s.CurrentTokenHash == tokenHash || s.ConsumedTokenHashes.Contains(tokenHash),
+                update
+            );
+
+            return result.ModifiedCount > 0;
+        }
+
+        public string GenerateJwtToken( string userId, string email, TimeSpan? expiry = null ) {
             var jwtKey = configuration["Jwt:Key"] ?? "TienLenSecretSuperSecureKey2026!@#$%^&*()";
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -109,15 +238,57 @@ namespace TienLen.Server.Services {
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
+            var lifetime = expiry ?? GetAccessTokenLifetime();
+
             var token = new JwtSecurityToken(
                 issuer: configuration["Jwt:Issuer"] ?? "TienLenServer",
                 audience: configuration["Jwt:Audience"] ?? "TienLenClient",
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(30),
+                expires: DateTime.UtcNow.Add(lifetime),
                 signingCredentials: creds
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private async Task<(string rawRefreshToken, DateTime expiresAt)> CreateRefreshSessionAsync( string userId ) {
+            string rawToken = GenerateSecureTokenString();
+            string hash = HashToken(rawToken);
+            DateTime expiresAt = DateTime.UtcNow.Add(DefaultRefreshTokenLifetime);
+
+            var session = new RefreshSessionDocument {
+                SessionId = Guid.NewGuid().ToString("N"),
+                UserId = userId,
+                CurrentTokenHash = hash,
+                ConsumedTokenHashes = new List<string>(),
+                CreatedAtUtc = DateTime.UtcNow,
+                ExpiresAtUtc = expiresAt,
+                LastUsedAtUtc = DateTime.UtcNow
+            };
+
+            if ( db.RefreshSessions != null ) {
+                await db.RefreshSessions.InsertOneAsync(session);
+            }
+
+            return (rawToken, expiresAt);
+        }
+
+        private TimeSpan GetAccessTokenLifetime() {
+            if ( double.TryParse(configuration["Jwt:AccessTokenLifetimeMinutes"], out double mins) && mins > 0 ) {
+                return TimeSpan.FromMinutes(mins);
+            }
+            return DefaultAccessTokenLifetime;
+        }
+
+        public static string GenerateSecureTokenString() {
+            byte[] bytes = new byte[32];
+            RandomNumberGenerator.Fill(bytes);
+            return Convert.ToBase64String(bytes);
+        }
+
+        public static string HashToken( string token ) {
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToHexString(hash);
         }
     }
 }

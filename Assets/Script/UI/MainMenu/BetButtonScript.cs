@@ -7,19 +7,24 @@ using UnityEngine.UI;
 namespace Assets.Script.UI.MainMenu {
     public class BetButtonScript : MonoBehaviour {
 
-        [SerializeField] private Button btn;
+        [SerializeField] private Button betButton;
         [SerializeField] private TextMeshProUGUI text;
         [SerializeField] private TMP_Dropdown channelDropDown;
 
         private LobbySessionBrowserPanel lobbySessionBrowserPanel;
+        private GameObject channelGameObject;
         private int index;
 
         public int Index => index;
         public TMP_Dropdown ChannelDropDown => channelDropDown;
 
+        void Start() {
+            channelGameObject = channelDropDown.gameObject;
+        }
+
         private void OnEnable() {
-            if ( btn != null ) {
-                btn.onClick.AddListener(OnButtonClicked);
+            if ( betButton != null ) {
+                betButton.onClick.AddListener(OnBetButtonClicked);
             }
             if ( channelDropDown != null ) {
                 channelDropDown.onValueChanged.AddListener(OnChannelValueChanged);
@@ -27,25 +32,19 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         private void OnDisable() {
-            if ( btn != null ) {
-                btn.onClick.RemoveListener(OnButtonClicked);
-            }
-            if ( channelDropDown != null ) {
-                channelDropDown.onValueChanged.RemoveListener(OnChannelValueChanged);
-            }
+            if ( betButton != null ) betButton.onClick.RemoveListener(OnBetButtonClicked);
+            if ( channelDropDown != null ) channelDropDown.onValueChanged.RemoveListener(OnChannelValueChanged);
         }
 
         public void Init( int index, string text, LobbySessionBrowserPanel script ) {
             this.index = index;
-            if ( this.text != null ) {
-                this.text.text = text;
-            }
+            this.text.text = text;
             this.lobbySessionBrowserPanel = script;
 
             SetChannelActive(false);
         }
 
-        private void OnButtonClicked() {
+        private void OnBetButtonClicked() {
             if ( lobbySessionBrowserPanel != null ) {
                 lobbySessionBrowserPanel.FindTable(index);
             }
@@ -58,17 +57,11 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         public void SetChannelActive( bool active, int selectedChannel = 1 ) {
-            if ( channelDropDown != null && channelDropDown.gameObject != null ) {
-                channelDropDown.gameObject.SetActive(active);
-                if ( active ) {
-                    BuildChannel(selectedChannel);
-                }
-            }
+            channelGameObject.SetActive(active);
+            if ( active ) BuildChannel(selectedChannel);
         }
 
         public void BuildChannel( int selectedChannel = 1 ) {
-            if ( channelDropDown == null || lobbySessionBrowserPanel == null ) return;
-
             channelDropDown.ClearOptions();
             var options = lobbySessionBrowserPanel.GetChannelOptions(index);
             if ( options != null && options.Count > 0 ) {

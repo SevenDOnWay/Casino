@@ -16,7 +16,7 @@ namespace TienLen.Server.Tests {
         [Fact]
         public async Task UpdateProfile_CustomizesDisplayNameAndAvatarId() {
             // Arrange
-            var mockDb = new Mock<IMongoDbContext>();
+            var mockDb = new Mock<IDataBaseContext>();
             var mockUserCollection = new Mock<IMongoCollection<UserDocument>>();
             var mockMatchCollection = new Mock<IMongoCollection<MatchRecordDocument>>();
 

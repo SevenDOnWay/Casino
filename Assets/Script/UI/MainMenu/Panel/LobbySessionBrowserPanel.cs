@@ -1,3 +1,4 @@
+using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
 using Cysharp.Threading.Tasks;
 using Fusion;
@@ -18,6 +19,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
 
         [Header("Dependencies")]
         [Inject] TienLenNetworkController networkController;
+        [Inject] ILobbyRestService lobbyRestService;
 
         [Header("Main UI")]
         [SerializeField] Button closeButton;
@@ -51,18 +53,16 @@ namespace Assets.Script.UI.MainMenu.Panel {
             this.networkController = controller;
         }
 
+        public void SetLobbyRestServiceForTest( ILobbyRestService service ) {
+            this.lobbyRestService = service;
+        }
+
         public void SetSelectedStake( int stake ) {
             selectedStake = stake;
         }
 
         public void SetChannelSessionCountForTest( string lobbyId, int count ) {
             channelSessionCounts[lobbyId] = count;
-        }
-
-        private void Awake() {
-            if ( selectedStake == 0 && dic.TryGetValue(0, out int defaultStake) ) {
-                selectedStake = defaultStake;
-            }
         }
 
         void Start() {
@@ -186,7 +186,35 @@ namespace Assets.Script.UI.MainMenu.Panel {
                 }
             }
 
-            _ = SwitchLobbyByStake(selectedStake, optChannel);
+            _ = FindTableInternalAsync(index, selectedStake);
+        }
+
+        private async UniTaskVoid FindTableInternalAsync( int index, int stake ) {
+            int optChannel = currentChannel;
+
+            if ( lobbyRestService != null ) {
+                try {
+                    var channelInfo = await lobbyRestService.GetChannelsAsync(stake);
+                    if ( channelInfo != null ) {
+                        int maxCh = Mathf.Max(channelInfo.channels != null ? channelInfo.channels.Count : 1, channelInfo.recommendedChannel);
+                        channelCounts[stake] = Mathf.Max(channelCounts.TryGetValue(stake, out int cur) ? cur : 1, maxCh);
+                        optChannel = channelInfo.recommendedChannel > 0 ? channelInfo.recommendedChannel : 1;
+                        currentChannel = optChannel;
+
+                        for ( int i = 0; i < betButtons.Count; i++ ) {
+                            var btn = betButtons[i];
+                            if ( btn != null ) {
+                                btn.SetChannelActive(btn.Index == index, optChannel);
+                            }
+                        }
+                    }
+                }
+                catch ( Exception ex ) {
+                    Debug.LogWarning($"[LobbySessionBrowserPanel] Backend GetChannels fallback: {ex.Message}");
+                }
+            }
+
+            await SwitchLobbyByStake(stake, optChannel);
         }
 
         public UniTask SwitchLobby( int betIndex, int channelIndex ) {
