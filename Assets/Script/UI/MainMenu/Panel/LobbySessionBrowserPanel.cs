@@ -3,7 +3,6 @@ using Cysharp.Threading.Tasks;
 using Fusion;
 using System;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -27,19 +26,18 @@ namespace Assets.Script.UI.MainMenu.Panel {
         [SerializeField] Transform betButtonContainer;
         [SerializeField] Transform sessionButtonContainer;
 
-        [Header("Channel / Sharding UI (Optional)")]
-        [SerializeField] private TMP_Dropdown channelDropdown;
-        [SerializeField] private Button nextChannelButton;
-        [SerializeField] private Button prevChannelButton;
-        [SerializeField] private TMP_Text channelText;
-        [SerializeField] private int maxChannels = 5;
-
         private Dictionary<string, SessionEntry> sessionEntries = new Dictionary<string, SessionEntry>();
         private List<SessionInfo> availableSessions = new List<SessionInfo>();
+        private List<BetButtonScript> betButtons = new List<BetButtonScript>();
 
         private Dictionary<int, int> dic = new Dictionary<int, int>() {
             {0, 5}, {1, 10}, {2, 20}, {3, 50}, {4, 100}
         };
+
+        private Dictionary<int, int> channelCounts = new Dictionary<int, int>();
+        private Dictionary<string, int> channelSessionCounts = new Dictionary<string, int>();
+
+        public const int MaxSessionsPerChannel = 30;
 
         private int selectedStake = 0;
         private int currentChannel = 1;
@@ -47,7 +45,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
 
         public int SelectedStake => selectedStake;
         public int CurrentChannel => currentChannel;
-        public int MaxChannels => maxChannels;
+        public IReadOnlyList<BetButtonScript> BetButtons => betButtons;
 
         public void SetNetworkControllerForTest( TienLenNetworkController controller ) {
             this.networkController = controller;
@@ -57,27 +55,21 @@ namespace Assets.Script.UI.MainMenu.Panel {
             selectedStake = stake;
         }
 
-        public void InitializeChannelUIForTest( TMP_Dropdown dropdown, Button nextBtn, Button prevBtn, TMP_Text text, int max = 5 ) {
-            this.channelDropdown = dropdown;
-            this.nextChannelButton = nextBtn;
-            this.prevChannelButton = prevBtn;
-            this.channelText = text;
-            this.maxChannels = max;
-            InitializeChannelUI();
+        public void SetChannelSessionCountForTest( string lobbyId, int count ) {
+            channelSessionCounts[lobbyId] = count;
         }
 
         private void Awake() {
             if ( selectedStake == 0 && dic.TryGetValue(0, out int defaultStake) ) {
                 selectedStake = defaultStake;
             }
-            InitializeChannelUI();
         }
 
         void Start() {
             SpawnButton();
         }
 
-        private async void OnEnable() {
+        private void OnEnable() {
             if ( closeButton != null ) {
                 closeButton.onClick.AddListener(OnCloseButtonClicked);
             }
@@ -86,12 +78,14 @@ namespace Assets.Script.UI.MainMenu.Panel {
                 networkController.SessionListUpdated += OnSessionListUpdated;
             }
 
+            SpawnButton();
+
             if ( selectedStake == 0 && dic.TryGetValue(0, out int defaultStake) ) {
                 selectedStake = defaultStake;
             }
 
-            UpdateChannelUI();
-            await SwitchLobby(selectedStake, currentChannel);
+            int betIndex = GetBetIndex(selectedStake);
+            FindTable(betIndex);
         }
 
         private void OnDisable() {
@@ -107,41 +101,6 @@ namespace Assets.Script.UI.MainMenu.Panel {
             availableSessions.Clear();
         }
 
-        private void OnDestroy() {
-            if ( channelDropdown != null ) {
-                channelDropdown.onValueChanged.RemoveListener(OnChannelDropdownChanged);
-            }
-            if ( nextChannelButton != null ) {
-                nextChannelButton.onClick.RemoveListener(NextChannel);
-            }
-            if ( prevChannelButton != null ) {
-                prevChannelButton.onClick.RemoveListener(PrevChannel);
-            }
-        }
-
-        private void InitializeChannelUI() {
-            if ( channelDropdown != null ) {
-                channelDropdown.ClearOptions();
-                var options = new List<string>();
-                for ( int i = 1; i <= maxChannels; i++ ) {
-                    options.Add($"Channel {i}");
-                }
-                channelDropdown.AddOptions(options);
-                channelDropdown.SetValueWithoutNotify(currentChannel - 1);
-                channelDropdown.onValueChanged.AddListener(OnChannelDropdownChanged);
-            }
-
-            if ( nextChannelButton != null ) {
-                nextChannelButton.onClick.AddListener(NextChannel);
-            }
-
-            if ( prevChannelButton != null ) {
-                prevChannelButton.onClick.AddListener(PrevChannel);
-            }
-
-            UpdateChannelUI();
-        }
-
         private void OnCloseButtonClicked() {
             gameObject.SetActive(false);
         }
@@ -149,32 +108,98 @@ namespace Assets.Script.UI.MainMenu.Panel {
         public void SpawnButton() {
             if ( buttonsSpawned || betButtonPrefab == null || betButtonContainer == null ) return;
 
+            betButtons.Clear();
             for ( int i = 0; i < dic.Count; i++ ) {
                 var button = Instantiate(betButtonPrefab, betButtonContainer, false);
 
                 BetButtonScript betButtonScript = button.GetComponent<BetButtonScript>();
                 if ( betButtonScript != null ) {
                     betButtonScript.Init(i, dic[i].ToString(), this);
+                    betButtons.Add(betButtonScript);
                 }
             }
             buttonsSpawned = true;
         }
 
-        public async void FindTable( int index ) {
-            if ( !dic.TryGetValue(index, out int newStake) ) return;
-            if ( newStake == selectedStake && networkController != null && networkController.CurrentLobbyId == TienLenNetworkController.GetLobbyId(selectedStake, currentChannel) ) {
-                return;
+        public int GetBetIndex( int stake ) {
+            foreach ( var kvp in dic ) {
+                if ( kvp.Value == stake ) return kvp.Key;
             }
-
-            selectedStake = newStake;
-            await SwitchLobby(selectedStake, currentChannel);
+            return 0;
         }
 
-        public async UniTask SwitchLobby( int stake, int channel = 1 ) {
-            selectedStake = stake;
-            currentChannel = Mathf.Clamp(channel, 1, maxChannels);
+        public int GetChannelCountForStake( int stake ) {
+            if ( !channelCounts.TryGetValue(stake, out int count) || count < 1 ) {
+                count = 1;
+                channelCounts[stake] = count;
+            }
+            return count;
+        }
 
-            UpdateChannelUI();
+        public List<string> GetChannelOptions( int betIndex ) {
+            if ( !dic.TryGetValue(betIndex, out int stake) ) {
+                stake = 5;
+            }
+
+            int count = GetChannelCountForStake(stake);
+            var options = new List<string>();
+            for ( int i = 1; i <= count; i++ ) {
+                options.Add($"Channel {i}");
+            }
+            return options;
+        }
+
+        public int GetOptimizedChannel( int stake ) {
+            int count = GetChannelCountForStake(stake);
+
+            // Find the first channel with capacity (< 30 sessions)
+            for ( int ch = 1; ch <= count; ch++ ) {
+                string lobbyId = TienLenNetworkController.GetLobbyId(stake, ch);
+                int sessions = channelSessionCounts.TryGetValue(lobbyId, out int s) ? s : 0;
+                if ( sessions < MaxSessionsPerChannel ) {
+                    return ch;
+                }
+            }
+
+            // All existing channels are full: auto-shard by creating a new channel
+            return CreateNewChannel(stake);
+        }
+
+        public int CreateNewChannel( int stake ) {
+            int newChannel = GetChannelCountForStake(stake) + 1;
+            channelCounts[stake] = newChannel;
+            Debug.Log($"[Automatic Sharding] Created new Channel {newChannel} for Stake {stake}");
+            return newChannel;
+        }
+
+        public void FindTable( int index ) {
+            if ( !dic.TryGetValue(index, out selectedStake) ) return;
+
+            int optChannel = GetOptimizedChannel(selectedStake);
+            currentChannel = optChannel;
+
+            // Enable channel dropdown for the selected bet button and hide for others
+            for ( int i = 0; i < betButtons.Count; i++ ) {
+                var btn = betButtons[i];
+                if ( btn != null ) {
+                    btn.SetChannelActive(btn.Index == index, optChannel);
+                }
+            }
+
+            _ = SwitchLobbyByStake(selectedStake, optChannel);
+        }
+
+        public UniTask SwitchLobby( int betIndex, int channelIndex ) {
+            if ( !dic.TryGetValue(betIndex, out int stake) ) return UniTask.CompletedTask;
+
+            int targetChannel = channelIndex + 1;
+            return SwitchLobbyByStake(stake, targetChannel);
+        }
+
+        public async UniTask SwitchLobbyByStake( int stake, int channel = 1 ) {
+            selectedStake = stake;
+            currentChannel = Mathf.Max(1, channel);
+
             ClearSessionEntries();
             availableSessions.Clear();
 
@@ -183,19 +208,20 @@ namespace Assets.Script.UI.MainMenu.Panel {
             }
         }
 
+        public int MaxChannels => Mathf.Max(5, GetChannelCountForStake(selectedStake));
+
         public void SetChannel( int channel ) {
-            int clampedChannel = Mathf.Clamp(channel, 1, maxChannels);
+            int clampedChannel = Mathf.Clamp(channel, 1, MaxChannels);
             if ( clampedChannel == currentChannel && networkController != null && networkController.CurrentLobbyId == TienLenNetworkController.GetLobbyId(selectedStake, currentChannel) ) {
                 return;
             }
 
             currentChannel = clampedChannel;
-            UpdateChannelUI();
-            _ = SwitchLobby(selectedStake, currentChannel);
+            _ = SwitchLobbyByStake(selectedStake, currentChannel);
         }
 
         public void NextChannel() {
-            if ( currentChannel < maxChannels ) {
+            if ( currentChannel < MaxChannels ) {
                 SetChannel(currentChannel + 1);
             }
         }
@@ -203,25 +229,6 @@ namespace Assets.Script.UI.MainMenu.Panel {
         public void PrevChannel() {
             if ( currentChannel > 1 ) {
                 SetChannel(currentChannel - 1);
-            }
-        }
-
-        private void OnChannelDropdownChanged( int index ) {
-            SetChannel(index + 1);
-        }
-
-        private void UpdateChannelUI() {
-            if ( channelText != null ) {
-                channelText.text = $"Channel {currentChannel}";
-            }
-            if ( channelDropdown != null && channelDropdown.value != currentChannel - 1 ) {
-                channelDropdown.SetValueWithoutNotify(currentChannel - 1);
-            }
-            if ( nextChannelButton != null ) {
-                nextChannelButton.interactable = currentChannel < maxChannels;
-            }
-            if ( prevChannelButton != null ) {
-                prevChannelButton.interactable = currentChannel > 1;
             }
         }
 
@@ -236,6 +243,24 @@ namespace Assets.Script.UI.MainMenu.Panel {
 
         void OnSessionListUpdated( List<SessionInfo> sessionList ) {
             availableSessions = sessionList ?? new List<SessionInfo>();
+
+            string currentLobbyId = TienLenNetworkController.GetLobbyId(selectedStake, currentChannel);
+            channelSessionCounts[currentLobbyId] = availableSessions.Count;
+
+            // Check if current channel reached capacity and auto-create next channel if needed
+            if ( availableSessions.Count >= MaxSessionsPerChannel ) {
+                int highestChannel = GetChannelCountForStake(selectedStake);
+                if ( currentChannel >= highestChannel ) {
+                    CreateNewChannel(selectedStake);
+
+                    int activeBetIndex = GetBetIndex(selectedStake);
+                    var activeBtn = betButtons.Find(b => b != null && b.Index == activeBetIndex);
+                    if ( activeBtn != null ) {
+                        activeBtn.BuildChannel(currentChannel);
+                    }
+                }
+            }
+
             RenderSession();
         }
 
@@ -262,7 +287,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
                     var button = Instantiate(sessionButtonPrefab, sessionButtonContainer, false);
                     var script = button.GetComponent<TableButtonScript>();
                     if ( script != null ) {
-                        script.Init(session.Name, roomStake, networkController, session.PlayerCount, session.MaxPlayers);
+                        script.Init(session.Name, roomStake, networkController, session.PlayerCount, session.MaxPlayers, currentChannel);
                     }
 
                     sessionEntries[session.Name] = new SessionEntry {
