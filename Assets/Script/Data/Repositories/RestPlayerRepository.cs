@@ -26,6 +26,19 @@ namespace Assets.Script.Data.Repositories {
             return await SendRequestAsync<AuthResponse>(url, UnityWebRequest.kHttpVerbPOST, bodyJson);
         }
 
+        public async UniTask<TokenRefreshResponse> RefreshTokenAsync( RefreshTokenRequest request ) {
+            string url = $"{baseUrl}/auth/refresh";
+            string bodyJson = JsonUtility.ToJson(request);
+            return await SendRequestAsync<TokenRefreshResponse>(url, UnityWebRequest.kHttpVerbPOST, bodyJson);
+        }
+
+        public async UniTask<bool> LogoutAsync( LogoutRequest request ) {
+            string url = $"{baseUrl}/auth/logout";
+            string bodyJson = JsonUtility.ToJson(request);
+            var res = await SendRequestAsync<ApiResponse<bool>>(url, UnityWebRequest.kHttpVerbPOST, bodyJson);
+            return res != null && res.isSuccess;
+        }
+
         public async UniTask<PlayerProfileData> GetProfileAsync( string token ) {
             string url = $"{baseUrl}/user/profile";
             return await SendRequestAsync<PlayerProfileData>(url, UnityWebRequest.kHttpVerbGET, null, token);

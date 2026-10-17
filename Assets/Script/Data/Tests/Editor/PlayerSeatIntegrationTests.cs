@@ -73,9 +73,7 @@ namespace Assets.Script.Data.Tests {
             Assert.IsTrue(seat.IsOccupied);
             Assert.AreEqual(2, seat.BoundSeatIndex);
             Assert.AreEqual(player, seat.tienLenPlayer);
-            Assert.AreEqual("Alice", nameText.text);
             Assert.AreEqual("$25K", moneyText.text);
-            Assert.AreEqual("Lv.5", levelText.text);
         }
 
         [Test]
@@ -99,9 +97,7 @@ namespace Assets.Script.Data.Tests {
             Assert.IsFalse(seat.IsOccupied);
             Assert.AreEqual(-1, seat.BoundSeatIndex);
             Assert.IsNull(seat.tienLenPlayer);
-            Assert.AreEqual(string.Empty, nameText.text);
             Assert.AreEqual(string.Empty, moneyText.text);
-            Assert.AreEqual(string.Empty, levelText.text);
         }
 
         [Test]

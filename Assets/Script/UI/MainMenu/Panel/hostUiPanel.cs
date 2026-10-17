@@ -25,6 +25,7 @@ namespace Assets.Script.UI.MainMenu {
             {0, "normal"}, { 1, "fast"}
         };
 
+        //TODO: Change this into configurable value, maybe read from config file or SO
         Dictionary<int, int> stakeOptions = new Dictionary<int, int>() {
             {0, 5}, {1,10}, {2,20}, {3,50} ,{4, 100 }
         };

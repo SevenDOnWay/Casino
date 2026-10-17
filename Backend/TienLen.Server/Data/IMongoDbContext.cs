@@ -1,9 +1,9 @@
-using MongoDB.Driver;
-using TienLen.Server.Models;
+using System;
 
 namespace TienLen.Server.Data {
-    public interface IMongoDbContext {
-        IMongoCollection<UserDocument> Users { get; }
-        IMongoCollection<MatchRecordDocument> Matches { get; }
-    }
+    /// <summary>
+    /// Legacy compatibility interface. Use IDataBaseContext instead.
+    /// </summary>
+    [Obsolete("Use IDataBaseContext or IDatabaseContext instead.")]
+    public interface IMongoDbContext : IDataBaseContext { }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace TienLen.Server.DTOs {
@@ -22,7 +23,10 @@ namespace TienLen.Server.DTOs {
 
     public class AuthResponseDto {
         public bool IsSuccess { get; set; }
-        public string Token { get; set; } = string.Empty;
+        public string AccessToken { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+        public DateTime AccessTokenExpiresAtUtc { get; set; }
+
         public string ErrorMessage { get; set; } = string.Empty;
         public UserProfileDto? Profile { get; set; }
     }
@@ -37,5 +41,23 @@ namespace TienLen.Server.DTOs {
 
         public static ApiResponse<T> Fail( string message ) =>
             new() { IsSuccess = false, Message = message, Data = default };
+    }
+
+    public class RefreshTokenRequestDto {
+        [Required]
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+
+    public class LogoutRequestDto {
+        [Required]
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+
+    public class TokenRefreshResponseDto {
+        public bool IsSuccess { get; set; } = true;
+        public string ErrorMessage { get; set; } = string.Empty;
+        public string AccessToken { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+        public DateTime ExpiresAt { get; set; }
     }
 }

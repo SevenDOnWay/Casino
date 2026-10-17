@@ -9,9 +9,9 @@ using TienLen.Server.Models;
 
 namespace TienLen.Server.Services {
     public class UserService : IUserService {
-        private readonly IMongoDbContext db;
+        private readonly IDataBaseContext db;
 
-        public UserService( IMongoDbContext db ) {
+        public UserService( IDataBaseContext db ) {
             this.db = db;
         }
 

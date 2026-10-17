@@ -26,9 +26,30 @@ namespace Assets.Script.Data.Models {
     }
 
     [Serializable]
+    public class RefreshTokenRequest {
+        public string refreshToken;
+    }
+
+    [Serializable]
+    public class LogoutRequest {
+        public string refreshToken;
+    }
+
+    [Serializable]
+    public class TokenRefreshResponse {
+        public bool isSuccess;
+        public string errorMessage;
+        public string accessToken;
+        public string refreshToken;
+        public string expiresAt;
+    }
+
+    [Serializable]
     public class AuthResponse {
         public bool isSuccess;
-        public string token;
+        public string accessToken;
+        public string refreshToken;
+        public string accessTokenExpiresAtUtc;
         public string errorMessage;
         public PlayerProfileData profile;
     }

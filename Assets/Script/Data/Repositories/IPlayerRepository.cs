@@ -6,6 +6,8 @@ namespace Assets.Script.Data.Repositories {
     public interface IPlayerRepository : IDataRepository<PlayerProfileData> {
         UniTask<AuthResponse> LoginAsync( LoginRequest request );
         UniTask<AuthResponse> RegisterAsync( RegisterRequest request );
+        UniTask<TokenRefreshResponse> RefreshTokenAsync( RefreshTokenRequest request );
+        UniTask<bool> LogoutAsync( LogoutRequest request );
         UniTask<PlayerProfileData> GetProfileAsync( string token );
         UniTask<PlayerProfileData> UpdateProfileAsync( string token, UpdateProfileRequest request );
         UniTask<List<PlayerProfileData>> GetFriendsAsync( string token );

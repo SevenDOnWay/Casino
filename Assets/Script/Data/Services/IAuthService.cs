@@ -13,6 +13,8 @@ namespace Assets.Script.Data.Services {
 
         UniTask<AuthResponse> LoginAsync( string email, string password );
         UniTask<AuthResponse> RegisterAsync( string email, string password );
-        void Logout();
+        UniTask<bool> RestoreSessionAsync();
+        UniTask<bool> RefreshSessionAsync();
+        UniTask Logout();
     }
 }

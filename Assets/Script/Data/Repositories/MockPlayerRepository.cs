@@ -39,7 +39,8 @@ namespace Assets.Script.Data.Repositories {
                 if ( record.password == request.password ) {
                     return new AuthResponse {
                         isSuccess = true,
-                        token = $"mock_token_{record.profile.id}",
+                        accessToken = $"mock_token_{record.profile.id}",
+                        refreshToken = $"mock_refresh_{record.profile.id}",
                         profile = CloneProfile(record.profile)
                     };
                 }
@@ -79,9 +80,36 @@ namespace Assets.Script.Data.Repositories {
 
             return new AuthResponse {
                 isSuccess = true,
-                token = $"mock_token_{newProfile.id}",
+                accessToken = $"mock_token_{newProfile.id}",
+                refreshToken = $"mock_refresh_{newProfile.id}",
                 profile = CloneProfile(newProfile)
             };
+        }
+
+        public async UniTask<TokenRefreshResponse> RefreshTokenAsync( RefreshTokenRequest request ) {
+            await UniTask.Yield();
+            if ( string.IsNullOrEmpty(request?.refreshToken) ) {
+                return new TokenRefreshResponse { isSuccess = false, errorMessage = "Refresh token is required." };
+            }
+
+            string tokenStr = request.refreshToken.Replace("mock_refresh_", "");
+            string userId = tokenStr.Split('_')[0];
+            var match = users.Values.FirstOrDefault(u => u.profile.id.Contains(userId) || u.profile.id == $"mock_user_{userId}");
+            if ( match.profile != null ) {
+                return new TokenRefreshResponse {
+                    isSuccess = true,
+                    accessToken = $"mock_token_{match.profile.id}",
+                    refreshToken = $"mock_refresh_{match.profile.id}_{Guid.NewGuid().ToString("N").Substring(0, 6)}",
+                    expiresAt = DateTime.UtcNow.AddMinutes(15).ToString("o")
+                };
+            }
+
+            return new TokenRefreshResponse { isSuccess = false, errorMessage = "Invalid refresh token." };
+        }
+
+        public async UniTask<bool> LogoutAsync( LogoutRequest request ) {
+            await UniTask.Yield();
+            return true;
         }
 
         public async UniTask<PlayerProfileData> GetProfileAsync( string token ) {
