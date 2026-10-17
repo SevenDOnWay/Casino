@@ -1,6 +1,35 @@
-@TienLen.Server_HostAddress = http://localhost:5265
+@TienLen.Server_HostAddress = http://localhost:5000
 
-GET {{TienLen.Server_HostAddress}}/weatherforecast/
+### 1. Root Service Info
+GET {{TienLen.Server_HostAddress}}/
 Accept: application/json
 
-###
+### 2. Health Check
+GET {{TienLen.Server_HostAddress}}/health
+Accept: application/json
+
+### 3. Query Channels for Stake
+GET {{TienLen.Server_HostAddress}}/api/lobby/channels?betStake=5
+Accept: application/json
+
+### 4. Query Sessions in Channel
+GET {{TienLen.Server_HostAddress}}/api/lobby/sessions?betStake=5&channel=1
+Accept: application/json
+
+### 5. Register User Account
+POST {{TienLen.Server_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "player1@test.com",
+  "password": "Password123!"
+}
+
+### 6. Login
+POST {{TienLen.Server_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "player1@test.com",
+  "password": "Password123!"
+}

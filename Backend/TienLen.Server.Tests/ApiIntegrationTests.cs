@@ -198,6 +198,22 @@ namespace TienLen.Server.Tests {
             apiRes!.IsSuccess.Should().BeTrue();
         }
 
+        [Fact]
+        public async Task HealthCheck_ReturnsOk() {
+            var client = factory.CreateClient();
+
+            var response = await client.GetAsync("/health");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        [Fact]
+        public async Task RootEndpoint_ReturnsOk() {
+            var client = factory.CreateClient();
+
+            var response = await client.GetAsync("/");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
         private static Mock<IAsyncCursor<T>> CreateAsyncCursor<T>( List<T> items ) {
             var mockCursor = new Mock<IAsyncCursor<T>>();
             mockCursor.Setup(c => c.Current).Returns(items);

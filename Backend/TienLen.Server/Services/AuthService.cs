@@ -227,7 +227,10 @@ namespace TienLen.Server.Services {
         }
 
         public string GenerateJwtToken( string userId, string email, TimeSpan? expiry = null ) {
-            var jwtKey = configuration["Jwt:Key"] ?? "TienLenSecretSuperSecureKey2026!@#$%^&*()";
+            var jwtKey = configuration["Jwt:Key"]
+                ?? configuration["Jwt__Key"]
+                ?? configuration["JWT_SECRET"]
+                ?? "TienLenSecretSuperSecureKey2026!@#$%^&*()";
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -241,8 +244,8 @@ namespace TienLen.Server.Services {
             var lifetime = expiry ?? GetAccessTokenLifetime();
 
             var token = new JwtSecurityToken(
-                issuer: configuration["Jwt:Issuer"] ?? "TienLenServer",
-                audience: configuration["Jwt:Audience"] ?? "TienLenClient",
+                issuer: configuration["Jwt:Issuer"] ?? configuration["Jwt__Issuer"] ?? "TienLenServer",
+                audience: configuration["Jwt:Audience"] ?? configuration["Jwt__Audience"] ?? "TienLenClient",
                 claims: claims,
                 expires: DateTime.UtcNow.Add(lifetime),
                 signingCredentials: creds

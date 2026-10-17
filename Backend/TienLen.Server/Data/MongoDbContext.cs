@@ -12,11 +12,22 @@ namespace TienLen.Server.Data {
             string connectionString = configuration.GetConnectionString("MongoDb")
                 ?? configuration["ConnectionStrings:MongoDb"]
                 ?? configuration["ConnectionStrings__MongoDb"]
+                ?? configuration["MONGODB_URI"]
+                ?? configuration["MongoDb:ConnectionString"]
+                ?? configuration["MongoDb__ConnectionString"]
                 ?? "mongodb://localhost:27017";
+
+            string? parsedDbName = null;
+            try {
+                var mongoUrl = MongoUrl.Create(connectionString);
+                parsedDbName = mongoUrl.DatabaseName;
+            }
+            catch { }
 
             string databaseName = configuration["MongoDb:DatabaseName"]
                 ?? configuration["MongoDb__DatabaseName"]
-                ?? "CasinoDb";
+                ?? configuration["MONGODB_DATABASE"]
+                ?? (!string.IsNullOrWhiteSpace(parsedDbName) ? parsedDbName : "CasinoDb");
 
             var client = new MongoClient(connectionString);
             database = client.GetDatabase(databaseName);
