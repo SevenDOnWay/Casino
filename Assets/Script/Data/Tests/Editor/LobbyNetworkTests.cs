@@ -1,12 +1,14 @@
 using Assets.Script;
 using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
+using Assets.Script.UI.Components;
 using Assets.Script.UI.MainMenu;
 using Assets.Script.UI.MainMenu.Panel;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Assets.Script.Data.Tests {
     [TestFixture]
@@ -308,6 +310,89 @@ namespace Assets.Script.Data.Tests {
 
             Object.DestroyImmediate(panelGo);
             Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void DynamicLoadingCircle_Lifecycle_PlayAndStop_UpdatesState() {
+            var go = new GameObject("DynamicLoadingCircleTest");
+            var rect = go.AddComponent<RectTransform>();
+            var img = go.AddComponent<Image>();
+            img.type = Image.Type.Filled;
+            img.fillMethod = Image.FillMethod.Radial360;
+            var cg = go.AddComponent<CanvasGroup>();
+            var circle = go.AddComponent<DynamicLoadingCircle>();
+
+            // Play starts animation and blocks raycasts
+            circle.Play();
+            Assert.IsTrue(circle.IsPlaying);
+            Assert.IsTrue(cg.blocksRaycasts);
+
+            // Stop ends animation
+            circle.Stop();
+            Assert.IsFalse(circle.IsPlaying);
+            Assert.IsFalse(cg.blocksRaycasts);
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void BrowserPanel_SetLoading_DrivesDynamicLoadingCircle() {
+            var panelGo = new GameObject("BrowserPanelTest");
+            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
+
+            var circleGo = new GameObject("DynamicCircle");
+            circleGo.transform.SetParent(panelGo.transform);
+            var circle = circleGo.AddComponent<DynamicLoadingCircle>();
+            panel.SetDynamicLoadingCircleForTest(circle);
+
+            // Test SetLoading(true) and ShowLoading(true)
+            panel.SetLoading(true);
+            Assert.IsTrue(circle.IsPlaying);
+
+            panel.SetLoading(false);
+            Assert.IsFalse(circle.IsPlaying);
+
+            panel.ShowLoading(true);
+            Assert.IsTrue(circle.IsPlaying);
+
+            panel.ShowLoading(false);
+            Assert.IsFalse(circle.IsPlaying);
+
+            Object.DestroyImmediate(panelGo);
+        }
+
+        [Test]
+        public void BrowserPanel_SetLoading_NullSafe_WhenNoUIConfigured() {
+            var panelGo = new GameObject("BrowserPanelTest");
+            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
+
+            Assert.DoesNotThrow(() => {
+                panel.SetLoading(true);
+                panel.SetLoading(false);
+                panel.ShowLoading(true);
+                panel.ShowLoading(false);
+            });
+
+            Object.DestroyImmediate(panelGo);
+        }
+
+        [Test]
+        public void BrowserPanel_SetLoading_FallsBackToLoadingIndicatorGameObject() {
+            var panelGo = new GameObject("BrowserPanelTest");
+            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
+
+            var indicatorGo = new GameObject("IndicatorLegacy");
+            indicatorGo.SetActive(false);
+            panel.SetLoadingIndicatorForTest(indicatorGo);
+
+            panel.SetLoading(true);
+            Assert.IsTrue(indicatorGo.activeSelf);
+
+            panel.SetLoading(false);
+            Assert.IsFalse(indicatorGo.activeSelf);
+
+            Object.DestroyImmediate(indicatorGo);
+            Object.DestroyImmediate(panelGo);
         }
     }
 }

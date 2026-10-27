@@ -86,35 +86,39 @@ namespace Assets.Script.UI.MainMenu.Panel {
             currentView?.SetSelectedStakeButton(selectedStakeIndex);
             currentView?.SetLoading(true);
 
-            int optChannel = 1;
-            int totalChannels = GetChannelCountForStake(stake);
+            try {
+                int optChannel = 1;
+                int totalChannels = GetChannelCountForStake(stake);
 
-            if ( lobbyRestService != null ) {
-                try {
-                    var channelInfo = await lobbyRestService.GetChannelsAsync(stake);
-                    if ( channelInfo != null ) {
-                        int maxCh = Mathf.Max(channelInfo.channels != null ? channelInfo.channels.Count : 1, channelInfo.recommendedChannel);
-                        channelCounts[stake] = Mathf.Max(channelCounts.TryGetValue(stake, out int cur) ? cur : 1, maxCh);
-                        totalChannels = channelCounts[stake];
-                        optChannel = channelInfo.recommendedChannel > 0 ? channelInfo.recommendedChannel : 1;
+                if ( lobbyRestService != null ) {
+                    try {
+                        var channelInfo = await lobbyRestService.GetChannelsAsync(stake);
+                        if ( channelInfo != null ) {
+                            int maxCh = Mathf.Max(channelInfo.channels != null ? channelInfo.channels.Count : 1, channelInfo.recommendedChannel);
+                            channelCounts[stake] = Mathf.Max(channelCounts.TryGetValue(stake, out int cur) ? cur : 1, maxCh);
+                            totalChannels = channelCounts[stake];
+                            optChannel = channelInfo.recommendedChannel > 0 ? channelInfo.recommendedChannel : 1;
+                        }
+                    }
+                    catch ( Exception ex ) {
+                        Debug.LogWarning($"[LobbySessionBrowserController] GetChannelsAsync error: {ex.Message}");
+                        optChannel = GetOptimizedChannel(stake);
+                        totalChannels = GetChannelCountForStake(stake);
                     }
                 }
-                catch ( Exception ex ) {
-                    Debug.LogWarning($"[LobbySessionBrowserController] GetChannelsAsync error: {ex.Message}");
+                else {
                     optChannel = GetOptimizedChannel(stake);
                     totalChannels = GetChannelCountForStake(stake);
                 }
-            }
-            else {
-                optChannel = GetOptimizedChannel(stake);
-                totalChannels = GetChannelCountForStake(stake);
-            }
 
-            currentChannel = optChannel;
-            currentView?.UpdateChannelDropdown(totalChannels, currentChannel);
+                currentChannel = optChannel;
+                currentView?.UpdateChannelDropdown(totalChannels, currentChannel);
 
-            await FetchSessionsAndRenderAsync(selectedStake, currentChannel);
-            currentView?.SetLoading(false);
+                await FetchSessionsAndRenderAsync(selectedStake, currentChannel);
+            }
+            finally {
+                currentView?.SetLoading(false);
+            }
 
             StartPolling();
         }
@@ -128,29 +132,33 @@ namespace Assets.Script.UI.MainMenu.Panel {
             currentView?.SetSelectedStakeButton(selectedStakeIndex);
             currentView?.SetLoading(true);
 
-            int optChannel = GetOptimizedChannel(selectedStake);
-            int totalChannels = GetChannelCountForStake(selectedStake);
+            try {
+                int optChannel = GetOptimizedChannel(selectedStake);
+                int totalChannels = GetChannelCountForStake(selectedStake);
 
-            if ( lobbyRestService != null ) {
-                try {
-                    var channelInfo = await lobbyRestService.GetChannelsAsync(selectedStake);
-                    if ( channelInfo != null ) {
-                        int maxCh = Mathf.Max(channelInfo.channels != null ? channelInfo.channels.Count : 1, channelInfo.recommendedChannel);
-                        channelCounts[selectedStake] = Mathf.Max(channelCounts.TryGetValue(selectedStake, out int cur) ? cur : 1, maxCh);
-                        totalChannels = channelCounts[selectedStake];
-                        optChannel = channelInfo.recommendedChannel > 0 ? channelInfo.recommendedChannel : 1;
+                if ( lobbyRestService != null ) {
+                    try {
+                        var channelInfo = await lobbyRestService.GetChannelsAsync(selectedStake);
+                        if ( channelInfo != null ) {
+                            int maxCh = Mathf.Max(channelInfo.channels != null ? channelInfo.channels.Count : 1, channelInfo.recommendedChannel);
+                            channelCounts[selectedStake] = Mathf.Max(channelCounts.TryGetValue(selectedStake, out int cur) ? cur : 1, maxCh);
+                            totalChannels = channelCounts[selectedStake];
+                            optChannel = channelInfo.recommendedChannel > 0 ? channelInfo.recommendedChannel : 1;
+                        }
+                    }
+                    catch ( Exception ex ) {
+                        Debug.LogWarning($"[LobbySessionBrowserController] SelectStake GetChannels fallback: {ex.Message}");
                     }
                 }
-                catch ( Exception ex ) {
-                    Debug.LogWarning($"[LobbySessionBrowserController] SelectStake GetChannels fallback: {ex.Message}");
-                }
+
+                currentChannel = optChannel;
+                currentView?.UpdateChannelDropdown(totalChannels, currentChannel);
+
+                await FetchSessionsAndRenderAsync(selectedStake, currentChannel);
             }
-
-            currentChannel = optChannel;
-            currentView?.UpdateChannelDropdown(totalChannels, currentChannel);
-
-            await FetchSessionsAndRenderAsync(selectedStake, currentChannel);
-            currentView?.SetLoading(false);
+            finally {
+                currentView?.SetLoading(false);
+            }
 
             RestartPolling();
         }
@@ -159,8 +167,12 @@ namespace Assets.Script.UI.MainMenu.Panel {
             currentChannel = Mathf.Max(1, channel);
 
             currentView?.SetLoading(true);
-            await FetchSessionsAndRenderAsync(selectedStake, currentChannel);
-            currentView?.SetLoading(false);
+            try {
+                await FetchSessionsAndRenderAsync(selectedStake, currentChannel);
+            }
+            finally {
+                currentView?.SetLoading(false);
+            }
 
             RestartPolling();
         }
@@ -173,7 +185,13 @@ namespace Assets.Script.UI.MainMenu.Panel {
             currentView?.SetSelectedStakeButton(selectedStakeIndex);
             currentView?.UpdateChannelDropdown(GetChannelCountForStake(stake), currentChannel);
 
-            await FetchSessionsAndRenderAsync(selectedStake, currentChannel);
+            currentView?.SetLoading(true);
+            try {
+                await FetchSessionsAndRenderAsync(selectedStake, currentChannel);
+            }
+            finally {
+                currentView?.SetLoading(false);
+            }
         }
 
         public UniTask SwitchLobby( int betIndex, int channelIndex ) {

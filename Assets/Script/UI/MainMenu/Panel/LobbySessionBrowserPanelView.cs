@@ -1,5 +1,6 @@
 using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
+using Assets.Script.UI.Components;
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
         [Header("Main UI")]
         [SerializeField] Button closeButton;
         [SerializeField] GameObject loadingIndicator;
+        [SerializeField] DynamicLoadingCircle dynamicLoadingCircle;
         [SerializeField] GameObject betButtonPrefab;
         [SerializeField] GameObject sessionButtonPrefab;
         [SerializeField] Transform betButtonContainer;
@@ -46,6 +48,8 @@ namespace Assets.Script.UI.MainMenu.Panel {
         public int MaxChannels => controller != null ? controller.MaxChannels : 5;
         public IReadOnlyList<BetButtonScript> BetButtons => betButtons;
         public int SessionEntryCount => sessionEntries.Count;
+        public DynamicLoadingCircle DynamicLoadingCircle => dynamicLoadingCircle;
+        public GameObject LoadingIndicator => loadingIndicator;
 
         public bool UseWebSocketApi {
             get {
@@ -82,6 +86,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
             }
 
             controller?.OnViewDisabled();
+            SetLoading(false);
             ClearSessionEntries();
         }
 
@@ -108,8 +113,23 @@ namespace Assets.Script.UI.MainMenu.Panel {
         #region ILobbySessionBrowserView Implementation
 
         public void SetLoading( bool isLoading ) {
-            if ( loadingIndicator != null ) {
-                loadingIndicator.SetActive(isLoading);
+            if ( dynamicLoadingCircle != null ) {
+                if ( isLoading ) {
+                    dynamicLoadingCircle.Play();
+                }
+                else {
+                    dynamicLoadingCircle.Stop();
+                }
+            }
+            else if ( loadingIndicator != null ) {
+                var childCircle = loadingIndicator.GetComponentInChildren<DynamicLoadingCircle>(true);
+                if ( childCircle != null ) {
+                    if ( isLoading ) childCircle.Play();
+                    else childCircle.Stop();
+                }
+                else {
+                    loadingIndicator.SetActive(isLoading);
+                }
             }
         }
 
@@ -195,6 +215,14 @@ namespace Assets.Script.UI.MainMenu.Panel {
         }
 
         #region Backwards Compatibility & Testing API
+
+        public void SetDynamicLoadingCircleForTest( DynamicLoadingCircle circle ) {
+            this.dynamicLoadingCircle = circle;
+        }
+
+        public void SetLoadingIndicatorForTest( GameObject indicator ) {
+            this.loadingIndicator = indicator;
+        }
 
         public void SetControllerForTest( LobbySessionBrowserController ctrl ) {
             this.controller = ctrl;
