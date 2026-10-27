@@ -18,21 +18,15 @@ namespace Assets.Script.UI.MainMenu {
         public TMP_Dropdown ChannelDropDown => channelDropDown;
 
         private void OnEnable() {
-            if ( betButton != null ) {
-                betButton.onClick.AddListener(OnBetButtonClicked);
-            }
-            if ( channelDropDown != null ) {
-                channelDropDown.onValueChanged.AddListener(OnChannelValueChanged);
-            }
+            Debug.Log($"[BetButtonScript] OnEnable called for index: {index}");
+
+            betButton.onClick.AddListener(OnBetButtonClicked);
+            channelDropDown.onValueChanged.AddListener(OnChannelValueChanged);
         }
 
         private void OnDisable() {
-            if ( betButton != null ) {
-                betButton.onClick.RemoveListener(OnBetButtonClicked);
-            }
-            if ( channelDropDown != null ) {
-                channelDropDown.onValueChanged.RemoveListener(OnChannelValueChanged);
-            }
+            betButton.onClick.RemoveListener(OnBetButtonClicked);
+            channelDropDown.onValueChanged.RemoveListener(OnChannelValueChanged);
         }
 
         public void Init( int index, string text, LobbySessionBrowserController controller ) {
@@ -44,22 +38,14 @@ namespace Assets.Script.UI.MainMenu {
             SetChannelActive(false);
         }
 
-        public void Init( int index, string text, LobbySessionBrowserPanelView panelView ) {
-            this.index = index;
-            if ( this.text != null ) {
-                this.text.text = text;
-            }
-            if ( panelView != null ) {
-                this.controller = panelView.Controller;
-            }
-            SetChannelActive(false);
-        }
-
-        public void SetController( LobbySessionBrowserController controller ) {
-            this.controller = controller;
-        }
-
         public void OnBetButtonClicked() {
+            Debug.Log($"[BetButtonScript] Bet button clicked with index: {index}");
+
+            if ( controller == null ) {
+                Debug.LogWarning("[BetButtonScript] Controller is null. Cannot select stake.");
+                return;
+            }
+
             if ( controller != null ) {
                 _ = controller.SelectStake(index);
             }

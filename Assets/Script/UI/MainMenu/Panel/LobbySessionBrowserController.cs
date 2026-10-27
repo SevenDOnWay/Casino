@@ -124,13 +124,19 @@ namespace Assets.Script.UI.MainMenu.Panel {
         }
 
         public async UniTask SelectStake( int betIndex ) {
+
+            Debug.Log($"[LobbySessionBrowserController] SelectStake called with betIndex: {betIndex}");
             if ( !stakeOptions.TryGetValue(betIndex, out int stake) ) return;
+
+
 
             selectedStakeIndex = betIndex;
             selectedStake = stake;
 
             currentView?.SetSelectedStakeButton(selectedStakeIndex);
             currentView?.SetLoading(true);
+
+            Debug.Log($"[LobbySessionBrowserController] Fetching sessions for stake: {selectedStake}, channel: {currentChannel}");
 
             try {
                 int optChannel = GetOptimizedChannel(selectedStake);

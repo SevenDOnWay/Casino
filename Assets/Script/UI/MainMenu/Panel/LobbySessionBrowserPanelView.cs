@@ -32,12 +32,14 @@ namespace Assets.Script.UI.MainMenu.Panel {
         [SerializeField] Transform betButtonContainer;
         [SerializeField] Transform sessionButtonContainer;
 
+        private BetButtonScript currentSelectedButton = null;
+
         private readonly Dictionary<int, int> stakeDictionary = new Dictionary<int, int>() {
             {0, 5}, {1, 10}, {2, 20}, {3, 50}, {4, 100}
         };
 
         private readonly Dictionary<string, SessionEntry> sessionEntries = new Dictionary<string, SessionEntry>();
-        private readonly List<BetButtonScript> betButtons = new List<BetButtonScript>();
+        private readonly Dictionary<int, BetButtonScript> betButtons = new Dictionary<int, BetButtonScript>();
 
         private bool buttonsSpawned = false;
         private bool? useWebSocketApiOverride = null;
@@ -46,10 +48,6 @@ namespace Assets.Script.UI.MainMenu.Panel {
         public int SelectedStake => controller != null ? controller.SelectedStake : (stakeDictionary.TryGetValue(0, out int s) ? s : 5);
         public int CurrentChannel => controller != null ? controller.CurrentChannel : 1;
         public int MaxChannels => controller != null ? controller.MaxChannels : 5;
-        public IReadOnlyList<BetButtonScript> BetButtons => betButtons;
-        public int SessionEntryCount => sessionEntries.Count;
-        public DynamicLoadingCircle DynamicLoadingCircle => dynamicLoadingCircle;
-        public GameObject LoadingIndicator => loadingIndicator;
 
         public bool UseWebSocketApi {
             get {
@@ -104,7 +102,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
                 var betButtonScript = button.GetComponent<BetButtonScript>();
                 if ( betButtonScript != null ) {
                     betButtonScript.Init(i, stakeDictionary[i].ToString(), controller);
-                    betButtons.Add(betButtonScript);
+                    betButtons[i] = betButtonScript;
                 }
             }
             buttonsSpawned = true;
@@ -134,17 +132,15 @@ namespace Assets.Script.UI.MainMenu.Panel {
         }
 
         public void SetSelectedStakeButton( int betIndex ) {
-            for ( int i = 0; i < betButtons.Count; i++ ) {
-                var btn = betButtons[i];
-                if ( btn != null ) {
-                    btn.SetChannelActive(btn.Index == betIndex, controller != null ? controller.CurrentChannel : 1);
-                }
-            }
+            currentSelectedButton?.EnableDropDown(false);
+
+            currentSelectedButton = betButtons.TryGetValue(betIndex, out var newSelectedButton) ? newSelectedButton : null;
+            currentSelectedButton?.EnableDropDown(true);
         }
 
         public void UpdateChannelDropdown( int channelCount, int selectedChannel ) {
             int selectedBetIndex = controller != null ? controller.SelectedStakeIndex : 0;
-            var activeBtn = betButtons.Find(b => b != null && b.Index == selectedBetIndex);
+            var activeBtn = betButtons.GetValueOrDefault(selectedBetIndex);
             if ( activeBtn != null ) {
                 activeBtn.BuildChannel(channelCount, selectedChannel);
             }
