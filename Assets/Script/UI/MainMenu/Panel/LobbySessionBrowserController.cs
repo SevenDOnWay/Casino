@@ -26,7 +26,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
         private readonly Dictionary<string, int> channelSessionCounts = new Dictionary<string, int>();
 
         public const int MaxSessionsPerChannel = 30;
-        public const float AutoRefreshIntervalSeconds = 4.0f;
+        public const float AutoRefreshIntervalSeconds = 4.0f; //Increased to 4 seconds to reduce server load and avoid potential rate limiting
 
         private int selectedStakeIndex = 0;
         private int selectedStake = 5;
