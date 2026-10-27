@@ -1,7 +1,5 @@
-﻿using Assets.Script.Data.Services;
+using Assets.Script.Data.Services;
 using Assets.Script.Data.SO;
-using Fusion;
-using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,18 +17,15 @@ namespace Assets.Script.UI.MainMenu {
         [SerializeField] TextMeshProUGUI playerMoney;
 
         public void OnEnable() {
-            if( avatarDatabase.TryGetAvatarSprite(playerProfileService.CachedProfile.avatarId, out Sprite sprite) ) {
-                avatar.sprite = sprite;
+            if ( playerProfileService?.CachedProfile == null ) return;
+
+            if ( avatarDatabase != null && avatarDatabase.TryGetAvatarSprite(playerProfileService.CachedProfile.avatarId, out Sprite sprite) ) {
+                if ( avatar != null ) avatar.sprite = sprite;
             }
 
-            playerName.text = playerProfileService.CachedProfile.displayName;
-            playerLevel.text = $"LV: {playerProfileService.CachedProfile.level}";
-            playerMoney.text = $"{playerProfileService.CachedProfile.money} $";
+            if ( playerName != null ) playerName.text = playerProfileService.CachedProfile.displayName;
+            if ( playerLevel != null ) playerLevel.text = $"LV: {playerProfileService.CachedProfile.level}";
+            if ( playerMoney != null ) playerMoney.text = $"{playerProfileService.CachedProfile.money} $";
         }
-
-
-
-
-
     }
 }

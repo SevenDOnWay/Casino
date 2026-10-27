@@ -6249,7 +6249,7 @@ GameObject:
   - component: {fileID: 1681169467}
   - component: {fileID: 1681169466}
   m_Layer: 5
-  m_Name: Scroll View
+  m_Name: Bet Scroll View
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7096,7 +7096,7 @@ GameObject:
   - component: {fileID: 1889782868}
   - component: {fileID: 1889782867}
   m_Layer: 5
-  m_Name: Scroll View
+  m_Name: Table Scroll View
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7718,7 +7718,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2765f069670027841884ed2bbcc5dd97, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel
-  closeButton: {fileID: 0}
+  closeButton: {fileID: 201297317}
   betButtonPrefab: {fileID: 4072636200898844548, guid: c464b2e57ce4d0c4689c790dacd2e73b, type: 3}
   sessionButtonPrefab: {fileID: 4242998896174500211, guid: eae3d898f4c3016479f23a313a666e3e, type: 3}
   betButtonContainer: {fileID: 1502717584}

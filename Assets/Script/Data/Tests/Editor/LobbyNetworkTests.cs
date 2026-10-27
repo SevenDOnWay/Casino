@@ -1,6 +1,11 @@
+using Assets.Script;
 using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
+using Assets.Script.UI.MainMenu;
+using Assets.Script.UI.MainMenu.Panel;
+using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Script.Data.Tests {
@@ -40,7 +45,7 @@ namespace Assets.Script.Data.Tests {
         [Test]
         public void BrowserPanel_SetSelectedStake_UpdatesProperty() {
             var go = new GameObject("BrowserPanelTest");
-            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+            var panel = go.AddComponent<LobbySessionBrowserPanelView>();
 
             panel.SetSelectedStake(50);
             Assert.AreEqual(50, panel.SelectedStake);
@@ -51,7 +56,7 @@ namespace Assets.Script.Data.Tests {
         [Test]
         public void BrowserPanel_FindTable_UpdatesStakeFromDictionary() {
             var go = new GameObject("BrowserPanelTest");
-            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+            var panel = go.AddComponent<LobbySessionBrowserPanelView>();
 
             // Index 0 -> 5, Index 1 -> 10, Index 2 -> 20, Index 3 -> 50, Index 4 -> 100
             panel.FindTable(3);
@@ -66,7 +71,7 @@ namespace Assets.Script.Data.Tests {
         [Test]
         public void BrowserPanel_ChannelNavigation_ClampsWithinBounds() {
             var go = new GameObject("BrowserPanelTest");
-            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+            var panel = go.AddComponent<LobbySessionBrowserPanelView>();
 
             panel.SetChannel(999);
             Assert.AreEqual(panel.MaxChannels, panel.CurrentChannel);
@@ -80,7 +85,7 @@ namespace Assets.Script.Data.Tests {
         [Test]
         public void BrowserPanel_NextPrevChannel_StepsCorrectly() {
             var go = new GameObject("BrowserPanelTest");
-            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+            var panel = go.AddComponent<LobbySessionBrowserPanelView>();
 
             Assert.AreEqual(1, panel.CurrentChannel);
 
@@ -106,7 +111,7 @@ namespace Assets.Script.Data.Tests {
         [Test]
         public void BrowserPanel_AutoShards_WhenChannelReachesCapacity() {
             var go = new GameObject("BrowserPanelTest");
-            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+            var panel = go.AddComponent<LobbySessionBrowserPanelView>();
 
             // Initially, stake 5 has 1 channel and optimized channel is 1
             Assert.AreEqual(1, panel.GetChannelCountForStake(5));
@@ -134,36 +139,40 @@ namespace Assets.Script.Data.Tests {
             public int RegisteredCount { get; private set; }
             public int HeartbeatCount { get; private set; }
             public int UnregisterCount { get; private set; }
+            public int GetSessionsCallCount { get; private set; }
 
-            public Cysharp.Threading.Tasks.UniTask<ChannelQueryResponseDto> GetChannelsAsync( int betStake ) {
-                return Cysharp.Threading.Tasks.UniTask.FromResult(new ChannelQueryResponseDto {
+            public List<LobbySessionDto> SessionsToReturn { get; set; } = new List<LobbySessionDto>();
+
+            public UniTask<ChannelQueryResponseDto> GetChannelsAsync( int betStake ) {
+                return UniTask.FromResult(new ChannelQueryResponseDto {
                     betStake = betStake,
-                    channels = new System.Collections.Generic.List<int> { 1, 2 },
+                    channels = new List<int> { 1, 2 },
                     recommendedChannel = 2
                 });
             }
 
-            public Cysharp.Threading.Tasks.UniTask<System.Collections.Generic.List<LobbySessionDto>> GetSessionsAsync( int betStake, int channel ) {
-                return Cysharp.Threading.Tasks.UniTask.FromResult(new System.Collections.Generic.List<LobbySessionDto>());
+            public UniTask<List<LobbySessionDto>> GetSessionsAsync( int betStake, int channel ) {
+                GetSessionsCallCount++;
+                return UniTask.FromResult(SessionsToReturn);
             }
 
-            public Cysharp.Threading.Tasks.UniTask<bool> RegisterSessionAsync( string sessionName, int betStake, int channel, int playerCount = 1, int maxPlayers = 4 ) {
+            public UniTask<bool> RegisterSessionAsync( string sessionName, int betStake, int channel, int playerCount = 1, int maxPlayers = 4 ) {
                 RegisteredCount++;
-                return Cysharp.Threading.Tasks.UniTask.FromResult(true);
+                return UniTask.FromResult(true);
             }
 
-            public Cysharp.Threading.Tasks.UniTask<bool> SendHeartbeatAsync( string sessionName, int playerCount ) {
+            public UniTask<bool> SendHeartbeatAsync( string sessionName, int playerCount ) {
                 HeartbeatCount++;
-                return Cysharp.Threading.Tasks.UniTask.FromResult(true);
+                return UniTask.FromResult(true);
             }
 
-            public Cysharp.Threading.Tasks.UniTask<bool> UnregisterSessionAsync( string sessionName ) {
+            public UniTask<bool> UnregisterSessionAsync( string sessionName ) {
                 UnregisterCount++;
-                return Cysharp.Threading.Tasks.UniTask.FromResult(true);
+                return UniTask.FromResult(true);
             }
 
-            public Cysharp.Threading.Tasks.UniTask<QuickJoinResponseDto> QuickJoinAsync( int betStake ) {
-                return Cysharp.Threading.Tasks.UniTask.FromResult(new QuickJoinResponseDto {
+            public UniTask<QuickJoinResponseDto> QuickJoinAsync( int betStake ) {
+                return UniTask.FromResult(new QuickJoinResponseDto {
                     found = true,
                     action = "join",
                     sessionName = "ROOM123",
@@ -176,7 +185,7 @@ namespace Assets.Script.Data.Tests {
         [Test]
         public void BrowserPanel_WithMockLobbyService_CanAssign() {
             var go = new GameObject("BrowserPanelTest");
-            var panel = go.AddComponent<Assets.Script.UI.MainMenu.Panel.LobbySessionBrowserPanel>();
+            var panel = go.AddComponent<LobbySessionBrowserPanelView>();
             var mockService = new MockLobbyRestService();
 
             panel.SetLobbyRestServiceForTest(mockService);
@@ -216,6 +225,89 @@ namespace Assets.Script.Data.Tests {
             var qj = await mockService.QuickJoinAsync(5);
             Assert.IsTrue(qj.found);
             Assert.AreEqual("ROOM123", qj.sessionName);
+        }
+
+        [Test]
+        public void RootLifeTimeScope_DefaultWebSocketTransport_ReturnsExpectedBaseUrl() {
+            var go = new GameObject("RootScopeTest");
+            var rootScope = go.AddComponent<RootLifeTimeScope>();
+
+            // When useWebSocketTransport is true, GetBaseUrl returns websocketBaseUrl
+            rootScope.useWebSocketTransport = true;
+            Assert.AreEqual(rootScope.websocketBaseUrl, rootScope.GetBaseUrl());
+
+            // When useWebSocketTransport is false, GetBaseUrl returns apiBaseUrl (localhost)
+            rootScope.useWebSocketTransport = false;
+            Assert.AreEqual(rootScope.apiBaseUrl, rootScope.GetBaseUrl());
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void BrowserPanel_UseWebSocketApi_RespectsNetworkConfig() {
+            var panelGo = new GameObject("BrowserPanelTest");
+            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
+
+            bool useWs = true;
+            var config = new NetworkConfig(() => useWs, () => "http://localhost:5000/api", () => "https://casino-2odk.onrender.com/api");
+            panel.SetNetworkConfigForTest(config);
+
+            Assert.IsTrue(panel.UseWebSocketApi);
+
+            useWs = false;
+            Assert.IsFalse(panel.UseWebSocketApi);
+
+            // Override for testing
+            panel.SetUseWebSocketApiForTest(true);
+            Assert.IsTrue(panel.UseWebSocketApi);
+
+            panel.SetUseWebSocketApiForTest(false);
+            Assert.IsFalse(panel.UseWebSocketApi);
+
+            Object.DestroyImmediate(panelGo);
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task BrowserPanel_SwitchLobby_WhenWebSocketApiActive_FetchesSessionsFromApi() {
+            var panelGo = new GameObject("BrowserPanelTest");
+            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
+            var mockService = new MockLobbyRestService();
+
+            mockService.SessionsToReturn.Add(new LobbySessionDto {
+                sessionName = "WebRoom1",
+                betStake = 5,
+                channel = 1,
+                playerCount = 2,
+                maxPlayers = 4
+            });
+
+            panel.SetLobbyRestServiceForTest(mockService);
+            panel.SetUseWebSocketApiForTest(true);
+
+            await panel.SwitchLobbyByStake(5, 1);
+
+            Assert.AreEqual(1, mockService.GetSessionsCallCount);
+
+            Object.DestroyImmediate(panelGo);
+        }
+
+        [Test]
+        public void BetButton_InitAndStake_ParsesCorrectly() {
+            var go = new GameObject("BetButtonTest");
+            var betBtn = go.AddComponent<BetButtonScript>();
+            var textGo = new GameObject("TextTMP");
+            textGo.transform.SetParent(go.transform);
+            var tmp = textGo.AddComponent<TMPro.TextMeshProUGUI>();
+            tmp.text = "20";
+
+            var panelGo = new GameObject("PanelTest");
+            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
+
+            betBtn.Init(2, "20", panel);
+            Assert.AreEqual(2, betBtn.Index);
+
+            Object.DestroyImmediate(panelGo);
+            Object.DestroyImmediate(go);
         }
     }
 }

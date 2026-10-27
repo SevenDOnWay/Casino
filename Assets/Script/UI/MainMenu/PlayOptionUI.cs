@@ -1,4 +1,4 @@
-﻿using Assets.Script.Data.Services;
+using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
 using System.Collections.Generic;
 using UnityEngine;
@@ -23,7 +23,6 @@ namespace Assets.Script.UI.MainMenu {
             {0, 5}, {1,10}, {2,20}, {3,50} ,{4, 100 }
         };
 
-
         private void OnEnable() {
             quickPlayButton.onClick.AddListener(OnQuickPlayButtonClicked);
             hostButton.onClick.AddListener(OnHostButtonClicked);
@@ -45,7 +44,7 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         private void OnQuickPlayButtonClicked() {
-            long money = playerProfileService.CachedProfile.money;
+            long money = playerProfileService.CachedProfile != null ? playerProfileService.CachedProfile.money : 0;
 
             int candidateStake = 0;
             for ( int i = 0; i < stakeOptions.Count; i++ ) {
@@ -53,8 +52,7 @@ namespace Assets.Script.UI.MainMenu {
                 candidateStake = stakeOptions[i];
             }
 
-
-            networkController.QuickPlay(candidateStake);
+            _ = networkController.QuickPlay(candidateStake);
         }
     }
 }
