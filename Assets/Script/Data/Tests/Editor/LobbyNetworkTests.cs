@@ -454,6 +454,46 @@ namespace Assets.Script.Data.Tests {
             Object.DestroyImmediate(go);
         }
 
+        [Test]
+        public async System.Threading.Tasks.Task Controller_ViewDisabledDuringFetch_DoesNotStartPolling() {
+            var mockService = new MockLobbyRestService();
+            var controller = new LobbySessionBrowserController(null, mockService, null);
+            var mockView = new MockLobbySessionBrowserView();
+
+            controller.OnViewEnabled(mockView);
+            // Immediately disable before async initialization completes
+            controller.OnViewDisabled();
+
+            await UniTask.Yield();
+            await UniTask.Delay(100);
+
+            Assert.IsFalse(controller.IsPolling);
+        }
+
+        [Test]
+        public void TableButton_WhenFull_IsUninteractableAndDarkened() {
+            var go = new GameObject("TableButtonTest");
+            var btn = go.AddComponent<Button>();
+            var img = go.AddComponent<Image>();
+            var textGo = new GameObject("Text");
+            textGo.transform.SetParent(go.transform);
+            var tmp = textGo.AddComponent<TextMeshProUGUI>();
+
+            var script = go.AddComponent<TableButtonScript>();
+            typeof(TableButtonScript).GetField("btn", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(script, btn);
+            typeof(TableButtonScript).GetField("text", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(script, tmp);
+            typeof(TableButtonScript).GetField("buttonImage", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(script, img);
+
+            script.Init("FullRoom", 10, null, 4, 4, 1);
+
+            Assert.IsFalse(btn.interactable);
+            Assert.AreEqual("4/4", tmp.text);
+            Assert.Less(img.color.r, 0.6f);
+
+            Object.DestroyImmediate(textGo);
+            Object.DestroyImmediate(go);
+        }
+
         private class MockPlayerProfileService : IPlayerProfileService {
             private readonly Models.PlayerProfileData profile;
 
@@ -477,6 +517,7 @@ namespace Assets.Script.Data.Tests {
 
         private class MockLobbyRestService : ILobbyRestService {
             public bool QuickJoinThrows { get; set; } = false;
+            public bool RegisterReturnsFalse { get; set; } = false;
             public QuickJoinResponseDto QuickJoinResult { get; set; } = null;
             public int RegisteredCount { get; private set; }
             public int HeartbeatCount { get; private set; }
@@ -500,7 +541,7 @@ namespace Assets.Script.Data.Tests {
 
             public UniTask<bool> RegisterSessionAsync( string sessionName, int betStake, int channel, int playerCount = 1, int maxPlayers = 4 ) {
                 RegisteredCount++;
-                return UniTask.FromResult(true);
+                return UniTask.FromResult(!RegisterReturnsFalse);
             }
 
             public UniTask<bool> SendHeartbeatAsync( string sessionName, int playerCount ) {

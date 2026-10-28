@@ -10,6 +10,7 @@ namespace Assets.Script.UI.MainMenu {
 
         [SerializeField] private Button btn;
         [SerializeField] private TextMeshProUGUI text;
+        [SerializeField] private Image buttonImage;
 
         private string roomName;
         private int betAmount;
@@ -54,6 +55,10 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         void OnButtonClicked() {
+            if ( maxPlayerCount > 0 && playerCount >= maxPlayerCount ) {
+                return;
+            }
+
             if ( profileService?.CachedProfile != null ) {
                 if ( profileService.CachedProfile.money < 5 || profileService.CachedProfile.money < betAmount ) {
                     string msg = $"You need at least {Mathf.Max(5, betAmount)} coins to join this table.";
@@ -74,8 +79,20 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         void UpdateUI() {
+            bool isFull = maxPlayerCount > 0 && playerCount >= maxPlayerCount;
+
             if ( text != null ) {
                 text.text = $"{playerCount}/{maxPlayerCount}";
+                text.color = isFull ? new Color(0.6f, 0.6f, 0.6f, 0.8f) : Color.white;
+            }
+
+            if ( btn != null ) {
+                btn.interactable = !isFull;
+            }
+
+            var img = buttonImage != null ? buttonImage : GetComponent<Image>();
+            if ( img != null ) {
+                img.color = isFull ? new Color(0.45f, 0.45f, 0.45f, 1f) : Color.white;
             }
         }
     }

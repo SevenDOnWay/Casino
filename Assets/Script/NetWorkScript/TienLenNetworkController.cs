@@ -137,7 +137,18 @@ namespace Assets.Script.NetWorkScript {
                 if ( result.Ok ) {
                     // Attach event-driven sync handler to runner (persists with runner into gameplay scene)
                     var syncHandler = runner.gameObject.AddComponent<LobbySessionSyncHandler>();
-                    await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, targetChannel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    bool registered = await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, targetChannel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    if ( !registered ) {
+                        // Retry once after a brief delay
+                        await UniTask.Delay(500);
+                        registered = await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, targetChannel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    }
+
+                    if ( !registered ) {
+                        Debug.LogError($"[TienLenNetworkController] Failed to register hosted session '{sessionName}' with backend directory. Shutting down runner.");
+                        await runner.Shutdown();
+                        throw new InvalidOperationException($"Failed to register hosted room '{sessionName}' with backend directory.");
+                    }
                 }
             }
 
@@ -183,7 +194,17 @@ namespace Assets.Script.NetWorkScript {
             else {
                 if ( mode == GameMode.Host && lobbyRestService != null ) {
                     var syncHandler = runner.gameObject.AddComponent<LobbySessionSyncHandler>();
-                    _ = syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, channel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    bool registered = await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, channel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    if ( !registered ) {
+                        await UniTask.Delay(500);
+                        registered = await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, channel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    }
+
+                    if ( !registered ) {
+                        Debug.LogError($"[TienLenNetworkController] Failed to register hosted session '{sessionName}' with backend directory. Shutting down runner.");
+                        await runner.Shutdown();
+                        throw new InvalidOperationException($"Failed to register hosted room '{sessionName}' with backend directory.");
+                    }
                 }
             }
 

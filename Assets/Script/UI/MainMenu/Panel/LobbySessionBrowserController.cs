@@ -120,7 +120,9 @@ namespace Assets.Script.UI.MainMenu.Panel {
                 currentView?.SetLoading(false);
             }
 
-            StartPolling();
+            if ( currentView != null ) {
+                StartPolling();
+            }
         }
 
         public async UniTask SelectStake( int betIndex ) {
@@ -264,6 +266,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
 
         private void StartPolling() {
             StopPolling();
+            if ( currentView == null ) return;
             pollingCts = new CancellationTokenSource();
             _ = AutoRefreshLoopAsync(pollingCts.Token);
         }
@@ -286,7 +289,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
         }
 
         private async UniTaskVoid AutoRefreshLoopAsync( CancellationToken token ) {
-            while ( !token.IsCancellationRequested ) {
+            while ( !token.IsCancellationRequested && currentView != null ) {
                 try {
                     await UniTask.Delay(TimeSpan.FromSeconds(AutoRefreshIntervalSeconds), cancellationToken: token);
                 }
@@ -294,7 +297,10 @@ namespace Assets.Script.UI.MainMenu.Panel {
                     break;
                 }
 
-                if ( token.IsCancellationRequested ) break;
+                if ( token.IsCancellationRequested || currentView == null ) {
+                    StopPolling();
+                    break;
+                }
 
                 // Silent auto-refresh (no full-screen loading spinner)
                 if ( !isFetching && lobbyRestService != null ) {
