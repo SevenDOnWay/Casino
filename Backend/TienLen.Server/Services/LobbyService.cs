@@ -18,7 +18,10 @@ namespace TienLen.Server.Services {
 
         public async Task<ChannelQueryResponse> GetChannelsAsync( int betStake ) {
             // Find all active sessions for this bet tier
-            var filter = Builders<LobbySessionDocument>.Filter.Eq(s => s.BetStake, betStake);
+            var filter = Builders<LobbySessionDocument>.Filter.And(
+                Builders<LobbySessionDocument>.Filter.Eq(s => s.BetStake, betStake),
+                Builders<LobbySessionDocument>.Filter.Gt(s => s.ExpireAt, DateTime.UtcNow)
+            );
             var sessions = await databaseContext.LobbySessions.Find(filter).ToListAsync();
 
             // Group tables by channel
@@ -57,7 +60,8 @@ namespace TienLen.Server.Services {
         public async Task<List<LobbySessionDto>> GetSessionsAsync( int betStake, int channel ) {
             var filter = Builders<LobbySessionDocument>.Filter.And(
                 Builders<LobbySessionDocument>.Filter.Eq(s => s.BetStake, betStake),
-                Builders<LobbySessionDocument>.Filter.Eq(s => s.Channel, channel)
+                Builders<LobbySessionDocument>.Filter.Eq(s => s.Channel, channel),
+                Builders<LobbySessionDocument>.Filter.Gt(s => s.ExpireAt, DateTime.UtcNow)
             );
 
             var sessions = await databaseContext.LobbySessions.Find(filter).ToListAsync();
@@ -84,7 +88,7 @@ namespace TienLen.Server.Services {
                 .Set(s => s.PlayerCount, Math.Max(1, request.PlayerCount))
                 .Set(s => s.MaxPlayers, request.MaxPlayers > 0 ? request.MaxPlayers : 4)
                 .Set(s => s.HostUserId, hostUserId ?? string.Empty)
-                .Set(s => s.ExpireAt, DateTime.UtcNow.AddSeconds(30))
+                .Set(s => s.ExpireAt, DateTime.UtcNow.AddHours(1))
                 .SetOnInsert(s => s.CreatedAt, DateTime.UtcNow);
 
             var options = new UpdateOptions { IsUpsert = true };
@@ -98,7 +102,7 @@ namespace TienLen.Server.Services {
 
             var filter = Builders<LobbySessionDocument>.Filter.Eq(s => s.SessionName, sessionName);
             var update = Builders<LobbySessionDocument>.Update
-                .Set(s => s.ExpireAt, DateTime.UtcNow.AddSeconds(30))
+                .Set(s => s.ExpireAt, DateTime.UtcNow.AddHours(1))
                 .Set(s => s.PlayerCount, playerCount);
 
             var result = await databaseContext.LobbySessions.UpdateOneAsync(filter, update);
@@ -114,10 +118,11 @@ namespace TienLen.Server.Services {
         }
 
         public async Task<QuickJoinResponse> QuickJoinAsync( int betStake ) {
-            // Find open tables with room for players (< 4 players)
+            // Find open tables with room for players (< 4 players) and not expired
             var filter = Builders<LobbySessionDocument>.Filter.And(
                 Builders<LobbySessionDocument>.Filter.Eq(s => s.BetStake, betStake),
-                Builders<LobbySessionDocument>.Filter.Where(s => s.PlayerCount < s.MaxPlayers)
+                Builders<LobbySessionDocument>.Filter.Where(s => s.PlayerCount < s.MaxPlayers),
+                Builders<LobbySessionDocument>.Filter.Gt(s => s.ExpireAt, DateTime.UtcNow)
             );
 
             // Prefer fullest room first (e.g. 3/4 players) to fill matches quickly

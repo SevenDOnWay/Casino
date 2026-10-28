@@ -1,4 +1,5 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.Data.Services;
+using Assets.Script.NetWorkScript;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -11,6 +12,7 @@ namespace Assets.Script.UI.MainMenu {
 
         [Header("Dependencies")]
         [Inject] TienLenNetworkController networkController;
+        [Inject] IPlayerProfileService playerProfileService;
 
 
         [SerializeField] TMP_InputField roomNameInputField;
@@ -52,6 +54,12 @@ namespace Assets.Script.UI.MainMenu {
             int stake = stakeOptions[stakeDropdown.value];
 
             if (!ValidateInput(roomName, stake)) return;
+
+            long money = playerProfileService?.CachedProfile != null ? playerProfileService.CachedProfile.money : 0;
+            if ( money < 5 || money < stake ) {
+                ShowAlert($"You need at least {Mathf.Max(5, stake)} coins to host this table.", AlertType.Error, 5f);
+                return;
+            }
 
             networkController.HostRoom(roomName, stake);
         }

@@ -370,7 +370,114 @@ namespace Assets.Script.Data.Tests {
             Assert.AreEqual("ROOM123", qj.sessionName);
         }
 
+        #endregion
+
+        #region QuickPlay & Event-Driven Sync Tests
+
+        [Test]
+        public void PlayOptionUI_StakeCalculation_SelectsOptimalStake() {
+            // Below minimum stake
+            Assert.AreEqual(5, PlayOptionUI.CalculateStakeForMoney(0));
+            Assert.AreEqual(5, PlayOptionUI.CalculateStakeForMoney(4));
+
+            // At or above minimum stake (10% thresholding)
+            Assert.AreEqual(5, PlayOptionUI.CalculateStakeForMoney(50));   // 10% is 5 -> 5
+            Assert.AreEqual(10, PlayOptionUI.CalculateStakeForMoney(100)); // 10% is 10 -> 10
+            Assert.AreEqual(20, PlayOptionUI.CalculateStakeForMoney(250)); // 10% is 25 -> 20
+            Assert.AreEqual(50, PlayOptionUI.CalculateStakeForMoney(600)); // 10% is 60 -> 50
+            Assert.AreEqual(100, PlayOptionUI.CalculateStakeForMoney(1200)); // 10% is 120 -> 100
+        }
+
+        [Test]
+        public void PlayOptionUI_MoneyLessThan5_ShowsNotice() {
+            var go = new GameObject("PlayOptionTest");
+            var ui = go.AddComponent<PlayOptionUI>();
+
+            var alertGo = new GameObject("AlertPanel");
+            var alertText = alertGo.AddComponent<TextMeshProUGUI>();
+            alertGo.SetActive(false);
+
+            var mockProfile = new MockPlayerProfileService(4); // 4 coins (< 5)
+            ui.SetDependenciesForTest(null, mockProfile, alertGo, alertText);
+
+            ui.OnQuickPlayButtonClicked();
+
+            Assert.IsTrue(alertGo.activeSelf);
+            StringAssert.Contains("5 coins", alertText.text);
+
+            Object.DestroyImmediate(alertGo);
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task LobbySessionSyncHandler_Initialize_RegistersSessionToBackend() {
+            var go = new GameObject("SyncHandlerTest");
+            var syncHandler = go.AddComponent<LobbySessionSyncHandler>();
+            var mockRest = new MockLobbyRestService();
+
+            bool success = await syncHandler.InitializeAsync(mockRest, null, "TestRoom", 20, 2, 1, 4);
+
+            Assert.IsTrue(success);
+            Assert.IsTrue(syncHandler.IsRegistered);
+            Assert.AreEqual("TestRoom", syncHandler.SessionName);
+            Assert.AreEqual(1, mockRest.RegisteredCount);
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void QuickPlay_BetStakeLessThan5_ThrowsArgumentException() {
+            var go = new GameObject("NetworkControllerTest");
+            var controller = go.AddComponent<TienLenNetworkController>();
+
+            Assert.ThrowsAsync<System.ArgumentException>(async () => {
+                await controller.QuickPlay(4);
+            });
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void QuickPlay_BackendThrowsException_ThrowsWithoutFallback() {
+            var go = new GameObject("NetworkControllerTest");
+            var controller = go.AddComponent<TienLenNetworkController>();
+            var mockService = new MockLobbyRestService { QuickJoinThrows = true };
+            controller.SetLobbyRestServiceForTest(mockService);
+
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex(".*QuickJoin failed.*"));
+
+            var ex = Assert.ThrowsAsync<System.Exception>(async () => {
+                await controller.QuickPlay(10);
+            });
+            StringAssert.Contains("Cannot connect to matchmaking service", ex.Message);
+
+            Object.DestroyImmediate(go);
+        }
+
+        private class MockPlayerProfileService : IPlayerProfileService {
+            private readonly Models.PlayerProfileData profile;
+
+            public MockPlayerProfileService( long initialMoney ) {
+                profile = new Models.PlayerProfileData { money = initialMoney };
+            }
+
+            public Models.PlayerProfileData CachedProfile => profile;
+
+            public event System.Action<long> OnMoneyChanged;
+            public event System.Action<int, int> OnLevelOrExpChanged;
+            public event System.Action<int> OnAvatarChanged;
+            public event System.Action<string> OnDisplayNameChanged;
+
+            public UniTask<Models.PlayerProfileData> RefreshProfileAsync() => UniTask.FromResult(profile);
+            public UniTask<bool> UpdateProfileAsync( string displayName, int avatarId ) => UniTask.FromResult(true);
+            public UniTask<bool> RecordMatchResultAsync( Models.MatchResultReportRequest matchResult ) => UniTask.FromResult(true);
+            public UniTask<List<Models.PlayerProfileData>> LoadFriendsAsync() => UniTask.FromResult(new List<Models.PlayerProfileData>());
+            public UniTask<bool> AddFriendAsync( string friendEmailOrName ) => UniTask.FromResult(true);
+        }
+
         private class MockLobbyRestService : ILobbyRestService {
+            public bool QuickJoinThrows { get; set; } = false;
+            public QuickJoinResponseDto QuickJoinResult { get; set; } = null;
             public int RegisteredCount { get; private set; }
             public int HeartbeatCount { get; private set; }
             public int UnregisterCount { get; private set; }
@@ -407,6 +514,14 @@ namespace Assets.Script.Data.Tests {
             }
 
             public UniTask<QuickJoinResponseDto> QuickJoinAsync( int betStake ) {
+                if ( QuickJoinThrows ) {
+                    throw new System.Exception("Simulated connection timeout to matchmaking server.");
+                }
+
+                if ( QuickJoinResult != null ) {
+                    return UniTask.FromResult(QuickJoinResult);
+                }
+
                 return UniTask.FromResult(new QuickJoinResponseDto {
                     found = true,
                     action = "join",

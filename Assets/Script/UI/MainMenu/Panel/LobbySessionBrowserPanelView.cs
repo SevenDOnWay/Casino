@@ -22,6 +22,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
         [Inject] ILobbyRestService lobbyRestService;
         [Inject] INetworkConfig networkConfig;
         [Inject] LobbySessionBrowserController controller;
+        [Inject] IPlayerProfileService playerProfileService;
 
         [Header("Main UI")]
         [SerializeField] Button closeButton;
@@ -172,7 +173,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
                 var button = Instantiate(sessionButtonPrefab, sessionButtonContainer, false);
                 var script = button.GetComponent<TableButtonScript>();
                 if ( script != null ) {
-                    script.Init(sessionName, stake, networkController, playerCount, maxPlayers, channel);
+                    script.Init(sessionName, stake, networkController, playerCount, maxPlayers, channel, playerProfileService, ShowError);
                 }
 
                 sessionEntries[sessionName] = new SessionEntry {
