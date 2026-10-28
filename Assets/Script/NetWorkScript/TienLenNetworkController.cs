@@ -21,7 +21,6 @@ namespace Assets.Script.NetWorkScript {
         [SerializeField] private string testRoomName = "TienLenTest";
 
         [Inject] private ILobbyRestService lobbyRestService;
-        private CancellationTokenSource heartbeatCts;
 
         private NetworkRunner runner;
 
@@ -51,7 +50,7 @@ namespace Assets.Script.NetWorkScript {
         }
 
         public async Task<StartGameResult> JoinBetLobby( int betStake, int channel = 1 ) {
-            if ( runner == null ) {
+            if ( runner == null && runnerPrefab != null ) {
                 runner = Instantiate(runnerPrefab);
                 runner.AddCallbacks(this);
             }
@@ -68,24 +67,35 @@ namespace Assets.Script.NetWorkScript {
             return result;
         }
 
-        public async Task<StartGameResult> QuickPlay( int betStake, int playerCount = 4, int channel = 1 ) {
-            int targetChannel = channel;
-            string targetSessionName = null;
-
-            if ( lobbyRestService != null ) {
-                try {
-                    var qj = await lobbyRestService.QuickJoinAsync(betStake);
-                    if ( qj != null ) {
-                        if ( qj.channel > 0 ) targetChannel = qj.channel;
-                        if ( qj.found && !string.IsNullOrEmpty(qj.sessionName) ) {
-                            targetSessionName = qj.sessionName;
-                        }
-                    }
-                }
-                catch ( Exception ex ) {
-                    Debug.LogWarning($"[TienLenNetworkController] QuickJoin backend query fallback: {ex.Message}");
-                }
+        public async Task<StartGameResult> QuickPlay( int betStake, int playerCount = 4 ) {
+            if ( betStake < 5 ) {
+                throw new ArgumentException("Minimum bet stake to play is 5.", nameof(betStake));
             }
+
+            if ( runner == null && runnerPrefab != null ) {
+                runner = Instantiate(runnerPrefab);
+                runner.AddCallbacks(this);
+            }
+
+            if ( lobbyRestService == null ) {
+                throw new InvalidOperationException("[TienLenNetworkController] LobbyRestService is not configured. Cannot perform matchmaking.");
+            }
+
+            QuickJoinResponseDto qj;
+            try {
+                qj = await lobbyRestService.QuickJoinAsync(betStake);
+            }
+            catch ( Exception ex ) {
+                Debug.LogError($"[TienLenNetworkController] QuickJoin failed: {ex.Message}");
+                throw new Exception($"Cannot connect to matchmaking service: {ex.Message}", ex);
+            }
+
+            if ( qj == null ) {
+                throw new Exception("Matchmaking service returned an empty response.");
+            }
+
+            // Target channel is strictly dictated by the backend matchmaking response (backend sharding)
+            int targetChannel = qj.channel > 0 ? qj.channel : 1;
 
             var sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
             if ( sceneManager == null ) {
@@ -93,34 +103,57 @@ namespace Assets.Script.NetWorkScript {
             }
 
             var sessionProperties = new Dictionary<string, SessionProperty> {{ "BetStake", betStake.ToString() }};
-            var sessionToJoinOrHost = targetSessionName ?? GenerateRandomRoomName();
+            var sceneRef = GetGameplaySceneRef();
+            StartGameResult result;
 
-            var result = await runner.StartGame(new StartGameArgs{
-                GameMode = GameMode.AutoHostOrClient,
+            if ( qj.found && !string.IsNullOrEmpty(qj.sessionName) ) {
+                // Table found: Join existing session as Client
+                Debug.Log($"[TienLenNetworkController] QuickPlay joining existing table '{qj.sessionName}' on channel {targetChannel} for stake {betStake}");
+                result = await runner.StartGame(new StartGameArgs {
+                    GameMode = GameMode.Client,
+                    SessionName = qj.sessionName,
+                    CustomLobbyName = GetLobbyId(betStake, targetChannel),
+                    SessionProperties = sessionProperties,
+                    Scene = sceneRef,
+                    SceneManager = sceneManager
+                });
+            }
+            else {
+                // No table available: Host new session on backend-assigned channel
+                string sessionName = GenerateRandomRoomName();
+                Debug.Log($"[TienLenNetworkController] QuickPlay hosting new table '{sessionName}' on channel {targetChannel} for stake {betStake}");
+                result = await runner.StartGame(new StartGameArgs {
+                    GameMode = GameMode.Host,
+                    SessionName = sessionName,
+                    CustomLobbyName = GetLobbyId(betStake, targetChannel),
+                    SessionProperties = sessionProperties,
+                    PlayerCount = playerCount,
+                    Scene = sceneRef,
+                    SceneManager = sceneManager,
+                    IsOpen = true,
+                    IsVisible = true
+                });
 
-                // Find or host a session in the specific bet lobby
-                CustomLobbyName = GetLobbyId(betStake, targetChannel),
-                SessionProperties = sessionProperties,
+                if ( result.Ok ) {
+                    // Attach event-driven sync handler to runner (persists with runner into gameplay scene)
+                    var syncHandler = runner.gameObject.AddComponent<LobbySessionSyncHandler>();
+                    bool registered = await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, targetChannel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    if ( !registered ) {
+                        // Retry once after a brief delay
+                        await UniTask.Delay(500);
+                        registered = await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, targetChannel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    }
 
-                SessionName = sessionToJoinOrHost,
-                PlayerCount = playerCount,
-                Scene = GetGameplaySceneRef(),
-                SceneManager = sceneManager,
-
-                // Allow new tables to accept players and appear in the lobby.
-                IsOpen = true,
-                IsVisible = true,
-
-                MatchmakingMode = MatchmakingMode.FillRoom
-            });
+                    if ( !registered ) {
+                        Debug.LogError($"[TienLenNetworkController] Failed to register hosted session '{sessionName}' with backend directory. Shutting down runner.");
+                        await runner.Shutdown();
+                        throw new InvalidOperationException($"Failed to register hosted room '{sessionName}' with backend directory.");
+                    }
+                }
+            }
 
             if ( !result.Ok ) {
                 Debug.LogError($"Failed to start session: {result.ShutdownReason}");
-            }
-            else {
-                if ( runner.IsServer && lobbyRestService != null ) {
-                    _ = RegisterAndStartHeartbeatAsync(runner.SessionInfo?.Name ?? sessionToJoinOrHost, betStake, targetChannel, playerCount);
-                }
             }
 
             return result;
@@ -160,7 +193,18 @@ namespace Assets.Script.NetWorkScript {
             }
             else {
                 if ( mode == GameMode.Host && lobbyRestService != null ) {
-                    _ = RegisterAndStartHeartbeatAsync(sessionName, betStake, channel, playerCount);
+                    var syncHandler = runner.gameObject.AddComponent<LobbySessionSyncHandler>();
+                    bool registered = await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, channel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    if ( !registered ) {
+                        await UniTask.Delay(500);
+                        registered = await syncHandler.InitializeAsync(lobbyRestService, runner, sessionName, betStake, channel, initialPlayerCount: 1, maxPlayers: playerCount);
+                    }
+
+                    if ( !registered ) {
+                        Debug.LogError($"[TienLenNetworkController] Failed to register hosted session '{sessionName}' with backend directory. Shutting down runner.");
+                        await runner.Shutdown();
+                        throw new InvalidOperationException($"Failed to register hosted room '{sessionName}' with backend directory.");
+                    }
                 }
             }
 
@@ -201,13 +245,14 @@ namespace Assets.Script.NetWorkScript {
                 }
             }
 
-            // 2. Resume session registration and heartbeat as new host
+            // 2. Resume session registration as new host
             if ( newRunner != null && newRunner.IsServer && lobbyRestService != null && newRunner.SessionInfo != null ) {
                 int betStake = 5;
                 if ( newRunner.SessionInfo.Properties != null && newRunner.SessionInfo.Properties.TryGetValue("BetStake", out var prop) ) {
                     int.TryParse(prop.PropertyValue.ToString(), out betStake);
                 }
-                _ = RegisterAndStartHeartbeatAsync(newRunner.SessionInfo.Name, betStake, 1, newRunner.SessionInfo.MaxPlayers);
+                var syncHandler = newRunner.gameObject.AddComponent<LobbySessionSyncHandler>();
+                _ = syncHandler.InitializeAsync(lobbyRestService, newRunner, newRunner.SessionInfo.Name, betStake, 1, initialPlayerCount: newRunner.SessionInfo.PlayerCount, maxPlayers: newRunner.SessionInfo.MaxPlayers);
             }
         }
 
@@ -254,80 +299,13 @@ namespace Assets.Script.NetWorkScript {
 
         #endregion
 
-        #region Session Directory Sync & Heartbeats
-
-        private void OnDestroy() {
-            CancelHeartbeat();
-        }
-
-        private void CancelHeartbeat() {
-            if ( heartbeatCts != null ) {
-                heartbeatCts.Cancel();
-                heartbeatCts.Dispose();
-                heartbeatCts = null;
-            }
-        }
-
-        private async UniTask RegisterAndStartHeartbeatAsync( string sessionName, int betStake, int channel, int maxPlayers ) {
-            CancelHeartbeat();
-            heartbeatCts = new CancellationTokenSource();
-            var token = heartbeatCts.Token;
-
-            if ( lobbyRestService != null ) {
-                try {
-                    await lobbyRestService.RegisterSessionAsync(sessionName, betStake, channel, playerCount: 1, maxPlayers: maxPlayers);
-                    Debug.Log($"[TienLenNetworkController] Registered session '{sessionName}' (Bet: {betStake}, Ch: {channel}) to directory.");
-                }
-                catch ( Exception ex ) {
-                    Debug.LogWarning($"[TienLenNetworkController] RegisterSession error: {ex.Message}");
-                }
-            }
-
-            try {
-                while ( !token.IsCancellationRequested && runner != null && runner.IsRunning && runner.IsServer ) {
-                    await UniTask.Delay(TimeSpan.FromSeconds(10), cancellationToken: token);
-                    if ( lobbyRestService != null && runner != null && runner.IsRunning ) {
-                        int currentPlayers = runner.SessionInfo != null ? runner.SessionInfo.PlayerCount : 1;
-                        await lobbyRestService.SendHeartbeatAsync(sessionName, currentPlayers);
-                    }
-                }
-            }
-            catch ( OperationCanceledException ) { }
-            catch ( Exception ex ) {
-                Debug.LogWarning($"[TienLenNetworkController] Heartbeat error: {ex.Message}");
-            }
-        }
-
-        private async UniTask StopHeartbeatAndUnregisterAsync( string sessionName ) {
-            CancelHeartbeat();
-
-            if ( lobbyRestService != null && !string.IsNullOrEmpty(sessionName) ) {
-                try {
-                    await lobbyRestService.UnregisterSessionAsync(sessionName);
-                    Debug.Log($"[TienLenNetworkController] Unregistered session '{sessionName}' from directory.");
-                }
-                catch ( Exception ex ) {
-                    Debug.LogWarning($"[TienLenNetworkController] UnregisterSession error: {ex.Message}");
-                }
-            }
-        }
-
-        #endregion
-
         #region INetworkRunnerCallbacks
 
         public void OnObjectExitAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
         public void OnObjectEnterAOI( NetworkRunner runner, NetworkObject obj, PlayerRef player ) { }
         public void OnPlayerJoined( NetworkRunner runner, PlayerRef player ) { }
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) { }
-        public void OnShutdown( NetworkRunner runner, ShutdownReason shutdownReason ) {
-            if ( runner != null && runner.IsServer && runner.SessionInfo != null && !string.IsNullOrEmpty(runner.SessionInfo.Name) ) {
-                _ = StopHeartbeatAndUnregisterAsync(runner.SessionInfo.Name);
-            }
-            else {
-                CancelHeartbeat();
-            }
-        }
+        public void OnShutdown( NetworkRunner runner, ShutdownReason shutdownReason ) { }
         void INetworkRunnerCallbacks.OnDisconnectedFromServer( NetworkRunner runner, NetDisconnectReason reason ) { }
         public void OnConnectRequest( NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token ) { }
         public void OnConnectFailed( NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason ) { }

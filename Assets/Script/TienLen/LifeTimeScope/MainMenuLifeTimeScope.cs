@@ -1,4 +1,4 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.NetWorkScript;
 using Assets.Script.UI.MainMenu;
 using Assets.Script.UI.MainMenu.Panel;
 using System.Collections;
@@ -13,7 +13,9 @@ namespace Assets.Script.TienLen.LifeTimeScope {
 
             builder.RegisterComponentInHierarchy<TienLenNetworkController>();
 
-            builder.RegisterComponentInHierarchy<LobbySessionBrowserPanel>()
+            builder.Register<LobbySessionBrowserController>(Lifetime.Scoped);
+
+            builder.RegisterComponentInHierarchy<LobbySessionBrowserPanelView>()
                                                 .AsSelf()
                                                 .AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<PlayerProfileUI>()
@@ -21,8 +23,6 @@ namespace Assets.Script.TienLen.LifeTimeScope {
                                                 .AsImplementedInterfaces();
             builder.RegisterComponentInHierarchy<hostUiPanel>();
             builder.RegisterComponentInHierarchy<PlayOptionUI>();
-
-
 
         }
     }

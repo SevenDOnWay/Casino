@@ -6,68 +6,90 @@ using UnityEngine.UI;
 
 namespace Assets.Script.UI.MainMenu {
     public class BetButtonScript : MonoBehaviour {
-
         [SerializeField] private Button betButton;
         [SerializeField] private TextMeshProUGUI text;
         [SerializeField] private TMP_Dropdown channelDropDown;
 
-        private LobbySessionBrowserPanel lobbySessionBrowserPanel;
+        private LobbySessionBrowserController controller;
         private GameObject channelGameObject;
         private int index;
 
         public int Index => index;
         public TMP_Dropdown ChannelDropDown => channelDropDown;
 
-        void Start() {
-            channelGameObject = channelDropDown.gameObject;
-        }
-
         private void OnEnable() {
-            if ( betButton != null ) {
-                betButton.onClick.AddListener(OnBetButtonClicked);
-            }
-            if ( channelDropDown != null ) {
-                channelDropDown.onValueChanged.AddListener(OnChannelValueChanged);
-            }
+            Debug.Log($"[BetButtonScript] OnEnable called for index: {index}");
+
+            betButton.onClick.AddListener(OnBetButtonClicked);
+            channelDropDown.onValueChanged.AddListener(OnChannelValueChanged);
         }
 
         private void OnDisable() {
-            if ( betButton != null ) betButton.onClick.RemoveListener(OnBetButtonClicked);
-            if ( channelDropDown != null ) channelDropDown.onValueChanged.RemoveListener(OnChannelValueChanged);
+            betButton.onClick.RemoveListener(OnBetButtonClicked);
+            channelDropDown.onValueChanged.RemoveListener(OnChannelValueChanged);
         }
 
-        public void Init( int index, string text, LobbySessionBrowserPanel script ) {
+        public void Init( int index, string text, LobbySessionBrowserController controller ) {
             this.index = index;
-            this.text.text = text;
-            this.lobbySessionBrowserPanel = script;
-
+            if ( this.text != null ) {
+                this.text.text = text;
+            }
+            this.controller = controller;
             SetChannelActive(false);
         }
 
-        private void OnBetButtonClicked() {
-            if ( lobbySessionBrowserPanel != null ) {
-                lobbySessionBrowserPanel.FindTable(index);
+        public void OnBetButtonClicked() {
+            Debug.Log($"[BetButtonScript] Bet button clicked with index: {index}");
+
+            if ( controller == null ) {
+                Debug.LogWarning("[BetButtonScript] Controller is null. Cannot select stake.");
+                return;
+            }
+
+            if ( controller != null ) {
+                _ = controller.SelectStake(index);
             }
         }
 
-        private void OnChannelValueChanged( int value ) {
-            if ( lobbySessionBrowserPanel != null ) {
-                _ = lobbySessionBrowserPanel.SwitchLobby(index, value);
+        public void OnChannelValueChanged( int value ) {
+            if ( controller != null ) {
+                _ = controller.SelectChannel(value + 1);
             }
         }
 
         public void SetChannelActive( bool active, int selectedChannel = 1 ) {
-            channelGameObject.SetActive(active);
-            if ( active ) BuildChannel(selectedChannel);
+            channelGameObject ??= channelDropDown?.gameObject;
+            if ( channelGameObject != null ) {
+                channelGameObject.SetActive(active);
+            }
+            if ( active ) {
+                BuildChannel(selectedChannel);
+            }
         }
 
         public void BuildChannel( int selectedChannel = 1 ) {
+            int channelCount = controller != null ? controller.GetChannelCountForStake(controller.SelectedStake) : 1;
+            BuildChannel(channelCount, selectedChannel);
+        }
+
+        public void BuildChannel( int channelCount, int selectedChannel = 1 ) {
+            if ( channelDropDown == null ) return;
+
             channelDropDown.ClearOptions();
-            var options = lobbySessionBrowserPanel.GetChannelOptions(index);
-            if ( options != null && options.Count > 0 ) {
-                channelDropDown.AddOptions(options);
-                int targetIndex = Mathf.Clamp(selectedChannel - 1, 0, options.Count - 1);
-                channelDropDown.SetValueWithoutNotify(targetIndex);
+            var options = new List<string>();
+            for ( int i = 1; i <= Mathf.Max(1, channelCount); i++ ) {
+                options.Add($"Channel {i}");
+            }
+
+            channelDropDown.AddOptions(options);
+            int targetIndex = Mathf.Clamp(selectedChannel - 1, 0, options.Count - 1);
+            channelDropDown.SetValueWithoutNotify(targetIndex);
+        }
+
+        public void EnableDropDown( bool enable ) {
+            channelGameObject ??= channelDropDown?.gameObject;
+            if ( channelGameObject != null ) {
+                channelGameObject.SetActive(enable);
             }
         }
     }
