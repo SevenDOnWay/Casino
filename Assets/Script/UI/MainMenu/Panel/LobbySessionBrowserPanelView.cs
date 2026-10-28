@@ -25,8 +25,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
 
         [Header("Main UI")]
         [SerializeField] Button closeButton;
-        [SerializeField] GameObject loadingIndicator;
-        [SerializeField] DynamicLoadingCircle dynamicLoadingCircle;
+        [SerializeField] GameObject LoadingScreen;
         [SerializeField] GameObject betButtonPrefab;
         [SerializeField] GameObject sessionButtonPrefab;
         [SerializeField] Transform betButtonContainer;
@@ -111,24 +110,7 @@ namespace Assets.Script.UI.MainMenu.Panel {
         #region ILobbySessionBrowserView Implementation
 
         public void SetLoading( bool isLoading ) {
-            if ( dynamicLoadingCircle != null ) {
-                if ( isLoading ) {
-                    dynamicLoadingCircle.Play();
-                }
-                else {
-                    dynamicLoadingCircle.Stop();
-                }
-            }
-            else if ( loadingIndicator != null ) {
-                var childCircle = loadingIndicator.GetComponentInChildren<DynamicLoadingCircle>(true);
-                if ( childCircle != null ) {
-                    if ( isLoading ) childCircle.Play();
-                    else childCircle.Stop();
-                }
-                else {
-                    loadingIndicator.SetActive(isLoading);
-                }
-            }
+            LoadingScreen?.SetActive(isLoading);
         }
 
         public void SetSelectedStakeButton( int betIndex ) {

@@ -263,68 +263,6 @@ namespace Assets.Script.Data.Tests {
         }
 
         [Test]
-        public void BrowserPanel_SetLoading_DrivesDynamicLoadingCircle_WhenAssigned() {
-            var panelGo = new GameObject("BrowserPanelTest");
-            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
-
-            var circleGo = new GameObject("DynamicCircle");
-            circleGo.transform.SetParent(panelGo.transform);
-            var rect = circleGo.AddComponent<RectTransform>();
-            var img = circleGo.AddComponent<Image>();
-            img.type = Image.Type.Filled;
-            img.fillMethod = Image.FillMethod.Radial360;
-            var cg = circleGo.AddComponent<CanvasGroup>();
-            var circle = circleGo.AddComponent<DynamicLoadingCircle>();
-
-            var field = typeof(LobbySessionBrowserPanelView).GetField("dynamicLoadingCircle", BindingFlags.NonPublic | BindingFlags.Instance);
-            field?.SetValue(panel, circle);
-
-            panel.SetLoading(true);
-            Assert.IsTrue(circle.IsPlaying);
-
-            panel.SetLoading(false);
-            Assert.IsFalse(circle.IsPlaying);
-
-            // Clean up instant to prevent background fade timer from executing after GameObject is destroyed
-            circle.Stop(instant: true);
-            Object.DestroyImmediate(panelGo);
-        }
-
-        [Test]
-        public void BrowserPanel_SetLoading_FallsBackToLoadingIndicator_WhenNoCircle() {
-            var panelGo = new GameObject("BrowserPanelTest");
-            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
-
-            var indicatorGo = new GameObject("IndicatorLegacy");
-            indicatorGo.SetActive(false);
-
-            var field = typeof(LobbySessionBrowserPanelView).GetField("loadingIndicator", BindingFlags.NonPublic | BindingFlags.Instance);
-            field?.SetValue(panel, indicatorGo);
-
-            panel.SetLoading(true);
-            Assert.IsTrue(indicatorGo.activeSelf);
-
-            panel.SetLoading(false);
-            Assert.IsFalse(indicatorGo.activeSelf);
-
-            Object.DestroyImmediate(indicatorGo);
-            Object.DestroyImmediate(panelGo);
-        }
-
-        [Test]
-        public void BrowserPanel_SetLoading_NullSafe_WhenNoUIConfigured() {
-            var panelGo = new GameObject("BrowserPanelTest");
-            var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
-
-            Assert.DoesNotThrow(() => {
-                panel.SetLoading(true);
-                panel.SetLoading(false);
-            });
-
-            Object.DestroyImmediate(panelGo);
-        }
-
-        [Test]
         public void BrowserPanel_RenderSessions_NullSafe_DoesNotThrow() {
             var panelGo = new GameObject("BrowserPanelTest");
             var panel = panelGo.AddComponent<LobbySessionBrowserPanelView>();
@@ -387,29 +325,6 @@ namespace Assets.Script.Data.Tests {
 
             betBtn.OnChannelValueChanged(2); // value 2 -> Channel 3
             Assert.AreEqual(3, controller.CurrentChannel);
-
-            Object.DestroyImmediate(go);
-        }
-
-        [Test]
-        public void DynamicLoadingCircle_Lifecycle_PlayAndStop_UpdatesState() {
-            var go = new GameObject("DynamicLoadingCircleTest");
-            var rect = go.AddComponent<RectTransform>();
-            var img = go.AddComponent<Image>();
-            img.type = Image.Type.Filled;
-            img.fillMethod = Image.FillMethod.Radial360;
-            var cg = go.AddComponent<CanvasGroup>();
-            var circle = go.AddComponent<DynamicLoadingCircle>();
-
-            // Play starts animation and blocks raycasts
-            circle.Play();
-            Assert.IsTrue(circle.IsPlaying);
-            Assert.IsTrue(cg.blocksRaycasts);
-
-            // Stop ends animation
-            circle.Stop(instant: true);
-            Assert.IsFalse(circle.IsPlaying);
-            Assert.IsFalse(cg.blocksRaycasts);
 
             Object.DestroyImmediate(go);
         }

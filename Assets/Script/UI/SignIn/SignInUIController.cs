@@ -26,6 +26,7 @@ namespace Assets.Script.UI.MainMenu {
         [SerializeField] GameObject alertPanel;
         [SerializeField] Image alertPanelImage;
         [SerializeField] TextMeshProUGUI alertText;
+        [SerializeField] GameObject loadingScreen;
 
 
         [Header("Next Scene")]
@@ -51,10 +52,14 @@ namespace Assets.Script.UI.MainMenu {
         private void OnSubmitClicked() {
             ReadInput(out string email, out string password, out bool rememberMe);
 
+            loadingScreen.SetActive(true);
+
             if ( !ValidateInput(email, password) ) {
                 ShowAlert("Please fill in all required fields.", AlertType.Error, 5f);
                 return;
             }
+
+
 
 #if UNITY_EDITOR
             CheckForAdmin();
@@ -74,6 +79,7 @@ namespace Assets.Script.UI.MainMenu {
                     string name = response.profile?.displayName ?? "Player";
                     ShowAlert($"Signed in successfully! Welcome back, {name}.", AlertType.Success, 2f);
                     await UniTask.Delay(TimeSpan.FromSeconds(0.8f));
+                    loadingScreen.SetActive(false);
                     NavigateToNextScene();
                 }
                 else {
@@ -123,6 +129,8 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         private void ShowAlert( string s, AlertType type, float duration ) {
+            loadingScreen.SetActive(false);
+
             StartCoroutine(ShowAlertCoroutine(s, type, duration));
         }
 
