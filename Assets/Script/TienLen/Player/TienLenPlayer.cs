@@ -10,6 +10,7 @@ namespace Assets.Script.TienLen.Player {
     /// </summary>
     public class TienLenPlayer {
         public int Id { get; }
+        public string UserId { get; private set; } = string.Empty;
         public string PlayerName { get; private set; }
         public int AvatarId { get; set; } = 0;
         public int Level { get; set; } = 1;
@@ -29,34 +30,44 @@ namespace Assets.Script.TienLen.Player {
             bool isHuman = true,
             int avatarId = 0,
             int level = 1,
-            long money = 10000 ) {
+            long money = 10000,
+            string userId = "" ) {
             Id = id;
             PlayerName = playerName;
             IsHuman = isHuman;
             AvatarId = avatarId;
             Level = level;
             Money = money;
+            UserId = userId ?? string.Empty;
             Hand = new PlayerHand();
         }
 
         public TienLenPlayer( TienLenNetWorkPlayer tienLenNetWorkPlayer ) {
             Id = tienLenNetWorkPlayer.PlayerRef.PlayerId;
+            UserId = (string)tienLenNetWorkPlayer.UserId;
             PlayerName = (string)tienLenNetWorkPlayer.PlayerName;
             AvatarId = tienLenNetWorkPlayer.AvatarId;
-            Level = tienLenNetWorkPlayer.Level > 0 ? tienLenNetWorkPlayer.Level : 1;
-            Money = tienLenNetWorkPlayer.Money > 0 ? tienLenNetWorkPlayer.Money : 10000;
+            Level = tienLenNetWorkPlayer.Level;
+            Money = tienLenNetWorkPlayer.Money;
             IsHuman = true;
             Hand = new PlayerHand();
         }
 
         public void UpdateFromNetwork( TienLenNetWorkPlayer netPlayer ) {
             if ( netPlayer == null ) return;
+            if ( !string.IsNullOrEmpty((string)netPlayer.UserId) ) {
+                UserId = (string)netPlayer.UserId;
+            }
             if ( !string.IsNullOrEmpty((string)netPlayer.PlayerName) ) {
                 PlayerName = (string)netPlayer.PlayerName;
             }
             AvatarId = netPlayer.AvatarId;
-            Level = netPlayer.Level > 0 ? netPlayer.Level : 1;
-            Money = netPlayer.Money > 0 ? netPlayer.Money : 10000;
+            Level = netPlayer.Level;
+            Money = netPlayer.Money;
+        }
+
+        public void SetUserId( string userId ) {
+            UserId = userId ?? string.Empty;
         }
 
         public bool HasCards( List<Card> cards ) {

@@ -15,6 +15,7 @@ namespace Assets.Script.NetWorkScript {
         public event Action<TienLenNetWorkPlayer> OnPlayerDataUpdated;
 
         [Networked] public PlayerRef PlayerRef { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public NetworkString<_32> UserId { get; set; }
         [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public NetworkString<_16> PlayerName { get; set; }
         [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public int AvatarId { get; set; }
         [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public int Level { get; set; }
@@ -41,27 +42,30 @@ namespace Assets.Script.NetWorkScript {
             if ( Object.HasInputAuthority && localPlayerService != null ) {
                 localPlayerService.SetLocalNetworkPlayer(this);
 
+                string id = localPlayerService.GetID() ?? string.Empty;
                 string name = localPlayerService.GetName() ?? "Player";
                 int avatar = localPlayerService.GetAvatarId();
                 int lvl = localPlayerService.GetLevel();
                 long money = localPlayerService.GetMoney();
 
                 if ( Object.HasStateAuthority ) {
+                    UserId = id;
                     PlayerName = name;
                     AvatarId = avatar;
                     Level = lvl;
                     Money = money;
                 }
                 else {
-                    RPCSetPlayerData(name, avatar, lvl, money);
+                    RPCSetPlayerData(id, name, avatar, lvl, money);
                 }
 
-                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' ({PlayerRef.PlayerId}) Avatar={AvatarId} Level={Level} Money={Money}.");
+                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' (UserId: {UserId}, PlayerRef: {PlayerRef.PlayerId}) Avatar={AvatarId} Level={Level} Money={Money}.");
             }
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-        public void RPCSetPlayerData( string name, int avatarId, int level, long money ) {
+        public void RPCSetPlayerData( string userId, string name, int avatarId, int level, long money ) {
+            UserId = userId;
             PlayerName = name;
             AvatarId = avatarId;
             Level = level;

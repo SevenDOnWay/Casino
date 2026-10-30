@@ -44,6 +44,23 @@ namespace Assets.Script.TienLen.Game {
         /// <summary>Network seat index of the last accepted pass. -1 = none/cleared by a newer play.</summary>
         [Networked] public int LastPassSeat { get; set; }
 
+        private int explicitBetStake = 0;
+
+        /// <summary>Networked table bet stake replicated to all clients.</summary>
+        [Networked] public int BetStake { get; set; }
+
+        public int CurrentBetStake {
+            get {
+                if ( Object != null && Object.IsValid ) {
+                    try {
+                        return BetStake > 0 ? BetStake : (explicitBetStake > 0 ? explicitBetStake : 5);
+                    }
+                    catch ( System.InvalidOperationException ) { }
+                }
+                return explicitBetStake > 0 ? explicitBetStake : 5;
+            }
+        }
+
         /// <summary>Networked array of the cards currently played on the table.</summary>
         [Networked, Capacity(13)] public NetworkArray<NetworkCard> CurrentTableCards => default;
         [Networked] public int CurrentTableCardCount { get; set; }
@@ -112,6 +129,14 @@ namespace Assets.Script.TienLen.Game {
             base.Spawned();
 
             if ( Object.HasStateAuthority ) {
+                int stake = 5;
+                if ( Runner != null && Runner.SessionInfo != null && Runner.SessionInfo.Properties != null ) {
+                    if ( Runner.SessionInfo.Properties.TryGetValue("BetStake", out var prop) ) {
+                        int.TryParse(prop.PropertyValue.ToString(), out stake);
+                    }
+                }
+                BetStake = stake > 0 ? stake : 5;
+
                 if ( Runner.IsResume ) {
                     ResumeFromMigration();
                 }
@@ -361,37 +386,111 @@ namespace Assets.Script.TienLen.Game {
             WinnerSeat = winnerSeat;
             Debug.Log($"[Game] Player at seat {winnerSeat} wins!");
 
-            ReportMatchOutcome(winnerSeat);
-
             if ( Object.HasStateAuthority ) {
+                ReportMatchOutcome(winnerSeat).Forget();
                 WaitAndStartNextGame(winnerSeat).Forget();
             }
         }
 
-        private void ReportMatchOutcome( int winnerSeat ) {
-            if ( profileService == null ) return;
+        public void SetDependenciesForTest( ISeatQueryService seatQuery, LocalPlayerService localPlayer, IPlayerProfileService profile, int stake = 5 ) {
+            this.seatQueryService = seatQuery;
+            this.localPlayerService = localPlayer;
+            this.profileService = profile;
+            this.explicitBetStake = stake;
+            if ( Object != null && Object.IsValid ) {
+                try {
+                    this.BetStake = stake;
+                }
+                catch ( System.InvalidOperationException ) { }
+            }
+        }
 
-            string myId = localPlayerService?.GetID();
-            if ( string.IsNullOrEmpty(myId) ) return;
+        public MatchResultReportRequest BuildMatchReport( int winnerSeat ) {
+            if ( seatQueryService == null ) return null;
 
-            int mySeat = localPlayerService?.Player != null ? SeatOfPlayer(localPlayerService.Player) : -1;
-            bool isWinner = (mySeat == winnerSeat);
+            var seated = seatQueryService.GetSeatedPlayers();
+            if ( seated == null || seated.Count == 0 ) return null;
 
-            var report = new MatchResultReportRequest {
-                matchId = Guid.NewGuid().ToString("N"),
-                results = new List<MatchPlayerSummary> {
-                    new MatchPlayerSummary {
-                        userId = myId,
-                        displayName = localPlayerService.GetName(),
-                        avatarId = localPlayerService.GetAvatarId(),
-                        rank = isWinner ? 1 : 2,
-                        moneyEarned = isWinner ? 1000 : -300,
-                        expEarned = isWinner ? 50 : 15
+            var netMap = seatQueryService.GetNetworkPlayerMap();
+            int currentBet = CurrentBetStake;
+            int loserCount = Mathf.Max(1, seated.Count - 1);
+
+            var summaries = new List<MatchPlayerSummary>();
+
+            foreach ( var kvp in seated ) {
+                int seatIndex = kvp.Key;
+                TienLenPlayer player = kvp.Value;
+                if ( player == null ) continue;
+
+                bool isWinner = (seatIndex == winnerSeat);
+                string userId = string.Empty;
+                string displayName = player.PlayerName;
+                int avatarId = player.AvatarId;
+
+                if ( netMap != null && netMap.TryGetValue(seatIndex, out var netPlayer) && netPlayer != null ) {
+                    userId = (string)netPlayer.UserId;
+                    if ( !string.IsNullOrEmpty((string)netPlayer.PlayerName) ) {
+                        displayName = (string)netPlayer.PlayerName;
+                    }
+                    avatarId = netPlayer.AvatarId;
+                }
+
+                if ( string.IsNullOrEmpty(userId) && localPlayerService != null ) {
+                    int localSeat = localPlayerService.Player != null ? SeatOfPlayer(localPlayerService.Player) : -1;
+                    if ( localSeat == seatIndex ) {
+                        userId = localPlayerService.GetID();
                     }
                 }
-            };
 
-            profileService.RecordMatchResultAsync(report).Forget();
+                if ( string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(player.UserId) ) {
+                    userId = player.UserId;
+                }
+
+                if ( string.IsNullOrEmpty(userId) ) {
+                    userId = player.Id.ToString();
+                }
+
+                long moneyEarned = isWinner ? (loserCount * currentBet) : -currentBet;
+                int expEarned = isWinner ? 50 : 15;
+                int rank = isWinner ? 1 : 2;
+
+                summaries.Add(new MatchPlayerSummary {
+                    userId = userId,
+                    displayName = displayName,
+                    avatarId = avatarId,
+                    rank = rank,
+                    moneyEarned = moneyEarned,
+                    expEarned = expEarned
+                });
+            }
+
+            return new MatchResultReportRequest {
+                matchId = Guid.NewGuid().ToString("N"),
+                results = summaries
+            };
+        }
+
+        private async UniTaskVoid ReportMatchOutcome( int winnerSeat ) {
+            if ( profileService == null || !Object.HasStateAuthority ) return;
+
+            var report = BuildMatchReport(winnerSeat);
+            if ( report == null || report.results == null || report.results.Count == 0 ) return;
+
+            Debug.Log($"[TienLenGameController] Reporting match outcome for {report.results.Count} players. BetStake: {CurrentBetStake}");
+            bool success = await profileService.RecordMatchResultAsync(report);
+            if ( success ) {
+                Debug.Log("[TienLenGameController] Match outcome recorded successfully in backend.");
+                RPCNotifyMatchReported();
+            }
+            else {
+                Debug.LogWarning("[TienLenGameController] Failed to record match outcome in backend.");
+            }
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCNotifyMatchReported() {
+            Debug.Log("[TienLenGameController] Match outcome recorded in backend. Refreshing local player profile...");
+            profileService?.RefreshProfileAsync().Forget();
         }
 
         private async UniTaskVoid WaitAndStartNextGame( int previousWinnerSeat ) {
