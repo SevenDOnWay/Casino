@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Script.Data.SO {
@@ -11,6 +12,7 @@ namespace Assets.Script.Data.SO {
         }
 
         [SerializeField] private AvatarEntry[] avatars;
+        public IReadOnlyList<AvatarEntry> Avatars => avatars;
 
 
         public bool TryGetAvatarSprite( int id, out Sprite sprite ) {

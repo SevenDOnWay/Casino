@@ -24,6 +24,10 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.RegisterComponentInHierarchy<hostUiPanel>();
             builder.RegisterComponentInHierarchy<PlayOptionUI>();
 
+            builder.RegisterComponentInHierarchy<PlayerProfilePanelView>()
+                                                .AsSelf()
+                                                .AsImplementedInterfaces();
+
         }
     }
 }
