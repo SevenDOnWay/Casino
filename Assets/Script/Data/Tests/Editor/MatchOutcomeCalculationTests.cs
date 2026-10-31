@@ -1,7 +1,10 @@
 using Assets.Script.Data.Models;
 using Assets.Script.NetWorkScript;
+using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Game;
+using Assets.Script.TienLen.Game.Services;
 using Assets.Script.TienLen.Player;
+using Assets.Script.TienLen.Rule;
 using Fusion;
 using NUnit.Framework;
 using System.Collections.Generic;
@@ -107,6 +110,63 @@ namespace Assets.Script.Data.Tests {
             Assert.AreEqual(0, totalSum, "Zero-sum invariant across 4 players");
 
             Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void MatchOutcomeReporter_Standalone_BuildsCorrectReport() {
+            var mockSeat = new MockSeatQueryService();
+            mockSeat.Seated[0] = new TienLenPlayer(1, "Player1", true, 0, 1, 5000, "user_1");
+            mockSeat.Seated[1] = new TienLenPlayer(2, "Player2", true, 1, 1, 5000, "user_2");
+            mockSeat.Seated[2] = new TienLenPlayer(3, "Player3", true, 2, 1, 5000, "user_3");
+
+            var reporter = new TienLenMatchOutcomeReporter(mockSeat);
+            var report = reporter.BuildMatchReport(winnerSeat: 0, currentBet: 20);
+
+            Assert.IsNotNull(report);
+            Assert.AreEqual(3, report.results.Count);
+
+            var winner = report.results.First(r => r.userId == "user_1");
+            Assert.AreEqual(1, winner.rank);
+            Assert.AreEqual(40, winner.moneyEarned); // 2 losers * 20
+
+            var loser = report.results.First(r => r.userId == "user_2");
+            Assert.AreEqual(2, loser.rank);
+            Assert.AreEqual(-20, loser.moneyEarned);
+        }
+
+        [Test]
+        public void TurnHandler_FindStartingSeatOrderIndex_FindsThreeOfSpades() {
+            var p1 = new TienLenPlayer(1, "Alice", true);
+            p1.Hand.AddCard(new Card(CardRank.Three, CardSuit.Hearts));
+            p1.Hand.AddCard(new Card(CardRank.Ace, CardSuit.Diamonds));
+
+            var p2 = new TienLenPlayer(2, "Bob", true);
+            p2.Hand.AddCard(new Card(CardRank.Three, CardSuit.Spades)); // Holds 3 of Spades
+            p2.Hand.AddCard(new Card(CardRank.King, CardSuit.Clubs));
+
+            var ordered = new List<TienLenPlayer> { p1, p2 };
+            var turnHandler = new TienLenTurnHandler(null, null, null);
+
+            int startingIndex = turnHandler.FindStartingSeatOrderIndex(ordered);
+            Assert.AreEqual(1, startingIndex, "Bob at index 1 holds 3 of Spades");
+        }
+
+        [Test]
+        public void TurnHandler_DecideAutoAction_WhenCombinationExists_ReturnsPass() {
+            var validator = new TienLenRuleValidator();
+            var leadCombo = new CardCombination(
+                CardCombinationType.Single,
+                new List<Card> { new Card(CardRank.Five, CardSuit.Hearts) },
+                new CardComparer()
+            );
+            validator.SetCurrentCombination(leadCombo);
+
+            var turnHandler = new TienLenTurnHandler(null, null, validator);
+            var player = new TienLenPlayer(1, "Alice", true);
+            player.Hand.AddCard(new Card(CardRank.Seven, CardSuit.Diamonds));
+
+            var decision = turnHandler.DecideAutoAction(player, isFirstPlayOfGame: false);
+            Assert.AreEqual(AutoActionResultType.Pass, decision.ActionType);
         }
     }
 }

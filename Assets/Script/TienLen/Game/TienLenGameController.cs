@@ -2,15 +2,15 @@ using Assets.Script.Data.Models;
 using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
+using Assets.Script.TienLen.Game.Services;
+using Assets.Script.TienLen.Game.Visual;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
 using Cysharp.Threading.Tasks;
-using DG.Tweening;
 using Fusion;
 using Fusion.Sockets;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -19,7 +19,22 @@ using VContainer;
 
 namespace Assets.Script.TienLen.Game {
     public class TienLenGameController : NetworkBehaviour {
-        [Header("Dependencies")]
+        [Header("Scene Dependencies")]
+        [SerializeField] private UiManager uiManager;
+        [SerializeField] private TableVisualLayoutManager tableVisualLayoutManager;
+        [SerializeField] private CardHolder tableCenterPosition;
+        [SerializeField] private TienLenSO tienLenSO;
+        [SerializeField] private TienLenDealingAnimator dealingAnimator;
+        [SerializeField] private TienLenTableAnimator tableAnimator;
+
+        [Header("Game Configuration")]
+        [SerializeField] private int minPlayersToStart = 2;
+        [SerializeField] private float turnDuration = 10f;
+        public float TurnDuration => turnDuration;
+
+        private const int totalSeats = 4;
+
+        [Header("Dependency")]
         private CardSpawner cardSpawner;
         private CardCombinationEvaluator cardCombinationEvaluator;
         private LocalPlayerService localPlayerService;
@@ -27,28 +42,31 @@ namespace Assets.Script.TienLen.Game {
         private ISeatQueryService seatQueryService;
         private TienLenRuleValidator validator;
         private IPlayerProfileService profileService;
-        [SerializeField] private UiManager uiManager;
-        [SerializeField] private TableVisualLayoutManager tableVisualLayoutManager;
 
-        private const int totalSeats = 4;
-        [SerializeField] private int minPlayersToStart = 2;
+        [Header("Domain Services")]
+        private TienLenMatchOutcomeReporter outcomeReporter;
+        private TienLenActionHandler actionHandler;
+        private TienLenTurnHandler turnHandler;
+        private TienLenMigrationHandler migrationHandler;
+
+        // Visual / State caches
+        private Dictionary<(CardSuit, CardRank), Sprite> sprites = new();
+        private Sprite cardBack;
+        private readonly Dictionary<PlayerRef, List<Card>> pendingHands = new();
+        private int explicitBetStake = 0;
+
+        #region Networked Properties
 
         [Networked, OnChangedRender(nameof(OnIsGameStartedChanged))] public NetworkBool IsGameStarted { get; set; }
-
-        /// <summary>Network seat index whose turn it is. -1 = not started. Mirrored by the host from TurnManager.</summary>
         [Networked] public int CurrentTurnSeat { get; set; }
-
-        /// <summary>Network seat index of the winner. -1 = no winner yet.</summary>
         [Networked] public int WinnerSeat { get; set; }
-
-        /// <summary>Network seat index of the last accepted pass. -1 = none/cleared by a newer play.</summary>
         [Networked] public int LastPassSeat { get; set; }
-
-        private int explicitBetStake = 0;
-        private bool isFirstPlayOfGame = true;
-
-        /// <summary>Networked table bet stake replicated to all clients.</summary>
         [Networked] public int BetStake { get; set; }
+        [Networked, Capacity(13)] public NetworkArray<NetworkCard> CurrentTableCards => default;
+        [Networked] public int CurrentTableCardCount { get; set; }
+        [Networked] public TickTimer TurnTimer { get; set; }
+
+        #endregion
 
         public int CurrentBetStake {
             get {
@@ -56,21 +74,11 @@ namespace Assets.Script.TienLen.Game {
                     try {
                         return BetStake > 0 ? BetStake : (explicitBetStake > 0 ? explicitBetStake : 5);
                     }
-                    catch ( System.InvalidOperationException ) { }
+                    catch ( InvalidOperationException ) { }
                 }
                 return explicitBetStake > 0 ? explicitBetStake : 5;
             }
         }
-
-        /// <summary>Networked array of the cards currently played on the table.</summary>
-        [Networked, Capacity(13)] public NetworkArray<NetworkCard> CurrentTableCards => default;
-        [Networked] public int CurrentTableCardCount { get; set; }
-
-        [Header("Turn Configuration")]
-        [SerializeField] private float turnDuration = 10f;
-        public float TurnDuration => turnDuration;
-
-        [Networked] public TickTimer TurnTimer { get; set; }
 
         public float RemainingTurnTimeNormalized {
             get {
@@ -97,17 +105,8 @@ namespace Assets.Script.TienLen.Game {
             return true;
         }
 
-        [SerializeField] private CardHolder tableCenterPosition;
-        [SerializeField] private TienLenSO tienLenSO;
-
-        private Dictionary<(CardSuit, CardRank), Sprite> sprites = new();
-        private Sprite cardBack;
-
-        // Hands that arrived before the local seat model knew the player.
-        private readonly Dictionary<PlayerRef, List<Card>> pendingHands = new();
-
         [Inject]
-        void Construct(
+        public void Construct(
             CardSpawner cardSpawner,
             LocalPlayerService localPlayerService,
             TurnManager turnManager,
@@ -115,7 +114,11 @@ namespace Assets.Script.TienLen.Game {
             ISeatQueryService seatQueryService,
             TienLenRuleValidator validator,
             TableVisualLayoutManager tableVisualLayoutManager,
-            IPlayerProfileService profileService = null ) {
+            IPlayerProfileService profileService = null,
+            TienLenMatchOutcomeReporter outcomeReporter = null,
+            TienLenActionHandler actionHandler = null,
+            TienLenTurnHandler turnHandler = null,
+            TienLenMigrationHandler migrationHandler = null ) {
             this.cardSpawner = cardSpawner;
             this.localPlayerService = localPlayerService;
             this.turnManager = turnManager;
@@ -124,10 +127,17 @@ namespace Assets.Script.TienLen.Game {
             this.validator = validator;
             this.profileService = profileService;
             if ( this.tableVisualLayoutManager == null ) this.tableVisualLayoutManager = tableVisualLayoutManager;
+
+            this.outcomeReporter = outcomeReporter ?? new TienLenMatchOutcomeReporter(seatQueryService, localPlayerService, profileService);
+            this.actionHandler = actionHandler ?? new TienLenActionHandler(cardCombinationEvaluator, turnManager, validator);
+            this.turnHandler = turnHandler ?? new TienLenTurnHandler(cardCombinationEvaluator, turnManager, validator);
+            this.migrationHandler = migrationHandler ?? new TienLenMigrationHandler(seatQueryService, turnManager, cardCombinationEvaluator, validator);
         }
 
         public override void Spawned() {
             base.Spawned();
+
+            EnsureAnimators();
 
             if ( Object.HasStateAuthority ) {
                 int stake = 5;
@@ -151,242 +161,14 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        public void ResumeFromMigration() {
-            if ( !Object.HasStateAuthority ) return;
-            Debug.Log("[TienLenGameController] Resuming game state after Host Migration...");
-
-            if ( !IsGameStarted ) {
-                Debug.Log("[TienLenGameController] Game has not started yet. Lobby state preserved.");
-                return;
+        private void EnsureAnimators() {
+            if ( dealingAnimator == null ) {
+                dealingAnimator = GetComponent<TienLenDealingAnimator>() ?? gameObject.AddComponent<TienLenDealingAnimator>();
+                if ( tableCenterPosition != null ) dealingAnimator.TableCenterPosition = tableCenterPosition;
             }
-
-            if ( seatQueryService == null ) return;
-
-            List<TienLenPlayer> ordered = seatQueryService.GetSeatedPlayers()
-                .OrderBy(kvp => kvp.Key)
-                .Select(kvp => kvp.Value)
-                .ToList();
-
-            if ( ordered.Count == 0 ) return;
-
-            if ( ordered.Count == 1 ) {
-                TriggerGameOver(SeatOfPlayer(ordered[0]));
-                return;
-            }
-
-            turnManager.Initialize(ordered);
-
-            // Reconstruct validator table combination from CurrentTableCards
-            if ( CurrentTableCardCount > 0 ) {
-                List<Card> tableCards = new();
-                for ( int i = 0; i < CurrentTableCardCount; i++ ) {
-                    tableCards.Add(CurrentTableCards[i].ToCard());
-                }
-
-                if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(tableCards, out CardCombination combo) ) {
-                    validator?.SetCurrentCombination(combo);
-                    Debug.Log($"[TienLenGameController] Restored table combination: {combo.Type} ({combo.Cards.Count} cards).");
-                }
-            }
-            else {
-                validator?.Reset();
-            }
-
-            // Restore active turn player
-            if ( CurrentTurnSeat != -1 ) {
-                var seated = seatQueryService.GetSeatedPlayers();
-                if ( seated.TryGetValue(CurrentTurnSeat, out var turnPlayer) && turnPlayer != null ) {
-                    turnManager.SetCurrentPlayer(turnPlayer);
-                }
-                else {
-                    // Player left -> advance turn
-                    turnManager.ForceAdvanceTurn();
-                    MirrorTurnSeat();
-                }
-            }
-
-            // Give a grace buffer on the turn timer
-            TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration + 5f);
-
-            // Ask all connected clients to report their current hands to the new Host
-            RPCRequestHandReport();
-        }
-
-        public void HandlePlayerLeftMidGame( PlayerRef playerRef ) {
-            if ( !Object.HasStateAuthority ) return;
-            if ( !IsGameStarted || WinnerSeat != -1 ) return;
-
-            Debug.Log($"[TienLenGameController] Player {playerRef.PlayerId} left mid-game.");
-
-            var logicPlayer = seatQueryService?.GetLogicPlayer(playerRef);
-            if ( logicPlayer != null ) {
-                logicPlayer.IsInactive = true;
-                Debug.Log($"[TienLenGameController] Marked player {logicPlayer.Id} as Inactive.");
-            }
-
-            var seated = seatQueryService?.GetSeatedPlayers();
-            if ( seated == null ) return;
-
-            int activeCount = seated.Values.Count(p => p != null && !p.IsInactive);
-            int lastActiveSeat = -1;
-            foreach ( var kvp in seated ) {
-                if ( kvp.Value != null && !kvp.Value.IsInactive ) {
-                    lastActiveSeat = kvp.Key;
-                    break;
-                }
-            }
-
-            if ( activeCount <= 1 ) {
-                if ( activeCount == 1 && lastActiveSeat != -1 ) {
-                    TriggerGameOver(lastActiveSeat);
-                }
-                return;
-            }
-
-            if ( turnManager?.CurrentPlayer != null && logicPlayer != null && ReferenceEquals(turnManager.CurrentPlayer, logicPlayer) ) {
-                Debug.Log("[TienLenGameController] Active turn player disconnected. Auto-acting immediately...");
-                AutoActForCurrentPlayer();
-            }
-        }
-
-        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-        public void RPCRequestHandReport() {
-            if ( localPlayerService != null ) {
-                var localLogic = localPlayerService.GetLocalLogicPlayer();
-                var localNet = localPlayerService.GetLocalNetworkPlayer();
-                if ( localLogic?.Hand?.Cards != null && localNet != null ) {
-                    NetworkCard[] netCards = localLogic.Hand.Cards
-                        .Select(c => new NetworkCard(c))
-                        .ToArray();
-                    localNet.RPCReportHandState(netCards);
-                }
-            }
-        }
-
-        public void HandleReportedHand( PlayerRef sender, NetworkCard[] cards ) {
-            if ( !Object.HasStateAuthority || cards == null ) return;
-            TienLenPlayer player = GetPlayer(sender);
-            if ( player != null ) {
-                player.Hand.Clear();
-                player.Hand.AddCard(cards.Select(c => c.ToCard()));
-                Debug.Log($"[TienLenGameController] Restored hand ({cards.Length} cards) for player {player.Id} ({sender.PlayerId}) on new Host.");
-            }
-        }
-
-        public override void FixedUpdateNetwork() {
-            if ( !Object.HasStateAuthority ) return;
-            if ( !IsGameStarted || WinnerSeat != -1 ) return;
-
-            if ( TurnTimer.Expired(Runner) ) {
-                HandleTurnTimeout();
-            }
-        }
-
-        private void HandleTurnTimeout() {
-            if ( !Object.HasStateAuthority ) return;
-            if ( !IsGameStarted || WinnerSeat != -1 ) return;
-            if ( turnManager == null || turnManager.CurrentPlayer == null || seatQueryService == null ) return;
-
-            Debug.Log($"[TienLenGameController] Turn timer expired for player {turnManager.CurrentPlayer.Id} (Seat {CurrentTurnSeat}). Auto-acting...");
-            AutoActForCurrentPlayer();
-        }
-
-        private void AutoActForCurrentPlayer() {
-            if ( !Object.HasStateAuthority ) return;
-            if ( !IsGameStarted || WinnerSeat != -1 ) return;
-            if ( turnManager == null || turnManager.CurrentPlayer == null || seatQueryService == null ) return;
-
-            var currentPlayer = turnManager.CurrentPlayer;
-            var networkMap = seatQueryService.GetNetworkPlayerMap();
-            PlayerRef currentRef = default;
-            foreach ( var kvp in networkMap ) {
-                if ( seatQueryService.GetLogicPlayer(kvp.Value.PlayerRef) == currentPlayer ) {
-                    currentRef = kvp.Value.PlayerRef;
-                    break;
-                }
-            }
-
-            // If there is an active table combination, timeout counts as a PASS
-            if ( validator != null && validator.CurrentCombination != null ) {
-                if ( currentRef.IsValid ) {
-                    HandlePassRequest(currentRef);
-                }
-                else {
-                    if ( turnManager.TryPass(currentPlayer) ) {
-                        if ( validator != null && validator.CurrentCombination == null ) {
-                            CurrentTableCardCount = 0;
-                            RPCClearTableCenter();
-                        }
-                        MirrorTurnSeat();
-                    }
-                    else {
-                        turnManager.ForceAdvanceTurn();
-                        MirrorTurnSeat();
-                    }
-                }
-            }
-            else {
-                // Leading a new round: cannot pass, so auto-play lowest valid single card (leftmost)
-                var hand = currentPlayer.Hand?.Cards;
-                bool played = false;
-                if ( hand != null && hand.Count > 0 ) {
-                    // If first play of the game, must include 3 of Spades if held
-                    if ( isFirstPlayOfGame ) {
-                        var threeOfSpades = hand.FirstOrDefault(c => c.Rank == CardRank.Three && c.Suit == CardSuit.Spades);
-                        if ( threeOfSpades != null ) {
-                            var threeList = new List<Card> { threeOfSpades };
-                            if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(threeList, out var combo) && (validator == null || validator.CanPlay(combo)) ) {
-                                if ( turnManager.TryPlay(currentPlayer, combo) ) {
-                                    isFirstPlayOfGame = false;
-                                    if ( currentRef.IsValid ) {
-                                        HandleAcceptedPlay(currentRef, currentPlayer, threeList);
-                                    }
-                                    else {
-                                        currentPlayer.TryRemoveCards(threeList);
-                                        RPCPlayAccepted(PlayerRef.None, threeList.Select(c => new NetworkCard(c)).ToArray());
-                                        CurrentTableCardCount = 1;
-                                        MirrorTurnSeat();
-                                    }
-                                    played = true;
-                                }
-                            }
-                        }
-                    }
-
-                    if ( !played ) {
-                        var sortedHand = hand.OrderBy(c => c.Rank).ThenBy(c => (int)c.Suit).ToList();
-                        foreach ( var card in sortedHand ) {
-                            var singleList = new List<Card> { card };
-                            if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(singleList, out var combo) && (validator == null || validator.CanPlay(combo)) ) {
-                                if ( turnManager.TryPlay(currentPlayer, combo) ) {
-                                    isFirstPlayOfGame = false;
-                                    if ( currentRef.IsValid ) {
-                                        HandleAcceptedPlay(currentRef, currentPlayer, singleList);
-                                    }
-                                    else {
-                                        currentPlayer.TryRemoveCards(singleList);
-                                        RPCPlayAccepted(PlayerRef.None, singleList.Select(c => new NetworkCard(c)).ToArray());
-                                        CurrentTableCardCount = 1;
-                                        MirrorTurnSeat();
-                                    }
-                                    played = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if ( !played ) {
-                    Debug.LogWarning($"[TienLenGameController] Auto-play could not find valid play for player {currentPlayer.Id}. Force advancing turn.");
-                    turnManager.ForceAdvanceTurn();
-                    MirrorTurnSeat();
-                }
-            }
-
-            // Always guarantee TurnTimer is reset for the next turn
-            if ( Object.HasStateAuthority && (!TurnTimer.IsRunning || TurnTimer.Expired(Runner)) ) {
-                TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration);
+            if ( tableAnimator == null ) {
+                tableAnimator = GetComponent<TienLenTableAnimator>() ?? gameObject.AddComponent<TienLenTableAnimator>();
+                if ( tableCenterPosition != null ) tableAnimator.TableCenterPosition = tableCenterPosition;
             }
         }
 
@@ -402,21 +184,100 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        private Deck CreateDeck() {
-            Deck deck = new Deck();
-            deck.CreateDeck();
-            return deck;
+        public override void FixedUpdateNetwork() {
+            if ( !Object.HasStateAuthority ) return;
+            if ( !IsGameStarted || WinnerSeat != -1 ) return;
+
+            if ( TurnTimer.Expired(Runner) ) {
+                HandleTurnTimeout();
+            }
         }
 
+        private void HandleTurnTimeout() {
+            if ( !Object.HasStateAuthority || !IsGameStarted || WinnerSeat != -1 ) return;
+            if ( turnManager == null || turnManager.CurrentPlayer == null || seatQueryService == null ) return;
+
+            Debug.Log($"[TienLenGameController] Turn timer expired for player {turnManager.CurrentPlayer.Id} (Seat {CurrentTurnSeat}). Auto-acting...");
+            AutoActForCurrentPlayer();
+        }
+
+        private void AutoActForCurrentPlayer() {
+            if ( !Object.HasStateAuthority || !IsGameStarted || WinnerSeat != -1 ) return;
+            if ( turnManager == null || turnManager.CurrentPlayer == null || seatQueryService == null ) return;
+
+            var currentPlayer = turnManager.CurrentPlayer;
+            PlayerRef currentRef = FindPlayerRef(currentPlayer);
+
+            var decision = turnHandler.DecideAutoAction(currentPlayer, actionHandler.IsFirstPlayOfGame);
+            switch ( decision.ActionType ) {
+                case AutoActionResultType.Pass:
+                    if ( currentRef.IsValid ) {
+                        HandlePassRequest(currentRef);
+                    }
+                    else {
+                        if ( actionHandler.TryExecutePass(currentPlayer, out bool clearCenter, out _) ) {
+                            if ( clearCenter ) {
+                                CurrentTableCardCount = 0;
+                                RPCClearTableCenter();
+                            }
+                            MirrorTurnSeat();
+                        }
+                        else {
+                            turnManager.ForceAdvanceTurn();
+                            MirrorTurnSeat();
+                        }
+                    }
+                    break;
+
+                case AutoActionResultType.PlayCards:
+                    if ( turnManager.TryPlay(currentPlayer, decision.Combination) ) {
+                        actionHandler.IsFirstPlayOfGame = false;
+                        if ( currentRef.IsValid ) {
+                            HandleAcceptedPlay(currentRef, currentPlayer, decision.CardsToPlay);
+                        }
+                        else {
+                            currentPlayer.TryRemoveCards(decision.CardsToPlay);
+                            RPCPlayAccepted(PlayerRef.None, decision.CardsToPlay.Select(c => new NetworkCard(c)).ToArray());
+                            CurrentTableCardCount = decision.CardsToPlay.Count;
+                            MirrorTurnSeat();
+                        }
+                    }
+                    else {
+                        turnManager.ForceAdvanceTurn();
+                        MirrorTurnSeat();
+                    }
+                    break;
+
+                case AutoActionResultType.ForceAdvance:
+                    turnManager.ForceAdvanceTurn();
+                    MirrorTurnSeat();
+                    break;
+            }
+
+            if ( Object.HasStateAuthority && (!TurnTimer.IsRunning || TurnTimer.Expired(Runner)) ) {
+                TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration);
+            }
+        }
+
+        private PlayerRef FindPlayerRef( TienLenPlayer player ) {
+            if ( seatQueryService == null || player == null ) return default;
+            var networkMap = seatQueryService.GetNetworkPlayerMap();
+            foreach ( var kvp in networkMap ) {
+                if ( seatQueryService.GetLogicPlayer(kvp.Value.PlayerRef) == player ) {
+                    return kvp.Value.PlayerRef;
+                }
+            }
+            return default;
+        }
+
+        #region Game Lifecycle
+
         public void StartGame() {
-            if ( !Object.HasStateAuthority ) return;
-            if ( !CanStartGame() ) return;
-            if ( IsGameStarted ) return;
+            if ( !Object.HasStateAuthority || !CanStartGame() || IsGameStarted ) return;
 
             var seatedPlayers = seatQueryService.GetSeatedPlayers();
             int bet = CurrentBetStake;
 
-            // Balance guard: verify players have enough coins to cover at least 1 bet stake
             foreach ( var p in seatedPlayers.Values ) {
                 if ( p != null && p.Money < bet ) {
                     p.IsInactive = true;
@@ -435,7 +296,8 @@ namespace Assets.Script.TienLen.Game {
             WinnerSeat = -1;
             LastPassSeat = -1;
 
-            Deck deck = CreateDeck();
+            Deck deck = new Deck();
+            deck.CreateDeck();
             DealCard(deck);
             InitializeTurns();
         }
@@ -450,109 +312,17 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        public void SetDependenciesForTest( ISeatQueryService seatQuery, LocalPlayerService localPlayer, IPlayerProfileService profile, int stake = 5 ) {
-            this.seatQueryService = seatQuery;
-            this.localPlayerService = localPlayer;
-            this.profileService = profile;
-            this.explicitBetStake = stake;
-            if ( Object != null && Object.IsValid ) {
-                try {
-                    this.BetStake = stake;
-                }
-                catch ( System.InvalidOperationException ) { }
-            }
-        }
-
-        public MatchResultReportRequest BuildMatchReport( int winnerSeat ) {
-            if ( seatQueryService == null ) return null;
-
-            var seated = seatQueryService.GetSeatedPlayers();
-            if ( seated == null || seated.Count == 0 ) return null;
-
-            var netMap = seatQueryService.GetNetworkPlayerMap();
-            int currentBet = CurrentBetStake;
-            int loserCount = Mathf.Max(1, seated.Count - 1);
-
-            var summaries = new List<MatchPlayerSummary>();
-
-            foreach ( var kvp in seated ) {
-                int seatIndex = kvp.Key;
-                TienLenPlayer player = kvp.Value;
-                if ( player == null ) continue;
-
-                bool isWinner = (seatIndex == winnerSeat);
-                string userId = string.Empty;
-                string displayName = player.PlayerName;
-                int avatarId = player.AvatarId;
-
-                if ( netMap != null && netMap.TryGetValue(seatIndex, out var netPlayer) && netPlayer != null ) {
-                    userId = (string)netPlayer.UserId;
-                    if ( !string.IsNullOrEmpty((string)netPlayer.PlayerName) ) {
-                        displayName = (string)netPlayer.PlayerName;
-                    }
-                    avatarId = netPlayer.AvatarId;
-                }
-
-                if ( string.IsNullOrEmpty(userId) && localPlayerService != null ) {
-                    int localSeat = localPlayerService.Player != null ? SeatOfPlayer(localPlayerService.Player) : -1;
-                    if ( localSeat == seatIndex ) {
-                        userId = localPlayerService.GetID();
-                    }
-                }
-
-                if ( string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(player.UserId) ) {
-                    userId = player.UserId;
-                }
-
-                if ( string.IsNullOrEmpty(userId) ) {
-                    userId = player.Id.ToString();
-                }
-
-                long moneyEarned = isWinner ? (loserCount * currentBet) : -currentBet;
-                int expEarned = isWinner ? 50 : 15;
-                int rank = isWinner ? 1 : 2;
-
-                summaries.Add(new MatchPlayerSummary {
-                    userId = userId,
-                    displayName = displayName,
-                    avatarId = avatarId,
-                    rank = rank,
-                    moneyEarned = moneyEarned,
-                    expEarned = expEarned
-                });
-            }
-
-            return new MatchResultReportRequest {
-                matchId = Guid.NewGuid().ToString("N"),
-                results = summaries
-            };
-        }
-
         private async UniTaskVoid ReportMatchOutcome( int winnerSeat ) {
-            if ( profileService == null || !Object.HasStateAuthority ) return;
+            if ( !Object.HasStateAuthority ) return;
 
-            var report = BuildMatchReport(winnerSeat);
-            if ( report == null || report.results == null || report.results.Count == 0 ) return;
-
-            Debug.Log($"[TienLenGameController] Reporting match outcome for {report.results.Count} players. BetStake: {CurrentBetStake}");
-            bool success = await profileService.RecordMatchResultAsync(report);
+            bool success = await outcomeReporter.ReportMatchOutcomeAsync(winnerSeat, CurrentBetStake);
             if ( success ) {
-                Debug.Log("[TienLenGameController] Match outcome recorded successfully in backend.");
                 RPCNotifyMatchReported();
             }
-            else {
-                Debug.LogWarning("[TienLenGameController] Failed to record match outcome in backend.");
-            }
-        }
-
-        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-        private void RPCNotifyMatchReported() {
-            Debug.Log("[TienLenGameController] Match outcome recorded in backend. Refreshing local player profile...");
-            profileService?.RefreshProfileAsync().Forget();
         }
 
         private async UniTaskVoid WaitAndStartNextGame( int previousWinnerSeat ) {
-            float celebrationDuration = 3.5f;
+            const float celebrationDuration = 3.5f;
             var ct = this.GetCancellationTokenOnDestroy();
 
             try {
@@ -564,7 +334,6 @@ namespace Assets.Script.TienLen.Game {
 
             if ( !Object.HasStateAuthority ) return;
 
-            // Disconnect and despawn all players marked inactive now that match outcome has been recorded
             CleanUpInactivePlayers();
 
             if ( !HasEnoughPlayersToPlay ) {
@@ -573,7 +342,7 @@ namespace Assets.Script.TienLen.Game {
                 WinnerSeat = -1;
                 CurrentTurnSeat = -1;
                 CurrentTableCardCount = 0;
-                isFirstPlayOfGame = true; // Table dropped to 1 player: reset rule for next group!
+                actionHandler.IsFirstPlayOfGame = true;
                 RPCClearTableCenter();
                 return;
             }
@@ -606,25 +375,22 @@ namespace Assets.Script.TienLen.Game {
 
             Debug.Log("[TienLenGameController] Starting next game round...");
 
-            // 1. Reset round & table state
             validator?.Reset();
             CurrentTableCardCount = 0;
             LastPassSeat = -1;
             WinnerSeat = -1;
-            isFirstPlayOfGame = false;
+            actionHandler.IsFirstPlayOfGame = false;
             RPCClearTableCenter();
 
-            // 2. Clear all logic hands
             var seatedPlayers = seatQueryService.GetSeatedPlayers();
             foreach ( var p in seatedPlayers.Values ) {
                 p.Hand?.Clear();
             }
 
-            // 3. Create fresh deck and deal to all current players
-            Deck deck = CreateDeck();
+            Deck deck = new Deck();
+            deck.CreateDeck();
             DealCard(deck);
 
-            // 4. Initialize turns - in Tien Len, previous round winner leads the next game!
             List<TienLenPlayer> ordered = seatedPlayers
                 .OrderBy(kvp => kvp.Key)
                 .Select(kvp => kvp.Value)
@@ -639,18 +405,8 @@ namespace Assets.Script.TienLen.Game {
                 startingIndex = ordered.IndexOf(winnerPlayer);
             }
 
-            if ( startingIndex >= 0 ) {
-                turnManager.SetStartingPlayer(startingIndex);
-            }
-            else {
-                turnManager.SetStartingPlayer(0);
-            }
-
+            turnManager.SetStartingPlayer(startingIndex >= 0 ? startingIndex : 0);
             MirrorTurnSeat(isDealingStart: true);
-        }
-
-        private void OnIsGameStartedChanged() {
-            // Handled via change detector in UiManager
         }
 
         private void InitializeTurns() {
@@ -665,40 +421,19 @@ namespace Assets.Script.TienLen.Game {
 
             turnManager.Initialize(ordered);
 
-            int holderIndex = FindStartingSeatOrderIndex(ordered);
+            int holderIndex = turnHandler.FindStartingSeatOrderIndex(ordered);
             if ( holderIndex >= 0 ) {
                 turnManager.SetStartingPlayer(holderIndex);
-                isFirstPlayOfGame = true;
+                actionHandler.IsFirstPlayOfGame = true;
                 Debug.Log($"[TienLenGameController] Player at order index {holderIndex} holds 3 of Spades and must lead the match.");
             }
             else {
                 turnManager.SetStartingPlayer(0);
-                isFirstPlayOfGame = false;
+                actionHandler.IsFirstPlayOfGame = false;
                 Debug.Log("[TienLenGameController] 3 of Spades is not held by any player. Host starts freely.");
             }
 
             MirrorTurnSeat(isDealingStart: true);
-        }
-
-        private int FindStartingSeatOrderIndex( List<TienLenPlayer> ordered ) {
-            for ( int i = 0; i < ordered.Count; i++ ) {
-                var cards = ordered[i]?.Hand?.Cards;
-                if ( cards == null ) continue;
-                foreach ( var card in cards ) {
-                    if ( card.Rank == CardRank.Three && card.Suit == CardSuit.Spades ) {
-                        return i;
-                    }
-                }
-            }
-            return -1;
-        }
-
-        private int SeatOfPlayer( TienLenPlayer player ) {
-            if ( seatQueryService == null || player == null ) return -1;
-            foreach ( var kvp in seatQueryService.GetSeatedPlayers() ) {
-                if ( ReferenceEquals(kvp.Value, player) ) return kvp.Key;
-            }
-            return -1;
         }
 
         private void MirrorTurnSeat( bool isDealingStart = false ) {
@@ -724,19 +459,29 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        #region Deal Cards
+        private int SeatOfPlayer( TienLenPlayer player ) {
+            if ( seatQueryService == null || player == null ) return -1;
+            foreach ( var kvp in seatQueryService.GetSeatedPlayers() ) {
+                if ( ReferenceEquals(kvp.Value, player) ) return kvp.Key;
+            }
+            return -1;
+        }
+
+        private void OnIsGameStartedChanged() { }
+
+        #endregion
+
+        #region Dealing & Cards
 
         private void DealCard( Deck deck ) {
             if ( seatQueryService == null ) return;
 
-            var tempDeck = deck;
-            tempDeck.Shuffle();
-
+            deck.Shuffle();
             var seatedPlayers = seatQueryService.GetSeatedPlayers();
 
             for ( int i = 0; i < 13; i++ ) {
                 foreach ( var player in seatedPlayers.Values ) {
-                    var drawnCard = tempDeck.DrawCard();
+                    var drawnCard = deck.DrawCard();
                     player.Hand.AddCard(drawnCard);
                 }
             }
@@ -770,8 +515,6 @@ namespace Assets.Script.TienLen.Game {
             if ( !Object.HasStateAuthority && owner != Runner.LocalPlayer ) return;
 
             List<Card> hand = cards.Select(card => card.ToCard()).ToList();
-
-            // Cache hand immediately so dealing routine can access it even before seat resolution completes
             pendingHands[owner] = hand;
             TryApplyHand(owner, hand);
         }
@@ -788,229 +531,41 @@ namespace Assets.Script.TienLen.Game {
 
         [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
         private void RPCPlayDealAnimation( RpcInfo info = default ) {
-            AnimateDealingRoutineAsync(destroyCancellationToken).Forget();
-        }
-
-        private async UniTask AnimateDealingRoutineAsync( CancellationToken ct ) {
-            const int delayMs = 60;
-            const int cardsPerPlayer = 13;
-            const int totalDeckSize = 52;
-
-            if ( seatQueryService == null ) return;
-
-            var seatedPlayers = seatQueryService.GetSeatedPlayers();
-            var networkPlayerMap = seatQueryService.GetNetworkPlayerMap();
-
-            Vector3 centerDeckPos = tableCenterPosition != null
-                ? tableCenterPosition.transform.position
-                : Vector3.zero;
-
-            Queue<CardView> deckStack = new Queue<CardView>(totalDeckSize);
-
-            var orderedSeats = seatedPlayers.OrderBy(kvp => kvp.Key).ToList();
-
-            // Clear any leftover visual cards from table and all seats before dealing new cards
-            if ( tableCenterPosition != null ) {
-                tableCenterPosition.Clear();
-            }
-            if ( tableVisualLayoutManager != null ) {
-                tableVisualLayoutManager.RefreshLayout();
-                var slots = tableVisualLayoutManager.GetAllVisualSlots();
-                if ( slots != null ) {
-                    foreach ( var slot in slots ) {
-                        slot?.CardHolder?.Clear();
-                    }
-                }
-            }
-
-            try {
-                // 1. Spawn deck stack
-                for ( int i = 0; i < totalDeckSize; i++ ) {
-                    ct.ThrowIfCancellationRequested();
-
-                    CardView backView = cardSpawner.SpawnCardBack(cardBack);
-                    backView.transform.position = centerDeckPos;
-                    backView.transform.SetParent(transform, worldPositionStays: true);
-                    deckStack.Enqueue(backView);
-                }
-
-                // 2. Deal cards round-by-round
-                for ( int round = 0; round < cardsPerPlayer; round++ ) {
-                    for ( int p = 0; p < orderedSeats.Count; p++ ) {
-                        int seatIndex = orderedSeats[p].Key;
-                        ct.ThrowIfCancellationRequested();
-
-                        if ( deckStack.Count == 0 ) break;
-
-                        CardView cardView = deckStack.Dequeue();
-
-                        PlayerRef seatOwner = default;
-                        foreach ( var kvp in networkPlayerMap ) {
-                            if ( kvp.Key == seatIndex && kvp.Value != null ) {
-                                seatOwner = kvp.Value.PlayerRef;
-                                break;
-                            }
-                        }
-
-                        CardHolder targetCardHolder = tableVisualLayoutManager != null
-                            ? tableVisualLayoutManager.GetCardHolderForSeat(seatIndex)
-                            : null;
-
-                        if ( targetCardHolder == null ) {
-                            tableVisualLayoutManager?.RefreshLayout();
-                            targetCardHolder = tableVisualLayoutManager?.GetCardHolderForSeat(seatIndex);
-                        }
-
-                        if ( targetCardHolder == null ) {
-                            Debug.LogError($"[Deal] CardHolder is null for seat {seatIndex}. Destroying visual card.");
-                            Destroy(cardView.gameObject);
-                            continue;
-                        }
-
-                        bool isLocal = (seatOwner.IsValid && seatOwner == Runner.LocalPlayer)
-                                    || (!seatOwner.IsValid && seatIndex == 0 && Object.HasStateAuthority);
-
-                        if ( isLocal ) {
-                            const int handWaitMs = 5000;
-                            int waitedMs = 0;
-                            List<Card> localCards = null;
-
-                            while ( waitedMs < handWaitMs ) {
-                                // Check pendingHands cache first
-                                if ( pendingHands.TryGetValue(seatOwner, out var buffered) && buffered != null && buffered.Count > round ) {
-                                    TryApplyHand(seatOwner, buffered);
-                                    localCards = buffered;
-                                    break;
-                                }
-
-                                // Check logic player
-                                var livePlayer = seatQueryService?.GetLogicPlayer(seatOwner) ?? localPlayerService?.GetLocalLogicPlayer();
-                                if ( livePlayer?.Hand?.Cards != null && livePlayer.Hand.Cards.Count > round ) {
-                                    localCards = livePlayer.Hand.Cards.ToList();
-                                    break;
-                                }
-
-                                await UniTask.Delay(50, cancellationToken: ct);
-                                waitedMs += 50;
-                            }
-
-                            if ( localCards == null || localCards.Count <= round ) {
-                                Debug.LogError($"[Deal] Hand missing card at index {round} for local player.");
-                                Destroy(cardView.gameObject);
-                                continue;
-                            }
-
-                            Card cardData = localCards[round];
-                            Sprite cardSprite = null;
-                            if ( sprites != null && sprites.TryGetValue((cardData.Suit, cardData.Rank), out Sprite sp) ) {
-                                cardSprite = sp;
-                            }
-                            else if ( tienLenSO != null ) {
-                                cardSprite = tienLenSO.GetCardSprite(cardData.Suit, cardData.Rank);
-                            }
-
-                            CardView faceCardView = cardSpawner.SpawnCard(cardData, cardSprite);
-                            faceCardView.transform.position = cardView.transform.position;
-                            faceCardView.transform.rotation = cardView.transform.rotation;
-                            faceCardView.transform.SetParent(targetCardHolder.transform, worldPositionStays: true);
-
-                            Destroy(cardView.gameObject);
-                            targetCardHolder.AddCard(faceCardView, animate: true);
-                        }
-                        else {
-                            cardView.transform.SetParent(targetCardHolder.transform, worldPositionStays: true);
-                            targetCardHolder.AddCard(cardView, animate: true);
-                        }
-                    }
-
-                    await UniTask.Delay(delayMs, cancellationToken: ct);
-                }
-
-                // 3. Sort and fan local player hand
-                CardHolder localHand = tableVisualLayoutManager != null
-                    ? tableVisualLayoutManager.GetLocalCardHolder()
-                    : null;
-
-                if ( localHand != null ) {
-                    localHand.SortCards();
-                    localHand.ArrangeCards(animate: true);
-                }
-
-                if ( uiManager != null ) {
-                    uiManager.Refresh(LobbyChangeReason.TurnChanged);
-                }
-            }
-            finally {
-                while ( deckStack.Count > 0 ) {
-                    CardView leftover = deckStack.Dequeue();
-                    if ( leftover != null ) {
-                        Destroy(leftover.gameObject);
-                    }
-                }
-            }
-        }
-
-        private TienLenPlayer GetPlayer( PlayerRef sender ) {
-            if ( !sender.IsValid || seatQueryService == null ) return null;
-            return seatQueryService.GetLogicPlayer(sender);
+            EnsureAnimators();
+            dealingAnimator.AnimateDealingRoutineAsync(
+                seatQueryService,
+                localPlayerService,
+                tableVisualLayoutManager,
+                cardSpawner,
+                tienLenSO,
+                cardBack,
+                uiManager,
+                pendingHands,
+                (seatOwner, seatIndex) => (seatOwner.IsValid && seatOwner == Runner.LocalPlayer)
+                                       || (!seatOwner.IsValid && seatIndex == 0 && Object.HasStateAuthority),
+                destroyCancellationToken,
+                sprites
+            ).Forget();
         }
 
         #endregion
 
-        #region Pass Handling
+        #region Play & Pass Handling
 
-        public void HandlePassRequest( PlayerRef sender ) {
+        public void HandlePlayRequest( PlayerRef sender, NetworkCard[] cards ) {
             if ( WinnerSeat != -1 ) return;
+
             TienLenPlayer player = GetPlayer(sender);
-            if ( player == null ) {
-                Debug.LogWarning($"[HandlePassRequest] Cannot find player for {sender.PlayerId}.");
-                return;
-            }
+            if ( player == null || cards == null ) return;
 
-            if ( !turnManager.TryPass(player) ) {
-                Debug.LogWarning($"[HandlePassRequest] Player {player.Id} cannot pass.");
-                return;
-            }
-
-            if ( validator != null && validator.CurrentCombination == null ) {
-                CurrentTableCardCount = 0;
-                RPCClearTableCenter();
-            }
-
-            MirrorTurnSeat();
-            LastPassSeat = SeatOfPlayer(player);
-            RPCPassAccepted(sender);
-        }
-
-        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-        private void RPCPassAccepted( PlayerRef playerRef ) {
-            TienLenPlayer player = GetPlayer(playerRef);
-            if ( player != null ) {
-                Debug.Log($"[RPCPassAccepted] Player {player.Id} passed.");
+            List<Card> requestedCards = cards.Select(card => card.ToCard()).ToList();
+            if ( actionHandler.TryValidateAndExecutePlay(player, requestedCards, out _, out _) ) {
+                HandleAcceptedPlay(sender, player, requestedCards);
             }
         }
-
-        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
-        private void RPCClearTableCenter() {
-            if ( tableCenterPosition != null ) {
-                tableCenterPosition.Clear();
-            }
-            validator?.Reset();
-            var actionPanel = FindAnyObjectByType<ActionPanel>();
-            actionPanel?.RefreshActionState();
-        }
-
-        #endregion
-
-        #region Play Handling
 
         public void HandleAcceptedPlay( PlayerRef sender, TienLenPlayer player, List<Card> playedCards ) {
             if ( player == null ) return;
-
-            if ( !player.TryRemoveCards(playedCards) ) {
-                Debug.LogError($"Failed to remove played cards from player {player.Id}.");
-                return;
-            }
 
             RPCPlayAccepted(
                 sender,
@@ -1025,7 +580,7 @@ namespace Assets.Script.TienLen.Game {
             MirrorTurnSeat();
             LastPassSeat = -1;
 
-            if ( player.Hand.Count == 0 ) {
+            if ( actionHandler.CheckPlayerWin(player) ) {
                 TriggerGameOver(SeatOfPlayer(player));
             }
         }
@@ -1037,7 +592,6 @@ namespace Assets.Script.TienLen.Game {
             if ( !Object.HasStateAuthority ) {
                 GetPlayer(playerRef)?.TryRemoveCards(playedCards);
 
-                // Synchronize table validator on remote client!
                 if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(playedCards, out CardCombination combo) ) {
                     validator?.SetCurrentCombination(combo);
                 }
@@ -1049,159 +603,165 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private void HandlePlayPresentation( PlayerRef playerRef, List<Card> playedCards ) {
-            if ( tableCenterPosition != null ) {
-                tableCenterPosition.Clear();
-            }
+            EnsureAnimators();
+            tableAnimator.ClearTableCenter();
 
             TienLenPlayer player = GetPlayer(playerRef);
             if ( player == null ) return;
 
-            PlayCardsAnimation(player, playedCards);
-        }
-
-        private void PlayCardsAnimation( TienLenPlayer player, List<Card> playedCards ) {
             int seatIndex = SeatOfPlayer(player);
             CardHolder hand = tableVisualLayoutManager != null
                 ? tableVisualLayoutManager.GetCardHolderForSeat(seatIndex)
                 : null;
-            CardHolder table = tableCenterPosition;
 
-            if ( table == null ) {
-                Debug.LogError("Table center position is not assigned.");
-                return;
-            }
-
-            StartCoroutine(AnimateCardsToTable(hand, table, playedCards));
+            tableAnimator.AnimateCards(hand, playedCards, cardSpawner, tienLenSO, sprites);
         }
 
-        private IEnumerator AnimateCardsToTable( CardHolder hand, CardHolder table, List<Card> playedCards ) {
-            float duration = 0.35f;
-            float cardSpacing = 0.45f;
-            float totalWidth = (playedCards.Count - 1) * cardSpacing;
-            float startX = -totalWidth / 2f;
-
-            Vector3 handRandomOffset = new Vector3(
-                UnityEngine.Random.Range(-0.15f, 0.15f),
-                UnityEngine.Random.Range(-0.15f, 0.15f),
-                0
-            );
-
-            float handBaseAngle = UnityEngine.Random.Range(-6f, 6f);
-
-            List<CardView> cardsToAnimate = new List<CardView>();
-
-            if ( hand != null && hand.CardViews.Count > 0 ) {
-                for ( int i = 0; i < playedCards.Count; i++ ) {
-                    CardView matchedView = null;
-                    Card played = playedCards[i];
-
-                    foreach ( var view in hand.CardViews ) {
-                        if ( view != null && view.Card != null && view.Card.Equals(played) ) {
-                            matchedView = view;
-                            break;
-                        }
-                    }
-
-                    if ( matchedView == null ) {
-                        matchedView = hand.CardViews.FirstOrDefault(v => v != null && !cardsToAnimate.Contains(v));
-                    }
-
-                    if ( matchedView != null ) {
-                        cardsToAnimate.Add(matchedView);
-                    }
-                }
-
-                hand.RemoveCards(cardsToAnimate, animate: true);
-            }
-            else {
-                for ( int i = 0; i < playedCards.Count; i++ ) {
-                    Card played = playedCards[i];
-                    Sprite cardSprite = null;
-                    if ( sprites != null && sprites.TryGetValue((played.Suit, played.Rank), out Sprite sp) ) {
-                        cardSprite = sp;
-                    }
-                    else if ( tienLenSO != null ) {
-                        cardSprite = tienLenSO.GetCardSprite(played.Suit, played.Rank);
-                    }
-
-                    CardView spawnedView = cardSpawner.SpawnCard(played, cardSprite);
-                    spawnedView.transform.position = table.transform.position + Vector3.up * 2f;
-                    cardsToAnimate.Add(spawnedView);
-                }
-            }
-
-            for ( int i = 0; i < cardsToAnimate.Count; i++ ) {
-                CardView view = cardsToAnimate[i];
-                if ( view == null ) continue;
-
-                if ( i < playedCards.Count && playedCards[i] != null ) {
-                    Card played = playedCards[i];
-                    view.Card = played;
-                    if ( sprites != null && sprites.TryGetValue((played.Suit, played.Rank), out Sprite faceSprite)
-                        && faceSprite != null ) {
-                        view.ChangeSprite(faceSprite);
-                    }
-                }
-
-                Transform cardTransform = view.transform;
-                cardTransform.SetParent(table.transform, worldPositionStays: true);
-
-                float cardX = startX + i * cardSpacing;
-                float cardYJitter = UnityEngine.Random.Range(-0.03f, 0.03f);
-                float cardZOffset = -i * 0.01f;
-
-                Vector3 targetLocalPos = handRandomOffset + new Vector3(cardX, cardYJitter, cardZOffset);
-                float randomAngle = handBaseAngle + UnityEngine.Random.Range(-2f, 2f);
-
-                cardTransform.DOKill();
-
-                Sequence seq = DOTween.Sequence();
-                seq.Join(cardTransform.DOLocalMove(targetLocalPos, duration).SetEase(Ease.OutQuad));
-                seq.Join(cardTransform.DOLocalRotate(new Vector3(0, 0, randomAngle), duration));
-                seq.Join(cardTransform.DOScale(Vector3.one * 0.9f, duration));
-
-                table.AddCard(view, autoArrange: false);
-            }
-
-            yield return null;
-        }
-
-        public void HandlePlayRequest( PlayerRef sender, NetworkCard[] cards ) {
+        public void HandlePassRequest( PlayerRef sender ) {
             if ( WinnerSeat != -1 ) return;
-
             TienLenPlayer player = GetPlayer(sender);
             if ( player == null ) return;
 
-            List<Card> requestedCards = cards.Select(card => card.ToCard()).ToList();
+            if ( actionHandler.TryExecutePass(player, out bool shouldClearCenter, out _) ) {
+                if ( shouldClearCenter ) {
+                    CurrentTableCardCount = 0;
+                    RPCClearTableCenter();
+                }
 
-            // First round of match rule: must play 3 of Spades if rule is active
-            if ( isFirstPlayOfGame ) {
-                bool hasThreeOfSpades = requestedCards.Any(c => c.Rank == CardRank.Three && c.Suit == CardSuit.Spades);
-                if ( !hasThreeOfSpades ) {
-                    Debug.LogWarning($"[TienLenGameController] Player {player.Id} first play of the match must include 3 of Spades.");
+                MirrorTurnSeat();
+                LastPassSeat = SeatOfPlayer(player);
+                RPCPassAccepted(sender);
+            }
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCPassAccepted( PlayerRef playerRef ) {
+            TienLenPlayer player = GetPlayer(playerRef);
+            if ( player != null ) {
+                Debug.Log($"[RPCPassAccepted] Player {player.Id} passed.");
+            }
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCClearTableCenter() {
+            EnsureAnimators();
+            tableAnimator.ClearTableCenter();
+            validator?.Reset();
+            var actionPanel = FindAnyObjectByType<ActionPanel>();
+            actionPanel?.RefreshActionState();
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCNotifyMatchReported() {
+            Debug.Log("[TienLenGameController] Match outcome recorded in backend. Refreshing local player profile...");
+            profileService?.RefreshProfileAsync().Forget();
+        }
+
+        #endregion
+
+        #region Host Migration
+
+        public void ResumeFromMigration() {
+            if ( !Object.HasStateAuthority ) return;
+            Debug.Log("[TienLenGameController] Resuming game state after Host Migration...");
+
+            if ( !IsGameStarted ) {
+                Debug.Log("[TienLenGameController] Game has not started yet. Lobby state preserved.");
+                return;
+            }
+
+            List<Card> tableCards = new();
+            for ( int i = 0; i < CurrentTableCardCount; i++ ) {
+                tableCards.Add(CurrentTableCards[i].ToCard());
+            }
+
+            if ( migrationHandler.TryResumeState(CurrentTableCardCount, tableCards, CurrentTurnSeat, out int singleWinnerSeat, out bool turnAdvanced) ) {
+                if ( singleWinnerSeat != -1 ) {
+                    TriggerGameOver(singleWinnerSeat);
                     return;
                 }
+
+                if ( turnAdvanced ) {
+                    MirrorTurnSeat();
+                }
+
+                TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration + 5f);
+                RPCRequestHandReport();
+            }
+        }
+
+        public void HandlePlayerLeftMidGame( PlayerRef playerRef ) {
+            if ( !Object.HasStateAuthority || !IsGameStarted || WinnerSeat != -1 ) return;
+
+            if ( migrationHandler.ProcessPlayerLeftMidGame(playerRef, out int winnerSeat, out bool shouldAutoAct) ) {
+                if ( winnerSeat != -1 ) {
+                    TriggerGameOver(winnerSeat);
+                    return;
+                }
+
+                if ( shouldAutoAct ) {
+                    AutoActForCurrentPlayer();
+                }
+            }
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        public void RPCRequestHandReport() {
+            if ( localPlayerService != null ) {
+                var localLogic = localPlayerService.GetLocalLogicPlayer();
+                var localNet = localPlayerService.GetLocalNetworkPlayer();
+                if ( localLogic?.Hand?.Cards != null && localNet != null ) {
+                    NetworkCard[] netCards = localLogic.Hand.Cards
+                        .Select(c => new NetworkCard(c))
+                        .ToArray();
+                    localNet.RPCReportHandState(netCards);
+                }
+            }
+        }
+
+        public void HandleReportedHand( PlayerRef sender, NetworkCard[] cards ) {
+            if ( !Object.HasStateAuthority || cards == null ) return;
+            TienLenPlayer player = GetPlayer(sender);
+            if ( player != null ) {
+                migrationHandler.RestoreReportedHand(player, cards.Select(c => c.ToCard()));
+            }
+        }
+
+        #endregion
+
+        #region Test & Reporting Helpers
+
+        public void SetDependenciesForTest( ISeatQueryService seatQuery, LocalPlayerService localPlayer, IPlayerProfileService profile, int stake = 5 ) {
+            this.seatQueryService = seatQuery;
+            this.localPlayerService = localPlayer;
+            this.profileService = profile;
+            this.explicitBetStake = stake;
+
+            if ( outcomeReporter == null ) {
+                outcomeReporter = new TienLenMatchOutcomeReporter(seatQuery, localPlayer, profile);
+            }
+            else {
+                outcomeReporter.SetDependencies(seatQuery, localPlayer, profile);
             }
 
-            if ( !player.HasCards(requestedCards) ) {
-                Debug.LogWarning($"Player {player.Id} tried to play cards they don't own.");
-                return;
+            if ( Object != null && Object.IsValid ) {
+                try {
+                    this.BetStake = stake;
+                }
+                catch ( InvalidOperationException ) { }
             }
+        }
 
-            if ( !cardCombinationEvaluator.TryEvaluate(requestedCards, out CardCombination combination) ) {
-                Debug.LogWarning($"Player {player.Id} submitted an invalid combination.");
-                return;
+        public MatchResultReportRequest BuildMatchReport( int winnerSeat ) {
+            if ( outcomeReporter == null ) {
+                outcomeReporter = new TienLenMatchOutcomeReporter(seatQueryService, localPlayerService, profileService);
             }
+            return outcomeReporter.BuildMatchReport(winnerSeat, CurrentBetStake);
+        }
 
-            if ( !turnManager.TryPlay(player, combination) ) {
-                Debug.LogWarning($"Player {player.Id} cannot play this combination.");
-                return;
-            }
-
-            // Successfully played: first play obligation fulfilled
-            isFirstPlayOfGame = false;
-
-            HandleAcceptedPlay(sender, player, requestedCards);
+        private TienLenPlayer GetPlayer( PlayerRef sender ) {
+            if ( !sender.IsValid || seatQueryService == null ) return null;
+            return seatQueryService.GetLogicPlayer(sender);
         }
 
         #endregion

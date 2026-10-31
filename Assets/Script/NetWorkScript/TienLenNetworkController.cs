@@ -69,6 +69,7 @@ namespace Assets.Script.NetWorkScript {
 
         public async Task<StartGameResult> QuickPlay( int betStake, int playerCount = 4 ) {
             if ( betStake < 5 ) {
+                //Feature: can add a suggest to watch ads, or buy money to play.
                 throw new ArgumentException("Minimum bet stake to play is 5.", nameof(betStake));
             }
 
