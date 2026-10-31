@@ -1,4 +1,4 @@
-﻿using Assets.Script.Data.SO;
+using Assets.Script.Data.SO;
 using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Effects;
@@ -14,15 +14,11 @@ namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope {
         [SerializeField] private TienLenNetWorkPlayer prefab;
 
-
-
         protected override void Configure( IContainerBuilder builder ) {
             // ScriptableObject Assets / Databases (scene-local copy)
-
             builder.RegisterComponentInNewPrefab(prefab, Lifetime.Scoped);
 
             // Rules & Evaluation
-            builder.Register<CardCombinationType>(Lifetime.Singleton);
             builder.Register<CardComparer>(Lifetime.Singleton);
             builder.Register<CardCombinationEvaluator>(Lifetime.Singleton);
             builder.Register<TienLenRuleValidator>(Lifetime.Singleton);

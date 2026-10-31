@@ -1,4 +1,4 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using System.Collections.Generic;
@@ -203,6 +203,11 @@ namespace Assets.Script.TienLen.UI {
                 return;
             }
 
+            if ( validator == null || validator.CurrentCombination == null ) {
+                Debug.LogWarning("[ActionPanel] Pass ignored: cannot pass when leading the round.");
+                return;
+            }
+
             TienLenNetWorkPlayer networkPlayer = localPlayerService?.GetLocalNetworkPlayer();
             if ( networkPlayer == null ) {
                 Debug.LogWarning("[ActionPanel] Pass ignored: local network player is null.");
@@ -216,12 +221,13 @@ namespace Assets.Script.TienLen.UI {
 
         #region State Evaluation
 
-        private void RefreshActionState() {
+        public void RefreshActionState() {
             SetSortInteractable(true);
 
             bool canAct = lastPushedIsTurn;
             SetPlayInteractable(canAct && HasPlayableSelection());
-            SetPassInteractable(canAct);
+            bool canPass = canAct && validator != null && validator.CurrentCombination != null;
+            SetPassInteractable(canPass);
         }
 
         private bool HasPlayableSelection() {

@@ -69,6 +69,14 @@ namespace Assets.Script.UI.MainMenu {
             }
 
             int candidateStake = CalculateStakeForMoney(money);
+            if ( money < candidateStake ) {
+                ShowAlert($"Insufficient balance to join stake {candidateStake} table.", AlertType.Error, 4f);
+                return;
+            }
+
+            if ( quickPlayButton != null ) {
+                quickPlayButton.interactable = false;
+            }
 
             try {
                 if ( networkController == null ) {
@@ -83,6 +91,11 @@ namespace Assets.Script.UI.MainMenu {
             catch ( Exception ex ) {
                 Debug.LogError($"[PlayOptionUI] QuickPlay error: {ex.Message}");
                 ShowAlert($"Quick play error: {ex.Message}", AlertType.Error, 5f);
+            }
+            finally {
+                if ( quickPlayButton != null ) {
+                    quickPlayButton.interactable = true;
+                }
             }
         }
 
@@ -110,8 +123,8 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         private IEnumerator ShowAlertCoroutine( string message, AlertType type, float duration ) {
-            alertPanel.SetActive(true);
-            alertText.text = message;
+            if ( alertPanel != null ) alertPanel.SetActive(true);
+            if ( alertText != null ) alertText.text = message;
 
             if ( alertPanelImage != null ) {
                 switch ( type ) {

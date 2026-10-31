@@ -1,4 +1,4 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.NetWorkScript;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +17,7 @@ namespace Assets.Script.TienLen.Player {
         public long Money { get; set; } = 10000;
         public PlayerHand Hand { get; }
         public bool IsHuman { get; }
+        public bool IsInactive { get; set; } = false;
 
         public bool HasWon => Hand != null && Hand.Count == 0;
 

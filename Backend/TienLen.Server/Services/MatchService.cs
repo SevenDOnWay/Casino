@@ -37,7 +37,6 @@ namespace TienLen.Server.Services {
             await db.Matches.InsertOneAsync(matchDoc);
 
             // 2. Parallel atomic updates for each player in the match:
-            // Uses MongoDB $inc operator so concurrent game endings never corrupt or race condition wallet balances!
             var updateTasks = report.Results.Select(async p => {
                 if ( string.IsNullOrWhiteSpace(p.UserId) ) return;
 
@@ -55,8 +54,16 @@ namespace TienLen.Server.Services {
                     new FindOneAndUpdateOptions<UserDocument> { ReturnDocument = ReturnDocument.After }
                 );
 
-                // Recalculate level if needed based on updated EXP (1 level per 100 EXP)
                 if ( updatedUser != null ) {
+                    // Non-negative wallet balance guard: never allow balance to stay below 0
+                    if ( updatedUser.Money < 0 ) {
+                        await db.Users.UpdateOneAsync(
+                            filter,
+                            Builders<UserDocument>.Update.Set(u => u.Money, 0)
+                        );
+                    }
+
+                    // Recalculate level if needed based on updated EXP (1 level per 100 EXP)
                     int expectedLevel = Math.Max(1, 1 + (updatedUser.Exp / 100));
                     if ( updatedUser.Level != expectedLevel ) {
                         await db.Users.UpdateOneAsync(

@@ -1,4 +1,4 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
 using Fusion;
 using Fusion.Sockets;
@@ -26,7 +26,6 @@ namespace Assets.Script.TienLen.Game {
 
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
-
 
         public override void Spawned() {
             Runner.AddCallbacks(this);
@@ -83,8 +82,14 @@ namespace Assets.Script.TienLen.Game {
 
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
             if ( !Object.HasStateAuthority ) return;
-            RemovePlayer(player);
-            GameController?.HandlePlayerLeftMidGame(player);
+
+            if ( GameController != null && GameController.IsGameStarted && GameController.WinnerSeat == -1 ) {
+                // Mid-game: retain player in inactive state so match completes honestly
+                GameController.HandlePlayerLeftMidGame(player);
+            }
+            else {
+                RemovePlayer(player);
+            }
         }
 
         private TienLenNetWorkPlayer SpawnNetworkPlayer( PlayerRef player ) {
@@ -124,7 +129,7 @@ namespace Assets.Script.TienLen.Game {
             return true;
         }
 
-        private void RemovePlayer( PlayerRef player ) {
+        public void RemovePlayer( PlayerRef player ) {
             if ( !Object.HasStateAuthority ) return;
             if ( Runner == null ) return;
 

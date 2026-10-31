@@ -1,4 +1,4 @@
-﻿using Assets.Script.Data.Models;
+using Assets.Script.Data.Models;
 using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
@@ -45,6 +45,7 @@ namespace Assets.Script.TienLen.Game {
         [Networked] public int LastPassSeat { get; set; }
 
         private int explicitBetStake = 0;
+        private bool isFirstPlayOfGame = true;
 
         /// <summary>Networked table bet stake replicated to all clients.</summary>
         [Networked] public int BetStake { get; set; }
@@ -140,13 +141,13 @@ namespace Assets.Script.TienLen.Game {
                 if ( Runner.IsResume ) {
                     ResumeFromMigration();
                 }
-                else {
-                    CurrentTurnSeat = -1;
-                    WinnerSeat = -1;
-                    LastPassSeat = -1;
-                    TurnTimer = default;
-                    CurrentTableCardCount = 0;
-                }
+            }
+
+            if ( tienLenSO != null ) {
+                cardBack = tienLenSO.GetCardBackSprite();
+            }
+            else {
+                Debug.LogWarning("[TienLenGameController] tienLenSO is not assigned.");
             }
         }
 
@@ -217,25 +218,34 @@ namespace Assets.Script.TienLen.Game {
 
             Debug.Log($"[TienLenGameController] Player {playerRef.PlayerId} left mid-game.");
 
+            var logicPlayer = seatQueryService?.GetLogicPlayer(playerRef);
+            if ( logicPlayer != null ) {
+                logicPlayer.IsInactive = true;
+                Debug.Log($"[TienLenGameController] Marked player {logicPlayer.Id} as Inactive.");
+            }
+
             var seated = seatQueryService?.GetSeatedPlayers();
             if ( seated == null ) return;
 
-            int remainingCount = seated.Count;
-            if ( remainingCount <= 1 ) {
-                if ( remainingCount == 1 ) {
-                    var winnerKvp = seated.First();
-                    TriggerGameOver(winnerKvp.Key);
+            int activeCount = seated.Values.Count(p => p != null && !p.IsInactive);
+            int lastActiveSeat = -1;
+            foreach ( var kvp in seated ) {
+                if ( kvp.Value != null && !kvp.Value.IsInactive ) {
+                    lastActiveSeat = kvp.Key;
+                    break;
+                }
+            }
+
+            if ( activeCount <= 1 ) {
+                if ( activeCount == 1 && lastActiveSeat != -1 ) {
+                    TriggerGameOver(lastActiveSeat);
                 }
                 return;
             }
 
-            if ( turnManager?.CurrentPlayer != null && seatQueryService != null ) {
-                var leavingLogic = seatQueryService.GetLogicPlayer(playerRef);
-                if ( ReferenceEquals(turnManager.CurrentPlayer, leavingLogic) ) {
-                    Debug.Log("[TienLenGameController] Active turn player left. Advancing turn...");
-                    turnManager.ForceAdvanceTurn();
-                    MirrorTurnSeat();
-                }
+            if ( turnManager?.CurrentPlayer != null && logicPlayer != null && ReferenceEquals(turnManager.CurrentPlayer, logicPlayer) ) {
+                Debug.Log("[TienLenGameController] Active turn player disconnected. Auto-acting immediately...");
+                AutoActForCurrentPlayer();
             }
         }
 
@@ -277,6 +287,15 @@ namespace Assets.Script.TienLen.Game {
             if ( !IsGameStarted || WinnerSeat != -1 ) return;
             if ( turnManager == null || turnManager.CurrentPlayer == null || seatQueryService == null ) return;
 
+            Debug.Log($"[TienLenGameController] Turn timer expired for player {turnManager.CurrentPlayer.Id} (Seat {CurrentTurnSeat}). Auto-acting...");
+            AutoActForCurrentPlayer();
+        }
+
+        private void AutoActForCurrentPlayer() {
+            if ( !Object.HasStateAuthority ) return;
+            if ( !IsGameStarted || WinnerSeat != -1 ) return;
+            if ( turnManager == null || turnManager.CurrentPlayer == null || seatQueryService == null ) return;
+
             var currentPlayer = turnManager.CurrentPlayer;
             var networkMap = seatQueryService.GetNetworkPlayerMap();
             PlayerRef currentRef = default;
@@ -287,8 +306,6 @@ namespace Assets.Script.TienLen.Game {
                 }
             }
 
-            Debug.Log($"[TienLenGameController] Turn timer expired for player {currentPlayer.Id} (Seat {CurrentTurnSeat}). Auto-acting...");
-
             // If there is an active table combination, timeout counts as a PASS
             if ( validator != null && validator.CurrentCombination != null ) {
                 if ( currentRef.IsValid ) {
@@ -296,6 +313,10 @@ namespace Assets.Script.TienLen.Game {
                 }
                 else {
                     if ( turnManager.TryPass(currentPlayer) ) {
+                        if ( validator != null && validator.CurrentCombination == null ) {
+                            CurrentTableCardCount = 0;
+                            RPCClearTableCenter();
+                        }
                         MirrorTurnSeat();
                     }
                     else {
@@ -305,26 +326,52 @@ namespace Assets.Script.TienLen.Game {
                 }
             }
             else {
-                // Leading a new round: cannot pass, so auto-play lowest valid single card
+                // Leading a new round: cannot pass, so auto-play lowest valid single card (leftmost)
                 var hand = currentPlayer.Hand?.Cards;
                 bool played = false;
                 if ( hand != null && hand.Count > 0 ) {
-                    var sortedHand = hand.OrderBy(c => c.Rank).ThenBy(c => (int)c.Suit).ToList();
-                    foreach ( var card in sortedHand ) {
-                        var singleList = new List<Card> { card };
-                        if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(singleList, out var combo) && (validator == null || validator.CanPlay(combo)) ) {
-                            if ( turnManager.TryPlay(currentPlayer, combo) ) {
-                                if ( currentRef.IsValid ) {
-                                    HandleAcceptedPlay(currentRef, currentPlayer, singleList);
+                    // If first play of the game, must include 3 of Spades if held
+                    if ( isFirstPlayOfGame ) {
+                        var threeOfSpades = hand.FirstOrDefault(c => c.Rank == CardRank.Three && c.Suit == CardSuit.Spades);
+                        if ( threeOfSpades != null ) {
+                            var threeList = new List<Card> { threeOfSpades };
+                            if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(threeList, out var combo) && (validator == null || validator.CanPlay(combo)) ) {
+                                if ( turnManager.TryPlay(currentPlayer, combo) ) {
+                                    isFirstPlayOfGame = false;
+                                    if ( currentRef.IsValid ) {
+                                        HandleAcceptedPlay(currentRef, currentPlayer, threeList);
+                                    }
+                                    else {
+                                        currentPlayer.TryRemoveCards(threeList);
+                                        RPCPlayAccepted(PlayerRef.None, threeList.Select(c => new NetworkCard(c)).ToArray());
+                                        CurrentTableCardCount = 1;
+                                        MirrorTurnSeat();
+                                    }
+                                    played = true;
                                 }
-                                else {
-                                    currentPlayer.TryRemoveCards(singleList);
-                                    RPCPlayAccepted(PlayerRef.None, singleList.Select(c => new NetworkCard(c)).ToArray());
-                                    CurrentTableCardCount = 1;
-                                    MirrorTurnSeat();
+                            }
+                        }
+                    }
+
+                    if ( !played ) {
+                        var sortedHand = hand.OrderBy(c => c.Rank).ThenBy(c => (int)c.Suit).ToList();
+                        foreach ( var card in sortedHand ) {
+                            var singleList = new List<Card> { card };
+                            if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(singleList, out var combo) && (validator == null || validator.CanPlay(combo)) ) {
+                                if ( turnManager.TryPlay(currentPlayer, combo) ) {
+                                    isFirstPlayOfGame = false;
+                                    if ( currentRef.IsValid ) {
+                                        HandleAcceptedPlay(currentRef, currentPlayer, singleList);
+                                    }
+                                    else {
+                                        currentPlayer.TryRemoveCards(singleList);
+                                        RPCPlayAccepted(PlayerRef.None, singleList.Select(c => new NetworkCard(c)).ToArray());
+                                        CurrentTableCardCount = 1;
+                                        MirrorTurnSeat();
+                                    }
+                                    played = true;
+                                    break;
                                 }
-                                played = true;
-                                break;
                             }
                         }
                     }
@@ -340,13 +387,6 @@ namespace Assets.Script.TienLen.Game {
             // Always guarantee TurnTimer is reset for the next turn
             if ( Object.HasStateAuthority && (!TurnTimer.IsRunning || TurnTimer.Expired(Runner)) ) {
                 TurnTimer = TickTimer.CreateFromSeconds(Runner, turnDuration);
-            }
-        }
-
-        private void Start() {
-            if ( tienLenSO != null ) {
-                sprites = tienLenSO.GetLookUpTable();
-                cardBack = tienLenSO.GetCardBackSprite();
             }
         }
 
@@ -372,6 +412,24 @@ namespace Assets.Script.TienLen.Game {
             if ( !Object.HasStateAuthority ) return;
             if ( !CanStartGame() ) return;
             if ( IsGameStarted ) return;
+
+            var seatedPlayers = seatQueryService.GetSeatedPlayers();
+            int bet = CurrentBetStake;
+
+            // Balance guard: verify players have enough coins to cover at least 1 bet stake
+            foreach ( var p in seatedPlayers.Values ) {
+                if ( p != null && p.Money < bet ) {
+                    p.IsInactive = true;
+                    Debug.LogWarning($"[Game] Player {p.Id} has insufficient funds ({p.Money} < {bet}). Marked inactive.");
+                }
+            }
+
+            int solventCount = seatedPlayers.Values.Count(p => p != null && !p.IsInactive);
+            if ( solventCount < minPlayersToStart ) {
+                Debug.LogWarning("[Game] Not enough players with sufficient balance to start.");
+                CleanUpInactivePlayers();
+                return;
+            }
 
             IsGameStarted = true;
             WinnerSeat = -1;
@@ -506,16 +564,41 @@ namespace Assets.Script.TienLen.Game {
 
             if ( !Object.HasStateAuthority ) return;
 
+            // Disconnect and despawn all players marked inactive now that match outcome has been recorded
+            CleanUpInactivePlayers();
+
             if ( !HasEnoughPlayersToPlay ) {
                 Debug.LogWarning("[TienLenGameController] Cannot continue game: not enough players.");
                 IsGameStarted = false;
                 WinnerSeat = -1;
                 CurrentTurnSeat = -1;
                 CurrentTableCardCount = 0;
+                isFirstPlayOfGame = true; // Table dropped to 1 player: reset rule for next group!
+                RPCClearTableCenter();
                 return;
             }
 
             StartNextRound(previousWinnerSeat);
+        }
+
+        private void CleanUpInactivePlayers() {
+            if ( seatQueryService == null || !Object.HasStateAuthority ) return;
+            var seated = seatQueryService.GetSeatedPlayers();
+            var netMap = seatQueryService.GetNetworkPlayerMap();
+            var toRemove = new List<PlayerRef>();
+
+            foreach ( var kvp in seated ) {
+                if ( kvp.Value != null && kvp.Value.IsInactive ) {
+                    if ( netMap != null && netMap.TryGetValue(kvp.Key, out var netPlayer) && netPlayer != null ) {
+                        toRemove.Add(netPlayer.PlayerRef);
+                    }
+                }
+            }
+
+            var sessionCtrl = GetComponent<SessionController>() ?? FindAnyObjectByType<SessionController>();
+            foreach ( var pRef in toRemove ) {
+                sessionCtrl?.RemovePlayer(pRef);
+            }
         }
 
         private void StartNextRound( int previousWinnerSeat ) {
@@ -528,6 +611,8 @@ namespace Assets.Script.TienLen.Game {
             CurrentTableCardCount = 0;
             LastPassSeat = -1;
             WinnerSeat = -1;
+            isFirstPlayOfGame = false;
+            RPCClearTableCenter();
 
             // 2. Clear all logic hands
             var seatedPlayers = seatQueryService.GetSeatedPlayers();
@@ -550,7 +635,7 @@ namespace Assets.Script.TienLen.Game {
             turnManager.Initialize(ordered);
 
             int startingIndex = -1;
-            if ( seatedPlayers.TryGetValue(previousWinnerSeat, out var winnerPlayer) && winnerPlayer != null ) {
+            if ( seatedPlayers.TryGetValue(previousWinnerSeat, out var winnerPlayer) && winnerPlayer != null && !winnerPlayer.IsInactive ) {
                 startingIndex = ordered.IndexOf(winnerPlayer);
             }
 
@@ -558,7 +643,7 @@ namespace Assets.Script.TienLen.Game {
                 turnManager.SetStartingPlayer(startingIndex);
             }
             else {
-                turnManager.SetStartingPlayer(FindStartingSeatOrderIndex(ordered));
+                turnManager.SetStartingPlayer(0);
             }
 
             MirrorTurnSeat(isDealingStart: true);
@@ -579,7 +664,19 @@ namespace Assets.Script.TienLen.Game {
             if ( ordered.Count == 0 ) return;
 
             turnManager.Initialize(ordered);
-            turnManager.SetStartingPlayer(FindStartingSeatOrderIndex(ordered));
+
+            int holderIndex = FindStartingSeatOrderIndex(ordered);
+            if ( holderIndex >= 0 ) {
+                turnManager.SetStartingPlayer(holderIndex);
+                isFirstPlayOfGame = true;
+                Debug.Log($"[TienLenGameController] Player at order index {holderIndex} holds 3 of Spades and must lead the match.");
+            }
+            else {
+                turnManager.SetStartingPlayer(0);
+                isFirstPlayOfGame = false;
+                Debug.Log("[TienLenGameController] 3 of Spades is not held by any player. Host starts freely.");
+            }
+
             MirrorTurnSeat(isDealingStart: true);
         }
 
@@ -593,7 +690,7 @@ namespace Assets.Script.TienLen.Game {
                     }
                 }
             }
-            return 0;
+            return -1;
         }
 
         private int SeatOfPlayer( TienLenPlayer player ) {
@@ -611,7 +708,19 @@ namespace Assets.Script.TienLen.Game {
                 if ( Object.HasStateAuthority ) {
                     float duration = isDealingStart ? (turnDuration + 3.5f) : turnDuration;
                     TurnTimer = TickTimer.CreateFromSeconds(Runner, duration);
+
+                    if ( turnManager.CurrentPlayer != null && turnManager.CurrentPlayer.IsInactive ) {
+                        AutoActInactivePlayerDelayed().Forget();
+                    }
                 }
+            }
+        }
+
+        private async UniTaskVoid AutoActInactivePlayerDelayed() {
+            await UniTask.Delay(600, cancellationToken: this.GetCancellationTokenOnDestroy());
+            if ( !Object.HasStateAuthority || WinnerSeat != -1 || !IsGameStarted ) return;
+            if ( turnManager?.CurrentPlayer != null && turnManager.CurrentPlayer.IsInactive ) {
+                AutoActForCurrentPlayer();
             }
         }
 
@@ -865,6 +974,7 @@ namespace Assets.Script.TienLen.Game {
 
             if ( validator != null && validator.CurrentCombination == null ) {
                 CurrentTableCardCount = 0;
+                RPCClearTableCenter();
             }
 
             MirrorTurnSeat();
@@ -878,6 +988,16 @@ namespace Assets.Script.TienLen.Game {
             if ( player != null ) {
                 Debug.Log($"[RPCPassAccepted] Player {player.Id} passed.");
             }
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        private void RPCClearTableCenter() {
+            if ( tableCenterPosition != null ) {
+                tableCenterPosition.Clear();
+            }
+            validator?.Reset();
+            var actionPanel = FindAnyObjectByType<ActionPanel>();
+            actionPanel?.RefreshActionState();
         }
 
         #endregion
@@ -916,6 +1036,13 @@ namespace Assets.Script.TienLen.Game {
 
             if ( !Object.HasStateAuthority ) {
                 GetPlayer(playerRef)?.TryRemoveCards(playedCards);
+
+                // Synchronize table validator on remote client!
+                if ( cardCombinationEvaluator != null && cardCombinationEvaluator.TryEvaluate(playedCards, out CardCombination combo) ) {
+                    validator?.SetCurrentCombination(combo);
+                }
+                var actionPanel = FindAnyObjectByType<ActionPanel>();
+                actionPanel?.RefreshActionState();
             }
 
             HandlePlayPresentation(playerRef, playedCards);
@@ -939,44 +1066,72 @@ namespace Assets.Script.TienLen.Game {
                 : null;
             CardHolder table = tableCenterPosition;
 
-            StartCoroutine(AnimatePlayedCards(hand, table, playedCards));
+            if ( table == null ) {
+                Debug.LogError("Table center position is not assigned.");
+                return;
+            }
+
+            StartCoroutine(AnimateCardsToTable(hand, table, playedCards));
         }
 
-        private IEnumerator AnimatePlayedCards( CardHolder cardHolder, CardHolder table, List<Card> playedCards ) {
-            if ( cardHolder == null || table == null || playedCards == null || playedCards.Count == 0 ) {
-                yield break;
-            }
-
-            List<CardView> views = cardHolder.FindCards(playedCards);
-            if ( views == null || views.Count == 0 ) {
-                yield break;
-            }
-
-            // Remove cards from player's hand immediately so remaining cards animate into place
-            cardHolder.RemoveCards(views, animate: true);
-
+        private IEnumerator AnimateCardsToTable( CardHolder hand, CardHolder table, List<Card> playedCards ) {
             float duration = 0.35f;
-
-            // Space cards evenly so suits and ranks are clearly legible
-            float baseSpacing = 0.6f;
-            float maxTotalWidth = 6f;
-            float cardSpacing = views.Count > 1
-                ? Mathf.Min(baseSpacing, maxTotalWidth / (views.Count - 1))
-                : baseSpacing;
-
-            float totalWidth = (views.Count - 1) * cardSpacing;
+            float cardSpacing = 0.45f;
+            float totalWidth = (playedCards.Count - 1) * cardSpacing;
             float startX = -totalWidth / 2f;
 
-            // Small random offset and tilt for the hand so consecutive played hands have natural variety
             Vector3 handRandomOffset = new Vector3(
-                UnityEngine.Random.Range(-0.25f, 0.25f),
                 UnityEngine.Random.Range(-0.15f, 0.15f),
-                0f
+                UnityEngine.Random.Range(-0.15f, 0.15f),
+                0
             );
-            float handBaseAngle = UnityEngine.Random.Range(-3f, 3f);
 
-            for ( int i = 0; i < views.Count; i++ ) {
-                CardView view = views[i];
+            float handBaseAngle = UnityEngine.Random.Range(-6f, 6f);
+
+            List<CardView> cardsToAnimate = new List<CardView>();
+
+            if ( hand != null && hand.CardViews.Count > 0 ) {
+                for ( int i = 0; i < playedCards.Count; i++ ) {
+                    CardView matchedView = null;
+                    Card played = playedCards[i];
+
+                    foreach ( var view in hand.CardViews ) {
+                        if ( view != null && view.Card != null && view.Card.Equals(played) ) {
+                            matchedView = view;
+                            break;
+                        }
+                    }
+
+                    if ( matchedView == null ) {
+                        matchedView = hand.CardViews.FirstOrDefault(v => v != null && !cardsToAnimate.Contains(v));
+                    }
+
+                    if ( matchedView != null ) {
+                        cardsToAnimate.Add(matchedView);
+                    }
+                }
+
+                hand.RemoveCards(cardsToAnimate, animate: true);
+            }
+            else {
+                for ( int i = 0; i < playedCards.Count; i++ ) {
+                    Card played = playedCards[i];
+                    Sprite cardSprite = null;
+                    if ( sprites != null && sprites.TryGetValue((played.Suit, played.Rank), out Sprite sp) ) {
+                        cardSprite = sp;
+                    }
+                    else if ( tienLenSO != null ) {
+                        cardSprite = tienLenSO.GetCardSprite(played.Suit, played.Rank);
+                    }
+
+                    CardView spawnedView = cardSpawner.SpawnCard(played, cardSprite);
+                    spawnedView.transform.position = table.transform.position + Vector3.up * 2f;
+                    cardsToAnimate.Add(spawnedView);
+                }
+            }
+
+            for ( int i = 0; i < cardsToAnimate.Count; i++ ) {
+                CardView view = cardsToAnimate[i];
                 if ( view == null ) continue;
 
                 if ( i < playedCards.Count && playedCards[i] != null ) {
@@ -993,7 +1148,7 @@ namespace Assets.Script.TienLen.Game {
 
                 float cardX = startX + i * cardSpacing;
                 float cardYJitter = UnityEngine.Random.Range(-0.03f, 0.03f);
-                float cardZOffset = -i * 0.01f; // Layering depth to prevent z-fighting
+                float cardZOffset = -i * 0.01f;
 
                 Vector3 targetLocalPos = handRandomOffset + new Vector3(cardX, cardYJitter, cardZOffset);
                 float randomAngle = handBaseAngle + UnityEngine.Random.Range(-2f, 2f);
@@ -1019,6 +1174,15 @@ namespace Assets.Script.TienLen.Game {
 
             List<Card> requestedCards = cards.Select(card => card.ToCard()).ToList();
 
+            // First round of match rule: must play 3 of Spades if rule is active
+            if ( isFirstPlayOfGame ) {
+                bool hasThreeOfSpades = requestedCards.Any(c => c.Rank == CardRank.Three && c.Suit == CardSuit.Spades);
+                if ( !hasThreeOfSpades ) {
+                    Debug.LogWarning($"[TienLenGameController] Player {player.Id} first play of the match must include 3 of Spades.");
+                    return;
+                }
+            }
+
             if ( !player.HasCards(requestedCards) ) {
                 Debug.LogWarning($"Player {player.Id} tried to play cards they don't own.");
                 return;
@@ -1033,6 +1197,9 @@ namespace Assets.Script.TienLen.Game {
                 Debug.LogWarning($"Player {player.Id} cannot play this combination.");
                 return;
             }
+
+            // Successfully played: first play obligation fulfilled
+            isFirstPlayOfGame = false;
 
             HandleAcceptedPlay(sender, player, requestedCards);
         }
