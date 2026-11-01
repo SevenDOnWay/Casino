@@ -42,7 +42,7 @@ namespace Assets.Script.TienLen.LifeTimeScope {
                    .As<ISeatQueryService>()
                    .AsSelf();
 
-            builder.Register<TurnManager>(Lifetime.Singleton);
+            builder.RegisterComponentInHierarchy<TurnManager>();
 
             // UI & Effects
             builder.RegisterComponentInHierarchy<UiManager>();

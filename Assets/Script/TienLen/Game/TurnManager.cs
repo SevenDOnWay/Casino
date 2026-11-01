@@ -1,12 +1,13 @@
-﻿using Assets.Script.TienLen.Player;
+using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
+using Fusion;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using VContainer;
 
 namespace Assets.Script.TienLen.Game {
-    public class TurnManager {
+    public class TurnManager : NetworkBehaviour {
         [Header("Dependencies")]
         private TienLenRuleValidator validator;
 
@@ -19,18 +20,26 @@ namespace Assets.Script.TienLen.Game {
             ? players[currentPlayerIndex]
             : null;
 
-        public event Action OnTurnChanged;
+        public event Action<int> OnTurnChanged;
+
+        [Networked] public int currentPlayerIndexNet { get; set; }
+        [Networked] int WinnerSeatNet { get; set; } = -1;
+        [Networked] int lastPassSeat { get; set; } = -1;
+        [Networked] int CurrentTableCardCount { get; set; } = 0;
+
 
         [Inject]
         public TurnManager( TienLenRuleValidator validator ) {
             this.validator = validator;
         }
 
+        public override void Spawned() {
+        }
+
         public void Initialize( IReadOnlyList<TienLenPlayer> players ) {
             this.players = players;
             currentPlayerIndex = 0;
             lastPlayIndex = 0;
-            passedInRound.Clear();
         }
 
         /// <summary>Override which ordered-list index starts (e.g. ♠3 holder).</summary>
@@ -39,10 +48,6 @@ namespace Assets.Script.TienLen.Game {
             currentPlayerIndex = Mathf.Clamp(orderIndex, 0, players.Count - 1);
             lastPlayIndex = currentPlayerIndex;
             passedInRound.Clear();
-        }
-
-        public bool HasPlayerPassedThisRound( TienLenPlayer player ) {
-            return player != null && passedInRound.Contains(player);
         }
 
         public bool CanPass( TienLenPlayer player ) {
@@ -109,40 +114,27 @@ namespace Assets.Script.TienLen.Game {
         }
 
         private void AdvanceTurn() {
-            if ( players == null || players.Count == 0 ) return;
-
-            if ( CheckRoundFinished() ) {
-                StartNewRound();
-                return;
-            }
-
             for ( int i = 1; i <= players.Count; i++ ) {
                 int nextIndex = (currentPlayerIndex + i) % players.Count;
                 var candidate = players[nextIndex];
+
+                if(currentPlayerIndex == lastPlayIndex ) {
+                    StartNewRound();
+                }
                 if ( candidate != null && IsPlayerActive(candidate) && !passedInRound.Contains(candidate) ) {
                     currentPlayerIndex = nextIndex;
-                    OnTurnChanged?.Invoke();
+                    OnTurnChanged?.Invoke(nextIndex);
                     return;
                 }
             }
 
-            StartNewRound();
+
+            Debug.LogError("[TurnManager] AdvanceTurn: No active player found to advance to. This should not happen.");
+            return;
         }
 
         public void ForceAdvanceTurn() {
-            if ( players == null || players.Count == 0 ) return;
-
-            for ( int i = 1; i <= players.Count; i++ ) {
-                int nextIndex = (currentPlayerIndex + i) % players.Count;
-                var candidate = players[nextIndex];
-                if ( candidate != null && IsPlayerActive(candidate) ) {
-                    currentPlayerIndex = nextIndex;
-                    OnTurnChanged?.Invoke();
-                    return;
-                }
-            }
-
-            OnTurnChanged?.Invoke();
+            AdvanceTurn();
         }
 
         public void SetCurrentPlayer( TienLenPlayer player ) {
@@ -150,50 +142,15 @@ namespace Assets.Script.TienLen.Game {
             for ( int i = 0; i < players.Count; i++ ) {
                 if ( ReferenceEquals(players[i], player) ) {
                     currentPlayerIndex = i;
-                    OnTurnChanged?.Invoke();
+                    OnTurnChanged?.Invoke(currentPlayerIndex);
                     return;
                 }
             }
-        }
-
-        public void SetLastPlayPlayer( TienLenPlayer player ) {
-            if ( players == null || player == null ) return;
-            for ( int i = 0; i < players.Count; i++ ) {
-                if ( ReferenceEquals(players[i], player) ) {
-                    lastPlayIndex = i;
-                    return;
-                }
-            }
-        }
-
-        public void ResetRound() {
-            StartNewRound();
         }
 
         private void StartNewRound() {
             validator?.Reset();
             passedInRound.Clear();
-
-            // The player who played the last valid combination starts the new round if still active,
-            // otherwise advance to the next active player.
-            currentPlayerIndex = lastPlayIndex;
-            if ( players != null && players.Count > 0 ) {
-                var leader = (currentPlayerIndex >= 0 && currentPlayerIndex < players.Count)
-                    ? players[currentPlayerIndex]
-                    : null;
-                if ( leader == null || !IsPlayerActive(leader) ) {
-                    for ( int i = 1; i <= players.Count; i++ ) {
-                        int nextIndex = (lastPlayIndex + i) % players.Count;
-                        var candidate = players[nextIndex];
-                        if ( candidate != null && IsPlayerActive(candidate) ) {
-                            currentPlayerIndex = nextIndex;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            OnTurnChanged?.Invoke();
         }
     }
 }

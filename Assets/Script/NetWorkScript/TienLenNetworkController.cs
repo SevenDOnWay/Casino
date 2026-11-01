@@ -36,8 +36,18 @@ namespace Assets.Script.NetWorkScript {
             return $"Bet_{betStake}_Ch_{safeChannel}";
         }
 
+        private INetworkObjectProvider GetOrCreateObjectProvider( NetworkRunner runnerInstance ) {
+            if ( runnerInstance == null ) return null;
+            var provider = runnerInstance.GetComponent<DynamicNetworkObjectProvider>();
+            if ( provider == null ) {
+                provider = runnerInstance.gameObject.AddComponent<DynamicNetworkObjectProvider>();
+            }
+            return provider;
+        }
+
         public void Start() {
             runner = Instantiate(runnerPrefab);
+            GetOrCreateObjectProvider(runner);
             runner.AddCallbacks(this);
         }
 
@@ -52,6 +62,7 @@ namespace Assets.Script.NetWorkScript {
         public async Task<StartGameResult> JoinBetLobby( int betStake, int channel = 1 ) {
             if ( runner == null && runnerPrefab != null ) {
                 runner = Instantiate(runnerPrefab);
+                GetOrCreateObjectProvider(runner);
                 runner.AddCallbacks(this);
             }
 
@@ -75,6 +86,7 @@ namespace Assets.Script.NetWorkScript {
 
             if ( runner == null && runnerPrefab != null ) {
                 runner = Instantiate(runnerPrefab);
+                GetOrCreateObjectProvider(runner);
                 runner.AddCallbacks(this);
             }
 
@@ -116,7 +128,8 @@ namespace Assets.Script.NetWorkScript {
                     CustomLobbyName = GetLobbyId(betStake, targetChannel),
                     SessionProperties = sessionProperties,
                     Scene = sceneRef,
-                    SceneManager = sceneManager
+                    SceneManager = sceneManager,
+                    ObjectProvider = GetOrCreateObjectProvider(runner)
                 });
             }
             else {
@@ -132,7 +145,8 @@ namespace Assets.Script.NetWorkScript {
                     Scene = sceneRef,
                     SceneManager = sceneManager,
                     IsOpen = true,
-                    IsVisible = true
+                    IsVisible = true,
+                    ObjectProvider = GetOrCreateObjectProvider(runner)
                 });
 
                 if ( result.Ok ) {
@@ -186,7 +200,8 @@ namespace Assets.Script.NetWorkScript {
                 SessionProperties = sessionProperties,
                 PlayerCount = playerCount,
                 Scene = sceneRef,
-                SceneManager = sceneManager
+                SceneManager = sceneManager,
+                ObjectProvider = GetOrCreateObjectProvider(runner)
             });
 
             if ( !result.Ok ) {
@@ -265,6 +280,7 @@ namespace Assets.Script.NetWorkScript {
 
             // 2. Create new runner
             runner = Instantiate(runnerPrefab);
+            GetOrCreateObjectProvider(runner);
             runner.AddCallbacks(this);
 
             var sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
@@ -284,7 +300,8 @@ namespace Assets.Script.NetWorkScript {
                 HostMigrationResume = OnHostMigrationResume,
                 GameMode = hostMigrationToken.GameMode,
                 Scene = sceneRef,
-                SceneManager = sceneManager
+                SceneManager = sceneManager,
+                ObjectProvider = GetOrCreateObjectProvider(runner)
             });
 
             if ( !result.Ok ) {

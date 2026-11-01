@@ -33,9 +33,12 @@ namespace Assets.Script.NetWorkScript {
 
         public override void Spawned() {
             if ( controller == null || localPlayerService == null ) {
-                var scope = LifetimeScope.Find<LifetimeScope>();
-                if ( scope != null ) {
-                    scope.Container.Inject(this);
+                var scope = LifetimeScope.Find<LifetimeScope>(gameObject.scene);
+                if ( scope != null && scope.Container != null ) {
+                    scope.Container.InjectGameObject(gameObject);
+                }
+                else {
+                    Debug.LogError($"[TienLenNetWorkPlayer] Dependencies not injected on '{name}'. Ensure DynamicNetworkObjectProvider is configured on the NetworkRunner.");
                 }
             }
 

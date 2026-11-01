@@ -1,4 +1,4 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Effects;
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
@@ -28,6 +28,10 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private TienLenGameController tienLenGameController;
         [SerializeField] private SessionController lobbySessionController;
         [SerializeField] private SeatManager seatManager;
+        private ISeatQueryService seatQueryService;
+        private ILocalPlayerService localPlayerService;
+        private TurnManager turnManager;
+
 
         [Header("UI Views")]
         [SerializeField] private SessionDisplayUI sessionDisplayUI;
@@ -36,8 +40,7 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private TableVisualLayoutManager tableVisualLayoutManager;
         [SerializeField] private PlayerWinEffectController winEffectController;
 
-        private ISeatQueryService seatQueryService;
-        private ILocalPlayerService localPlayerService;
+        
 
         private NetworkBehaviour.ChangeDetector seatDetector;
         private NetworkBehaviour.ChangeDetector gameDetector;
@@ -51,9 +54,11 @@ namespace Assets.Script.TienLen.UI {
             ILocalPlayerService localPlayerService,
             TienLenGameController tienLenGameController,
             TableVisualLayoutManager tableVisualLayoutManager,
+            TurnManager turnManager,
             PlayerWinEffectController winEffectController = null ) {
             this.seatQueryService = seatQueryService;
             this.localPlayerService = localPlayerService;
+            this.turnManager = turnManager;
             if ( this.tienLenGameController == null ) this.tienLenGameController = tienLenGameController;
             if ( this.tableVisualLayoutManager == null ) this.tableVisualLayoutManager = tableVisualLayoutManager;
             if ( this.winEffectController == null && winEffectController != null ) this.winEffectController = winEffectController;
@@ -265,7 +270,7 @@ namespace Assets.Script.TienLen.UI {
             if ( !IsGameLogicReady() ) return false;
             if ( tienLenGameController.WinnerSeat != -1 ) return false;
             int localSeat = ResolveLocalSeat();
-            return localSeat != -1 && localSeat == tienLenGameController.CurrentTurnSeat;
+            return localSeat != -1 && localSeat == turnManager.currentPlayerIndexNet;
         }
 
         private int ResolveLocalSeat() {
