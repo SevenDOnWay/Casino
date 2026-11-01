@@ -34,8 +34,8 @@ namespace Assets.Script.TienLen.UI {
 
         private CardHolder LocalHand {
             get {
-                if ( subscribedHand != null ) return subscribedHand;
-                return tableVisualLayoutManager.GetLocalCardHolder();
+                var hand = tableVisualLayoutManager != null ? tableVisualLayoutManager.GetLocalCardHolder() : null;
+                return hand != null ? hand : subscribedHand;
             }
         }
 
@@ -82,7 +82,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void EnsureHandSubscribed() {
-            CardHolder hand = LocalHand;
+            CardHolder hand = tableVisualLayoutManager != null ? tableVisualLayoutManager.GetLocalCardHolder() : subscribedHand;
             if ( hand != null && hand != subscribedHand ) {
                 UnsubscribeHand();
                 subscribedHand = hand;
@@ -134,20 +134,34 @@ namespace Assets.Script.TienLen.UI {
         #region Button Handlers
 
         private void OnSortBtnClick() {
-            LocalHand.SortCards();
-            LocalHand.ArrangeCards(animate: true);
+            CardHolder hand = LocalHand;
+            if ( hand != null ) {
+                hand.SortCards();
+                hand.ArrangeCards(animate: true);
+            }
         }
 
         private void OnPlayBtnClick() {
-            IReadOnlyList<CardView> selectedCards = LocalHand.SelectedCards;
+            CardHolder hand = LocalHand;
+            if ( hand == null ) return;
+
+            IReadOnlyList<CardView> selectedCards = hand.SelectedCards;
+            if ( selectedCards == null || selectedCards.Count == 0 ) {
+                Debug.LogWarning("[ActionPanel] Play ignored: no cards selected.");
+                return;
+            }
 
             List<Card> cards = selectedCards
                 .Select(view => view.Card)
                 .ToList();
 
             TienLenNetWorkPlayer networkPlayer = localPlayerService?.GetLocalNetworkPlayer();
+            if ( networkPlayer == null ) {
+                Debug.LogWarning("[ActionPanel] Play ignored: local network player is null.");
+                return;
+            }
 
-            if ( !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) {
+            if ( combinationEvaluator == null || !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) {
                 Debug.Log("[ActionPanel] Play ignored: selected cards are not a valid combination.");
                 return;
             }
@@ -161,9 +175,9 @@ namespace Assets.Script.TienLen.UI {
                 .Select(card => new NetworkCard(card))
                 .ToArray();
 
-            networkPlayer.RPCRequestPlayCard(networkCards);
+            networkPlayer.RPCSendPlayCard(networkCards);
 
-            LocalHand.ClearSelection();
+            hand.ClearSelection();
             RefreshActionState();
         }
 
@@ -203,7 +217,10 @@ namespace Assets.Script.TienLen.UI {
         #endregion
 
         private bool CheckForPlayable() {
-            IReadOnlyList<CardView> selectedCards = LocalHand.SelectedCards;
+            CardHolder hand = LocalHand;
+            if ( hand == null ) return false;
+
+            IReadOnlyList<CardView> selectedCards = hand.SelectedCards;
             if ( selectedCards == null || selectedCards.Count == 0 ) {
                 return false;
             }
@@ -211,7 +228,7 @@ namespace Assets.Script.TienLen.UI {
                 .Select(view => view.Card)
                 .ToList();
 
-            if ( !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) return false;
+            if ( combinationEvaluator == null || !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) return false;
             if ( validator != null && !validator.CanPlay(combination) ) return false;
 
             return true;

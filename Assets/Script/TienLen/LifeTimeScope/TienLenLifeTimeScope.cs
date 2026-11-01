@@ -3,6 +3,7 @@ using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Effects;
 using Assets.Script.TienLen.Game;
+using Assets.Script.TienLen.Game.Controller;
 using Assets.Script.TienLen.Game.Services;
 using Assets.Script.TienLen.Game.Visual;
 using Assets.Script.TienLen.Player;
@@ -27,13 +28,19 @@ namespace Assets.Script.TienLen.LifeTimeScope {
 
             // Domain Services
             builder.Register<TienLenMatchOutcomeReporter>(Lifetime.Singleton);
-            builder.Register<TienLenActionHandler>(Lifetime.Singleton);
+            builder.Register<TienLenActionHandler>(Lifetime.Singleton)
+                   .As<IActionHandler>()
+                   .AsSelf();
             builder.Register<TienLenTurnHandler>(Lifetime.Singleton);
             builder.Register<TienLenMigrationHandler>(Lifetime.Singleton);
 
             // Session & Table State
             builder.RegisterComponentInHierarchy<SessionController>();
             builder.RegisterComponentInHierarchy<TienLenGameController>();
+            builder.RegisterComponentInHierarchy<MatchController>();
+            builder.RegisterComponentInHierarchy<TienLenAnimationHub>()
+                   .As<IAnimationPlayer>()
+                   .AsSelf();
             builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
             builder.RegisterComponentInHierarchy<SeatProvider>();
 

@@ -268,6 +268,8 @@ GameObject:
   m_Component:
   - component: {fileID: 183374123}
   - component: {fileID: 183374122}
+  - component: {fileID: 183374125}
+  - component: {fileID: 183374126}
   - component: {fileID: 183374124}
   m_Layer: 0
   m_Name: GameController
@@ -337,7 +339,39 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 183374122}
+  - {fileID: 183374125}
+  - {fileID: 183374126}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &183374125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 183374121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb49497e5021438aa5ed39e5f5a0dc53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.Controller.MatchController
+  minPlayersToStart: 2
+  celebrationDuration: 3.5
+--- !u!114 &183374126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 183374121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57e379505c934c2d838443b777d81a73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.Visual.TienLenAnimationHub
+  tienLenSO: {fileID: 11400000, guid: 4b726a4dce8693641a3fb80f1bcd6f7f, type: 2}
+  tableCenterPosition: {fileID: 937606375}
+  dealingAnimator: {fileID: 0}
+  tableAnimator: {fileID: 0}
 --- !u!1001 &335409598
 PrefabInstance:
   m_ObjectHideFlags: 0
