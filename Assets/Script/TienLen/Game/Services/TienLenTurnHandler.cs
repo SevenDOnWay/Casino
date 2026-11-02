@@ -4,6 +4,7 @@ using Assets.Script.TienLen.Rule;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using VContainer;
 
 namespace Assets.Script.TienLen.Game.Services {
     public enum AutoActionResultType {
@@ -29,16 +30,14 @@ namespace Assets.Script.TienLen.Game.Services {
 
     public class TienLenTurnHandler {
         private readonly CardCombinationEvaluator cardCombinationEvaluator;
-        private readonly TurnManager turnManager;
         private readonly TienLenRuleValidator validator;
 
+        [Inject]
         public TienLenTurnHandler(
             CardCombinationEvaluator cardCombinationEvaluator,
-            TurnManager turnManager,
             TienLenRuleValidator validator
         ) {
             this.cardCombinationEvaluator = cardCombinationEvaluator;
-            this.turnManager = turnManager;
             this.validator = validator;
         }
 

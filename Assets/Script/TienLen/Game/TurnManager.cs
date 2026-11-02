@@ -14,9 +14,12 @@ namespace Assets.Script.TienLen.Game {
         [Header("Dependencies")]
         private TienLenRuleValidator validator;
         private TienLenTurnHandler turnHandler;
-        private IActionHandler actionHandler;
         private ISeatQueryService seatQueryService;
-        private TienLenGameController gameController;
+        private IObjectResolver resolver;
+
+        private IActionHandler ActionHandler => resolver?.Resolve<IActionHandler>();
+        private TienLenGameController GameController => resolver?.Resolve<TienLenGameController>();
+        private TienLenTurnHandler TurnHandler => turnHandler ??= resolver?.Resolve<TienLenTurnHandler>();
 
         private IReadOnlyList<TienLenPlayer> players;
         private int lastPlayIndex;
@@ -42,15 +45,11 @@ namespace Assets.Script.TienLen.Game {
         [Inject]
         public void Construct(
             TienLenRuleValidator validator,
-            TienLenTurnHandler turnHandler = null,
-            IActionHandler actionHandler = null,
             ISeatQueryService seatQueryService = null,
-            TienLenGameController gameController = null ) {
+            IObjectResolver resolver = null ) {
             this.validator = validator;
-            this.turnHandler = turnHandler;
-            this.actionHandler = actionHandler;
             this.seatQueryService = seatQueryService;
-            this.gameController = gameController;
+            this.resolver = resolver;
         }
 
         private void SyncNetworkState() {
@@ -94,24 +93,24 @@ namespace Assets.Script.TienLen.Game {
                     startingIndex = ordered.IndexOf(winnerPlayer);
                 }
                 SetStartingPlayer(startingIndex >= 0 ? startingIndex : 0);
-                if ( actionHandler != null ) actionHandler.IsFirstPlayOfGame = false;
+                if ( ActionHandler != null ) ActionHandler.IsFirstPlayOfGame = false;
                 Debug.Log($"[TurnManager] Previous winner at seat {startingSeat} (order index {startingIndex}) leads next match.");
             }
             else {
-                int holderIndex = turnHandler != null ? turnHandler.FindStartingSeatOrderIndex(ordered) : -1;
+                int holderIndex = TurnHandler != null ? TurnHandler.FindStartingSeatOrderIndex(ordered) : -1;
                 if ( holderIndex >= 0 ) {
                     SetStartingPlayer(holderIndex);
-                    if ( actionHandler != null ) actionHandler.IsFirstPlayOfGame = true;
+                    if ( ActionHandler != null ) ActionHandler.IsFirstPlayOfGame = true;
                     Debug.Log($"[TurnManager] Player at order index {holderIndex} holds 3 of Spades and must lead the match.");
                 }
                 else {
                     SetStartingPlayer(0);
-                    if ( actionHandler != null ) actionHandler.IsFirstPlayOfGame = false;
+                    if ( ActionHandler != null ) ActionHandler.IsFirstPlayOfGame = false;
                     Debug.Log("[TurnManager] 3 of Spades is not held by any player. Host starts freely.");
                 }
             }
 
-            gameController?.MirrorTurnSeat(isDealingStart: true);
+            GameController?.MirrorTurnSeat(isDealingStart: true);
         }
 
         public bool CanPass( TienLenPlayer player ) {
@@ -181,44 +180,47 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void HandleTurnTimeout() {
-            if ( !Object.HasStateAuthority || gameController == null || !gameController.IsGameStarted || gameController.WinnerSeat != -1 ) return;
+            var gc = GameController;
+            if ( !Object.HasStateAuthority || gc == null || !gc.IsGameStarted || gc.WinnerSeat != -1 ) return;
             if ( CurrentPlayer == null || seatQueryService == null ) return;
 
-            Debug.Log($"[TurnManager] Turn timer expired for player {CurrentPlayer.Id} (Seat {gameController.CurrentTurnSeat}). Auto-acting...");
+            Debug.Log($"[TurnManager] Turn timer expired for player {CurrentPlayer.Id} (Seat {gc.CurrentTurnSeat}). Auto-acting...");
             AutoActForCurrentPlayer();
         }
 
         public void AutoActForCurrentPlayer() {
-            if ( !Object.HasStateAuthority || gameController == null || !gameController.IsGameStarted || gameController.WinnerSeat != -1 ) return;
-            if ( CurrentPlayer == null || seatQueryService == null || turnHandler == null || actionHandler == null ) return;
+            var gc = GameController;
+            var ah = ActionHandler;
+            if ( !Object.HasStateAuthority || gc == null || !gc.IsGameStarted || gc.WinnerSeat != -1 ) return;
+            if ( CurrentPlayer == null || seatQueryService == null || TurnHandler == null || ah == null ) return;
 
             var currentPlayer = CurrentPlayer;
 
-            var decision = turnHandler.DecideAutoAction(currentPlayer, actionHandler.IsFirstPlayOfGame);
+            var decision = TurnHandler.DecideAutoAction(currentPlayer, ah.IsFirstPlayOfGame);
             switch ( decision.ActionType ) {
                 case AutoActionResultType.Pass:
-                    if ( !actionHandler.TryExecutePass(currentPlayer, out _, out _) ) {
+                    if ( !ah.TryExecutePass(currentPlayer, out _, out _) ) {
                         ForceAdvanceTurn();
-                        gameController?.MirrorTurnSeat();
+                        gc?.MirrorTurnSeat();
                     }
                     break;
 
                 case AutoActionResultType.PlayCards:
                     NetworkCard[] netCards = decision.CardsToPlay.Select(c => new NetworkCard(c)).ToArray();
-                    if ( !actionHandler.TryValidateAndExecutePlay(currentPlayer, netCards, out _, out _) ) {
+                    if ( !ah.TryValidateAndExecutePlay(currentPlayer, netCards, out _, out _) ) {
                         ForceAdvanceTurn();
-                        gameController?.MirrorTurnSeat();
+                        gc?.MirrorTurnSeat();
                     }
                     break;
 
                 case AutoActionResultType.ForceAdvance:
                     ForceAdvanceTurn();
-                    gameController?.MirrorTurnSeat();
+                    gc?.MirrorTurnSeat();
                     break;
             }
 
-            if ( Object.HasStateAuthority && (!gameController.TurnTimer.IsRunning || gameController.TurnTimer.Expired(Runner)) ) {
-                gameController.TurnTimer = TickTimer.CreateFromSeconds(Runner, gameController.TurnDuration);
+            if ( Object.HasStateAuthority && (!gc.TurnTimer.IsRunning || gc.TurnTimer.Expired(Runner)) ) {
+                gc.TurnTimer = TickTimer.CreateFromSeconds(Runner, gc.TurnDuration);
             }
         }
 

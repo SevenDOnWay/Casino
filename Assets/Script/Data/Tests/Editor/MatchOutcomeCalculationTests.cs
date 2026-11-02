@@ -145,7 +145,7 @@ namespace Assets.Script.Data.Tests {
             p2.Hand.AddCard(new Card(CardRank.King, CardSuit.Clubs));
 
             var ordered = new List<TienLenPlayer> { p1, p2 };
-            var turnHandler = new TienLenTurnHandler(null, null, null);
+            var turnHandler = new TienLenTurnHandler(null, null);
 
             int startingIndex = turnHandler.FindStartingSeatOrderIndex(ordered);
             Assert.AreEqual(1, startingIndex, "Bob at index 1 holds 3 of Spades");
@@ -161,7 +161,7 @@ namespace Assets.Script.Data.Tests {
             );
             validator.SetCurrentCombination(leadCombo);
 
-            var turnHandler = new TienLenTurnHandler(null, null, validator);
+            var turnHandler = new TienLenTurnHandler(null, validator);
             var player = new TienLenPlayer(1, "Alice", true);
             player.Hand.AddCard(new Card(CardRank.Seven, CardSuit.Diamonds));
 

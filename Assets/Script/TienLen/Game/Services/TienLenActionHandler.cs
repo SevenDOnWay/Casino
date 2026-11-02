@@ -11,18 +11,17 @@ using VContainer;
 
 namespace Assets.Script.TienLen.Game.Services {
     public class TienLenActionHandler : IActionHandler {
-        [Inject] private readonly CardCombinationEvaluator cardCombinationEvaluator;
-        [Inject] private readonly TienLenRuleValidator validator;
-        [Inject] private readonly TurnManager turnManager;
-        [Inject] private readonly ISeatQueryService seatQueryService;
-        [Inject] private readonly TienLenGameController gameController;
-        [Inject] private readonly IAnimationPlayer animationPlayer;
-        [Inject] private readonly MatchController matchController;
+        private readonly CardCombinationEvaluator cardCombinationEvaluator;
+        private readonly TienLenRuleValidator validator;
+        private readonly TurnManager turnManager;
+        private readonly ISeatQueryService seatQueryService;
+        private readonly TienLenGameController gameController;
+        private readonly IAnimationPlayer animationPlayer;
+        private readonly MatchController matchController;
 
         public bool IsFirstPlayOfGame { get; set; } = true;
 
-        public TienLenActionHandler() { }
-
+        [Inject]
         public TienLenActionHandler(
             CardCombinationEvaluator cardCombinationEvaluator,
             TurnManager turnManager,

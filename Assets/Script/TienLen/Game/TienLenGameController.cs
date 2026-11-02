@@ -28,7 +28,7 @@ namespace Assets.Script.TienLen.Game {
         private const int totalSeats = 4;
 
         [Header("Dependencies")]
-        [Inject] private MatchController matchController;
+        private IObjectResolver resolver;
         private LocalPlayerService localPlayerService;
         private TurnManager turnManager;
         private ISeatQueryService seatQueryService;
@@ -88,25 +88,20 @@ namespace Assets.Script.TienLen.Game {
             Object != null && Object.IsValid && seatQueryService != null && RegisteredPlayerCount >= minPlayersToStart;
 
         public bool CanStartGame() {
-            if ( matchController != null ) return matchController.CanStartGame();
             if ( !HasEnoughPlayersToPlay ) return false;
             if ( IsGameStarted ) return false;
             return true;
         }
 
         public void StartGame() {
-            if ( matchController != null ) {
-                matchController.StartGame();
-            }
+            var matchController = resolver?.Resolve<MatchController>();
+            matchController?.StartGame();
         }
 
         public void TriggerGameOver( int winnerSeat ) {
-            if ( matchController != null ) {
-                matchController.EndGame(winnerSeat);
-            }
-            else {
-                WinnerSeat = winnerSeat;
-            }
+            WinnerSeat = winnerSeat;
+            var matchController = resolver?.Resolve<MatchController>();
+            matchController?.EndGame(winnerSeat);
         }
 
         [Inject]
@@ -116,19 +111,19 @@ namespace Assets.Script.TienLen.Game {
             CardCombinationEvaluator cardCombinationEvaluator,
             ISeatQueryService seatQueryService,
             TienLenRuleValidator validator,
+            IObjectResolver resolver = null,
             IPlayerProfileService profileService = null,
             TienLenMatchOutcomeReporter outcomeReporter = null,
-            TienLenMigrationHandler migrationHandler = null,
-            MatchController matchController = null ) {
+            TienLenMigrationHandler migrationHandler = null ) {
             this.localPlayerService = localPlayerService;
             this.turnManager = turnManager;
             this.seatQueryService = seatQueryService;
             this.validator = validator;
+            this.resolver = resolver;
             this.profileService = profileService;
-            if ( matchController != null ) this.matchController = matchController;
 
             this.outcomeReporter = outcomeReporter ?? new TienLenMatchOutcomeReporter(seatQueryService, localPlayerService, profileService);
-            this.turnHandler = new TienLenTurnHandler(cardCombinationEvaluator, turnManager, validator);
+            this.turnHandler = new TienLenTurnHandler(cardCombinationEvaluator, validator);
             this.migrationHandler = migrationHandler ?? new TienLenMigrationHandler(seatQueryService, turnManager, cardCombinationEvaluator, validator);
         }
 

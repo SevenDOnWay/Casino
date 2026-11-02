@@ -14,11 +14,23 @@ namespace Assets.Script.TienLen.Game {
     /// </summary>
     public class SessionController : NetworkBehaviour, INetworkRunnerCallbacks {
         [Header("Scene Dependencies (Serialized / Injected)")]
-        [Inject] private SeatManager seatManager;
-        [Inject] private TienLenGameController gameController;
+        private SeatManager seatManager;
+        private TienLenGameController gameController;
 
-        [Inject] private IPlayerRegisterService playerRegisterService;
-        [Inject] private ISeatQueryService seatQueryService;
+        private IPlayerRegisterService playerRegisterService;
+        private ISeatQueryService seatQueryService;
+
+        [Inject]
+        public void Construct(
+            SeatManager seatManager,
+            TienLenGameController gameController,
+            IPlayerRegisterService playerRegisterService = null,
+            ISeatQueryService seatQueryService = null ) {
+            this.seatManager = seatManager;
+            this.gameController = gameController;
+            this.playerRegisterService = playerRegisterService ?? seatManager;
+            this.seatQueryService = seatQueryService ?? seatManager;
+        }
 
         public IPlayerRegisterService RegisterService => playerRegisterService ?? seatManager;
         public ISeatQueryService SeatQuery => seatQueryService ?? seatManager;
