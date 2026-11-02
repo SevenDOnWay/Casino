@@ -19,17 +19,20 @@ namespace Assets.Script.TienLen.Game {
 
         private IPlayerRegisterService playerRegisterService;
         private ISeatQueryService seatQueryService;
+        private LocalPlayerService localPlayerService;
 
         [Inject]
         public void Construct(
             SeatManager seatManager,
             TienLenGameController gameController,
             IPlayerRegisterService playerRegisterService = null,
-            ISeatQueryService seatQueryService = null ) {
+            ISeatQueryService seatQueryService = null,
+            LocalPlayerService localPlayerService = null ) {
             this.seatManager = seatManager;
             this.gameController = gameController;
             this.playerRegisterService = playerRegisterService ?? seatManager;
             this.seatQueryService = seatQueryService ?? seatManager;
+            this.localPlayerService = localPlayerService;
         }
 
         public IPlayerRegisterService RegisterService => playerRegisterService ?? seatManager;
@@ -116,7 +119,18 @@ namespace Assets.Script.TienLen.Game {
                     networkPlayer = obj.GetComponent<TienLenNetWorkPlayer>();
                     if ( networkPlayer != null ) {
                         networkPlayer.PlayerRef = player;
-                        networkPlayer.PlayerName = $"Player {player.PlayerId}";
+                        if ( player == runner.LocalPlayer && localPlayerService != null ) {
+                            networkPlayer.UserId = localPlayerService.GetID() ?? string.Empty;
+                            networkPlayer.PlayerName = localPlayerService.GetName() ?? $"Player {player.PlayerId}";
+                            networkPlayer.AvatarId = localPlayerService.GetAvatarId();
+                            networkPlayer.Level = localPlayerService.GetLevel();
+                            long money = localPlayerService.GetMoney();
+                            networkPlayer.Money = money > 0 ? money : 10000;
+                        }
+                        else {
+                            networkPlayer.PlayerName = $"Player {player.PlayerId}";
+                            networkPlayer.Money = 10000;
+                        }
                     }
                 }
             );
@@ -125,7 +139,18 @@ namespace Assets.Script.TienLen.Game {
                 networkPlayer = networkPlayerObject.GetComponent<TienLenNetWorkPlayer>();
                 if ( networkPlayer != null ) {
                     networkPlayer.PlayerRef = player;
-                    networkPlayer.PlayerName = $"Player {player.PlayerId}";
+                    if ( player == Runner.LocalPlayer && localPlayerService != null ) {
+                        networkPlayer.UserId = localPlayerService.GetID() ?? string.Empty;
+                        networkPlayer.PlayerName = localPlayerService.GetName() ?? $"Player {player.PlayerId}";
+                        networkPlayer.AvatarId = localPlayerService.GetAvatarId();
+                        networkPlayer.Level = localPlayerService.GetLevel();
+                        long money = localPlayerService.GetMoney();
+                        networkPlayer.Money = money > 0 ? money : 10000;
+                    }
+                    else {
+                        networkPlayer.PlayerName = $"Player {player.PlayerId}";
+                        networkPlayer.Money = 10000;
+                    }
                 }
             }
 

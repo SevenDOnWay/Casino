@@ -1,4 +1,4 @@
-﻿using Assets.Script.Data.Models;
+using Assets.Script.Data.Models;
 using Assets.Script.Data.Services;
 using Assets.Script.TienLen.Player;
 using System;
@@ -22,7 +22,10 @@ namespace Assets.Script.NetWorkScript {
         public LocalPlayerService( IPlayerProfileService profileService ) {
             this.profileService = profileService;
             if ( this.profileService != null ) {
-                this.profileService.OnMoneyChanged += _ => OnProfileUpdated?.Invoke(Profile);
+                this.profileService.OnMoneyChanged += newMoney => {
+                    if ( Player != null ) Player.Money = newMoney;
+                    OnProfileUpdated?.Invoke(Profile);
+                };
                 this.profileService.OnLevelOrExpChanged += (_, _) => OnProfileUpdated?.Invoke(Profile);
                 this.profileService.OnAvatarChanged += _ => OnProfileUpdated?.Invoke(Profile);
                 this.profileService.OnDisplayNameChanged += _ => OnProfileUpdated?.Invoke(Profile);
@@ -56,7 +59,9 @@ namespace Assets.Script.NetWorkScript {
         }
 
         public long GetMoney() {
-            return Profile?.money ?? 0;
+            if ( Profile != null && Profile.money > 0 ) return Profile.money;
+            if ( Player != null && Player.Money > 0 ) return Player.Money;
+            return Profile != null ? Profile.money : (Player != null ? Player.Money : 10000);
         }
 
         public int GetLevel() {

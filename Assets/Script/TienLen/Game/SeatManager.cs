@@ -1,4 +1,4 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
 using Fusion;
 using System.Collections.Generic;
@@ -269,6 +269,9 @@ namespace Assets.Script.TienLen.Game {
                     continue;
                 }
 
+                netPlayer.OnPlayerDataUpdated -= HandleNetPlayerDataUpdated;
+                netPlayer.OnPlayerDataUpdated += HandleNetPlayerDataUpdated;
+
                 if ( seatedPlayers.TryGetValue(seatIndex, out var existingPlayer)
                     && existingPlayer != null
                     && (existingPlayer.Id == netPlayer.PlayerRef.PlayerId || string.Equals(existingPlayer.PlayerName, (string)netPlayer.PlayerName)) ) {
@@ -276,8 +279,6 @@ namespace Assets.Script.TienLen.Game {
                     newSeatedPlayers[seatIndex] = existingPlayer;
                 }
                 else {
-                    netPlayer.OnPlayerDataUpdated -= HandleNetPlayerDataUpdated;
-                    netPlayer.OnPlayerDataUpdated += HandleNetPlayerDataUpdated;
                     newSeatedPlayers[seatIndex] = new TienLenPlayer(netPlayer);
                 }
             }
@@ -334,6 +335,9 @@ namespace Assets.Script.TienLen.Game {
                     if ( seatedNetPlayer == netPlayer ) {
                         if ( seatedPlayers.TryGetValue(seat, out var logicPlayer) && logicPlayer != null ) {
                             logicPlayer.UpdateFromNetwork(netPlayer);
+                            if ( localPlayerService != null && Runner != null && Runner.LocalPlayer.IsValid && netPlayer.PlayerRef == Runner.LocalPlayer ) {
+                                localPlayerService.GetLocalLogicPlayer()?.UpdateFromNetwork(netPlayer);
+                            }
                             SeatRevision++;
                             Debug.Log($"[SeatManager] Player data synced for seat {seat}: {netPlayer.PlayerName}, Avatar={netPlayer.AvatarId}, Level={netPlayer.Level}, Money={netPlayer.Money}");
                         }

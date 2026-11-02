@@ -66,16 +66,25 @@ namespace Assets.Script.NetWorkScript {
 
             localPlayerService.SetLocalNetworkPlayer(this);
 
-            var localProfile = localPlayerService.GetLocalLogicPlayer();
-            if ( localProfile != null ) {
-                RPCSetPlayerData(
-                    localProfile.UserId ?? string.Empty,
-                    localProfile.PlayerName ?? string.Empty,
-                    localProfile.AvatarId,
-                    localProfile.Level,
-                    localProfile.Money
-                );
+            string id = localPlayerService.GetID() ?? string.Empty;
+            string name = localPlayerService.GetName() ?? $"Player {PlayerRef.PlayerId}";
+            int avatar = localPlayerService.GetAvatarId();
+            int lvl = localPlayerService.GetLevel();
+            long money = localPlayerService.GetMoney();
+
+            if ( Object.HasStateAuthority ) {
+                UserId = id;
+                PlayerName = name;
+                AvatarId = avatar;
+                Level = lvl;
+                Money = money;
+                OnPlayerDataUpdated?.Invoke(this);
             }
+            else {
+                RPCSetPlayerData(id, name, avatar, lvl, money);
+            }
+
+            Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{name}' (UserId: {id}, PlayerRef: {PlayerRef.PlayerId}) Avatar={avatar} Level={lvl} Money={money}.");
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
