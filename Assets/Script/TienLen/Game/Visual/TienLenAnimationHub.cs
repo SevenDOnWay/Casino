@@ -53,11 +53,24 @@ namespace Assets.Script.TienLen.Game.Visual {
             this.cardCombinationEvaluator = cardCombinationEvaluator;
         }
 
+        private void Awake() {
+            InitializeSprites();
+            EnsureAnimators();
+        }
+
         public override void Spawned() {
             base.Spawned();
             EnsureAnimators();
+            InitializeSprites();
+        }
+
+        private void InitializeSprites() {
+            if ( tienLenSO == null ) {
+                tienLenSO = Resources.Load<TienLenSO>("SO/CardSpriteAtlas");
+            }
             if ( tienLenSO != null ) {
                 cardBack = tienLenSO.GetCardBackSprite();
+                sprites = tienLenSO.GetLookUpTable() ?? new();
             }
         }
 
@@ -65,15 +78,30 @@ namespace Assets.Script.TienLen.Game.Visual {
             if ( dealingAnimator == null ) {
                 dealingAnimator = GetComponent<TienLenDealingAnimator>() ?? gameObject.AddComponent<TienLenDealingAnimator>();
             }
+            if ( tableAnimator == null ) {
+                tableAnimator = GetComponent<TienLenTableAnimator>() ?? gameObject.AddComponent<TienLenTableAnimator>();
+            }
+
+            if ( tableCenterPosition == null ) {
+                var holders = FindObjectsByType<CardHolder>(FindObjectsSortMode.None);
+                foreach ( var holder in holders ) {
+                    if ( holder != null && holder.name.Equals("Center", System.StringComparison.OrdinalIgnoreCase) ) {
+                        tableCenterPosition = holder;
+                        break;
+                    }
+                }
+            }
+
             if ( dealingAnimator != null && tableCenterPosition != null ) {
                 dealingAnimator.TableCenterPosition = tableCenterPosition;
             }
 
-            if ( tableAnimator == null ) {
-                tableAnimator = GetComponent<TienLenTableAnimator>() ?? gameObject.AddComponent<TienLenTableAnimator>();
-            }
             if ( tableAnimator != null && tableCenterPosition != null ) {
                 tableAnimator.TableCenterPosition = tableCenterPosition;
+            }
+
+            if ( cardSpawner == null ) {
+                cardSpawner = FindAnyObjectByType<CardSpawner>();
             }
         }
 
@@ -84,9 +112,7 @@ namespace Assets.Script.TienLen.Game.Visual {
 
         public void SetTienLenSO( TienLenSO so ) {
             tienLenSO = so;
-            if ( tienLenSO != null ) {
-                cardBack = tienLenSO.GetCardBackSprite();
-            }
+            InitializeSprites();
         }
 
         public void RecordPendingHand( PlayerRef owner, List<Card> hand ) {

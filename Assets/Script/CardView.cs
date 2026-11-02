@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -39,6 +39,13 @@ namespace Assets.Script {
             EnsureSpriteRenderer();
             if ( spriteRenderer != null ) {
                 spriteRenderer.sprite = sprite;
+            }
+        }
+
+        public void SetSortingOrder( int order ) {
+            EnsureSpriteRenderer();
+            if ( spriteRenderer != null ) {
+                spriteRenderer.sortingOrder = order;
             }
         }
 

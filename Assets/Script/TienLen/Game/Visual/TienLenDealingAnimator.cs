@@ -38,6 +38,10 @@ namespace Assets.Script.TienLen.Game.Visual {
 
             if ( seatQueryService == null || cardSpawner == null ) return;
 
+            if ( cardBack == null && tienLenSO != null ) {
+                cardBack = tienLenSO.GetCardBackSprite();
+            }
+
             var seatedPlayers = seatQueryService.GetSeatedPlayers();
             var networkPlayerMap = seatQueryService.GetNetworkPlayerMap();
 

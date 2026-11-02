@@ -12,13 +12,25 @@ namespace Assets.Script.TienLen.Game.Visual {
         [SerializeField] private CardHolder tableCenterPosition;
 
         public CardHolder TableCenterPosition {
-            get => tableCenterPosition;
+            get {
+                if ( tableCenterPosition == null ) {
+                    var holders = FindObjectsByType<CardHolder>(FindObjectsSortMode.None);
+                    foreach ( var holder in holders ) {
+                        if ( holder != null && holder.name.Equals("Center", System.StringComparison.OrdinalIgnoreCase) ) {
+                            tableCenterPosition = holder;
+                            break;
+                        }
+                    }
+                }
+                return tableCenterPosition;
+            }
             set => tableCenterPosition = value;
         }
 
         public void ClearTableCenter() {
-            if ( tableCenterPosition != null ) {
-                tableCenterPosition.Clear();
+            CardHolder center = TableCenterPosition;
+            if ( center != null ) {
+                center.Clear();
             }
         }
 
@@ -29,12 +41,13 @@ namespace Assets.Script.TienLen.Game.Visual {
             TienLenSO tienLenSO,
             Dictionary<(CardSuit, CardRank), Sprite> sprites = null
         ) {
-            if ( tableCenterPosition == null ) {
+            CardHolder center = TableCenterPosition;
+            if ( center == null ) {
                 Debug.LogError("[TienLenTableAnimator] Table center position is not assigned.");
                 return;
             }
 
-            StartCoroutine(AnimateCardsToTableCoroutine(hand, tableCenterPosition, playedCards, cardSpawner, tienLenSO, sprites));
+            StartCoroutine(AnimateCardsToTableCoroutine(hand, center, playedCards, cardSpawner, tienLenSO, sprites));
         }
 
         private IEnumerator AnimateCardsToTableCoroutine(
@@ -60,43 +73,41 @@ namespace Assets.Script.TienLen.Game.Visual {
 
             List<CardView> cardsToAnimate = new List<CardView>();
 
-            if ( hand != null && hand.CardViews.Count > 0 ) {
-                for ( int i = 0; i < playedCards.Count; i++ ) {
-                    CardView matchedView = null;
-                    Card played = playedCards[i];
+            for ( int i = 0; i < playedCards.Count; i++ ) {
+                Card played = playedCards[i];
+                CardView cardView = null;
 
-                    foreach ( var view in hand.CardViews ) {
-                        if ( view != null && view.Card != null && view.Card.Equals(played) ) {
-                            matchedView = view;
-                            break;
-                        }
-                    }
-
-                    if ( matchedView == null ) {
-                        matchedView = hand.CardViews.FirstOrDefault(v => v != null && !cardsToAnimate.Contains(v));
-                    }
-
-                    if ( matchedView != null ) {
-                        cardsToAnimate.Add(matchedView);
+                if ( hand != null && hand.CardViews.Count > 0 ) {
+                    // Try exact match first
+                    cardView = hand.CardViews.FirstOrDefault(v => v != null && v.Card != null && v.Card.Equals(played) && !cardsToAnimate.Contains(v));
+                    // Fallback to any available card view in hand (e.g. face-down opponent card)
+                    if ( cardView == null ) {
+                        cardView = hand.CardViews.FirstOrDefault(v => v != null && !cardsToAnimate.Contains(v));
                     }
                 }
 
-                hand.RemoveCards(cardsToAnimate, animate: true);
-            }
-            else if ( cardSpawner != null ) {
-                for ( int i = 0; i < playedCards.Count; i++ ) {
-                    Card played = playedCards[i];
+                if ( cardView == null && cardSpawner != null ) {
                     Sprite cardSprite = null;
-                    if ( sprites != null && sprites.TryGetValue((played.Suit, played.Rank), out Sprite sp) ) {
+                    if ( sprites != null && sprites.TryGetValue((played.Suit, played.Rank), out Sprite sp) && sp != null ) {
                         cardSprite = sp;
                     }
                     else if ( tienLenSO != null ) {
                         cardSprite = tienLenSO.GetCardSprite(played.Suit, played.Rank);
                     }
 
-                    CardView spawnedView = cardSpawner.SpawnCard(played, cardSprite);
-                    spawnedView.transform.position = table.transform.position + Vector3.up * 2f;
-                    cardsToAnimate.Add(spawnedView);
+                    cardView = cardSpawner.SpawnCard(played, cardSprite);
+                    cardView.transform.position = table.transform.position + Vector3.up * 2f;
+                }
+
+                if ( cardView != null ) {
+                    cardsToAnimate.Add(cardView);
+                }
+            }
+
+            if ( hand != null && cardsToAnimate.Count > 0 ) {
+                var handCards = cardsToAnimate.Where(c => hand.CardViews.Contains(c)).ToList();
+                if ( handCards.Count > 0 ) {
+                    hand.RemoveCards(handCards, animate: true);
                 }
             }
 
@@ -107,11 +118,21 @@ namespace Assets.Script.TienLen.Game.Visual {
                 if ( i < playedCards.Count && playedCards[i] != null ) {
                     Card played = playedCards[i];
                     view.Card = played;
-                    if ( sprites != null && sprites.TryGetValue((played.Suit, played.Rank), out Sprite faceSprite)
-                        && faceSprite != null ) {
+
+                    Sprite faceSprite = null;
+                    if ( sprites != null && sprites.TryGetValue((played.Suit, played.Rank), out Sprite sp) && sp != null ) {
+                        faceSprite = sp;
+                    }
+                    else if ( tienLenSO != null ) {
+                        faceSprite = tienLenSO.GetCardSprite(played.Suit, played.Rank);
+                    }
+
+                    if ( faceSprite != null ) {
                         view.ChangeSprite(faceSprite);
                     }
                 }
+
+                view.SetSortingOrder(10 + i);
 
                 Transform cardTransform = view.transform;
                 cardTransform.SetParent(table.transform, worldPositionStays: true);
