@@ -31,10 +31,18 @@ namespace Assets.Script.TienLen.Game {
 
         public event Action<int> OnTurnChanged;
 
-        [Networked] public int currentPlayerIndex { get; set; }
-        [Networked] int WinnerSeatNet { get; set; } = -1;
-        [Networked] int lastPassSeat { get; set; } = -1;
-        [Networked] int CurrentTableCardCount { get; set; } = 0;
+        private int localCurrentPlayerIndex = 0;
+        [Networked] private int currentPlayerIndexNet { get; set; }
+
+        public int currentPlayerIndex {
+            get => (Object != null && Object.IsValid) ? currentPlayerIndexNet : localCurrentPlayerIndex;
+            set {
+                localCurrentPlayerIndex = value;
+                if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                    currentPlayerIndexNet = value;
+                }
+            }
+        }
 
         public TurnManager() { }
 
@@ -139,15 +147,20 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void AdvanceTurn() {
+            if ( players == null || players.Count == 0 ) return;
+
             for ( int i = 1; i <= players.Count; i++ ) {
                 int nextIndex = (currentPlayerIndex + i) % players.Count;
                 var candidate = players[nextIndex];
 
-                if ( currentPlayerIndex == lastPlayIndex ) {
-                    StartNewRound();
-                }
                 if ( candidate != null && IsPlayerActive(candidate) && !passedInRound.Contains(candidate) ) {
                     currentPlayerIndex = nextIndex;
+
+                    // If the turn returned to the last player who played, the round is complete
+                    if ( currentPlayerIndex == lastPlayIndex ) {
+                        StartNewRound();
+                    }
+
                     SyncNetworkState();
                     OnTurnChanged?.Invoke(nextIndex);
                     return;
@@ -156,6 +169,30 @@ namespace Assets.Script.TienLen.Game {
 
             Debug.LogError("[TurnManager] AdvanceTurn: No active player found to advance to. This should not happen.");
             return;
+        }
+
+        public void ResetRoundToLeader() {
+            int leaderIndex = lastPlayIndex;
+
+            // If leader already emptied hand and won, advance clockwise to next active player
+            if ( players != null && players.Count > 0 ) {
+                var leaderPlayer = (leaderIndex >= 0 && leaderIndex < players.Count) ? players[leaderIndex] : null;
+                if ( leaderPlayer == null || !IsPlayerActive(leaderPlayer) ) {
+                    for ( int i = 1; i <= players.Count; i++ ) {
+                        int next = (leaderIndex + i) % players.Count;
+                        if ( players[next] != null && IsPlayerActive(players[next]) ) {
+                            leaderIndex = next;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            currentPlayerIndex = leaderIndex;
+            lastPlayIndex = leaderIndex;
+            StartNewRound();
+            SyncNetworkState();
+            OnTurnChanged?.Invoke(currentPlayerIndex);
         }
 
         public void ForceAdvanceTurn() {

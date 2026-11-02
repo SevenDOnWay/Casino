@@ -168,5 +168,101 @@ namespace Assets.Script.Data.Tests {
             var decision = turnHandler.DecideAutoAction(player, isFirstPlayOfGame: false);
             Assert.AreEqual(AutoActionResultType.Pass, decision.ActionType);
         }
+
+        [Test]
+        public void TurnManager_PlayCard_DoesNotResetValidatorPrematurely() {
+            var validator = new TienLenRuleValidator();
+            var leadCombo = new CardCombination(
+                CardCombinationType.Single,
+                new List<Card> { new Card(CardRank.Ace, CardSuit.Spades) },
+                new CardComparer()
+            );
+            validator.SetCurrentCombination(leadCombo);
+
+            var p1 = new TienLenPlayer(1, "Player 1", true);
+            var p2 = new TienLenPlayer(2, "Player 2", true);
+            p1.Hand.AddCard(new Card(CardRank.Three, CardSuit.Spades));
+            p2.Hand.AddCard(new Card(CardRank.Four, CardSuit.Hearts));
+            var turnManager = new TurnManager(validator);
+            turnManager.Initialize(new List<TienLenPlayer> { p1, p2 });
+            turnManager.SetLastPlayPlayer(p1);
+
+            // When turn advances to next player, validator must NOT be reset
+            turnManager.AdvanceTurn();
+
+            Assert.AreEqual(p2, turnManager.CurrentPlayer, "Turn should advance to Player 2");
+            Assert.IsNotNull(validator.CurrentCombination, "Validator combination must persist for the next player");
+            Assert.IsTrue(turnManager.CanPass(p2), "Player 2 should be allowed to pass against active combination");
+        }
+
+        [Test]
+        public void TurnManager_PassTurn_WhenAllOtherPlayersPass_ResetsRoundToLeader() {
+            var validator = new TienLenRuleValidator();
+            var leadCombo = new CardCombination(
+                CardCombinationType.Single,
+                new List<Card> { new Card(CardRank.King, CardSuit.Hearts) },
+                new CardComparer()
+            );
+            validator.SetCurrentCombination(leadCombo);
+
+            var p1 = new TienLenPlayer(1, "Player 1", true);
+            var p2 = new TienLenPlayer(2, "Player 2", true);
+            p1.Hand.AddCard(new Card(CardRank.Three, CardSuit.Spades));
+            p2.Hand.AddCard(new Card(CardRank.Four, CardSuit.Hearts));
+            var turnManager = new TurnManager(validator);
+            turnManager.Initialize(new List<TienLenPlayer> { p1, p2 });
+            turnManager.SetLastPlayPlayer(p1);
+            turnManager.AdvanceTurn(); // Now Player 2's turn
+
+            Assert.AreEqual(p2, turnManager.CurrentPlayer);
+
+            // Player 2 passes
+            turnManager.AddPassPlayer(p2);
+            Assert.IsTrue(turnManager.CheckRoundFinished(), "Round should be finished because Player 2 passed");
+
+            turnManager.ResetRoundToLeader();
+
+            Assert.AreEqual(p1, turnManager.CurrentPlayer, "Turn should reset back to Player 1 (trick leader)");
+            Assert.IsNull(validator.CurrentCombination, "Validator combination should be reset for new round");
+            Assert.IsFalse(turnManager.CanPass(p1), "Player 1 cannot pass when leading a new round");
+        }
+
+        [Test]
+        public void TurnManager_ThreePlayers_PassedPlayerSkippedUntilNewRound() {
+            var validator = new TienLenRuleValidator();
+            var leadCombo = new CardCombination(
+                CardCombinationType.Single,
+                new List<Card> { new Card(CardRank.Five, CardSuit.Clubs) },
+                new CardComparer()
+            );
+            validator.SetCurrentCombination(leadCombo);
+
+            var p1 = new TienLenPlayer(1, "P1", true);
+            var p2 = new TienLenPlayer(2, "P2", true);
+            var p3 = new TienLenPlayer(3, "P3", true);
+            p1.Hand.AddCard(new Card(CardRank.Three, CardSuit.Spades));
+            p2.Hand.AddCard(new Card(CardRank.Four, CardSuit.Hearts));
+            p3.Hand.AddCard(new Card(CardRank.Five, CardSuit.Diamonds));
+            var turnManager = new TurnManager(validator);
+            turnManager.Initialize(new List<TienLenPlayer> { p1, p2, p3 });
+            turnManager.SetLastPlayPlayer(p1);
+            turnManager.AdvanceTurn(); // Now P2's turn
+
+            Assert.AreEqual(p2, turnManager.CurrentPlayer);
+
+            // P2 passes
+            turnManager.AddPassPlayer(p2);
+            Assert.IsFalse(turnManager.CheckRoundFinished(), "Round is not finished yet, P1 and P3 remain");
+
+            turnManager.AdvanceTurn(); // Advance from P2 to P3
+            Assert.AreEqual(p3, turnManager.CurrentPlayer, "Turn should advance to P3");
+
+            // P3 passes
+            turnManager.AddPassPlayer(p3);
+            Assert.IsTrue(turnManager.CheckRoundFinished(), "Round finished because only P1 remains");
+
+            turnManager.ResetRoundToLeader();
+            Assert.AreEqual(p1, turnManager.CurrentPlayer, "P1 leads new round");
+        }
     }
 }

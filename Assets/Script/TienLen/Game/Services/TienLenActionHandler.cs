@@ -167,9 +167,11 @@ namespace Assets.Script.TienLen.Game.Services {
                 }
                 validator?.Reset();
                 animationPlayer?.ClearTableCenter();
+                turnManager.ResetRoundToLeader();
             }
-
-            turnManager?.AdvanceTurn();
+            else {
+                turnManager?.AdvanceTurn();
+            }
             gameController?.MirrorTurnSeat();
             return true;
         }

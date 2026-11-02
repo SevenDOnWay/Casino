@@ -270,7 +270,11 @@ namespace Assets.Script.TienLen.UI {
             if ( !IsGameLogicReady() ) return false;
             if ( tienLenGameController.WinnerSeat != -1 ) return false;
             int localSeat = ResolveLocalSeat();
-            return localSeat != -1 && localSeat == turnManager.currentPlayerIndex;
+            if ( localSeat == -1 ) return false;
+            if ( tienLenGameController.CurrentTurnSeat != -1 ) {
+                return localSeat == tienLenGameController.CurrentTurnSeat;
+            }
+            return turnManager != null && localSeat == turnManager.currentPlayerIndex;
         }
 
         private int ResolveLocalSeat() {

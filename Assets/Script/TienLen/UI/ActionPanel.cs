@@ -188,6 +188,9 @@ namespace Assets.Script.TienLen.UI {
                 return;
             }
 
+            SetPlayInteractable(false);
+            SetPassInteractable(false);
+
             networkPlayer.RPCRequestPass();
             RefreshActionState();
         }
