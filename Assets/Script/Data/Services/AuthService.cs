@@ -7,11 +7,14 @@ using UnityEngine;
 
 namespace Assets.Script.Data.Services {
     public class AuthService : IAuthService {
+        public const string RememberMePrefKey = "TIENLEN_REMEMBER_ME_ENABLED";
+
         private readonly IPlayerRepository playerRepository;
         private readonly ITokenStorage tokenStorage;
         private readonly SemaphoreSlim refreshLock = new(1, 1);
 
         public bool IsAuthenticated => !string.IsNullOrEmpty(AuthToken) && CurrentUser != null;
+        public bool IsRememberMeEnabled => PlayerPrefs.GetInt(RememberMePrefKey, 0) == 1;
         public string AuthToken { get; private set; }
         public PlayerProfileData CurrentUser { get; private set; }
 
@@ -23,16 +26,26 @@ namespace Assets.Script.Data.Services {
             this.tokenStorage = tokenStorage;
         }
 
-        public async UniTask<AuthResponse> LoginAsync( string email, string password ) {
+        public async UniTask<AuthResponse> LoginAsync( string email, string password, bool rememberMe = false ) {
             var response = await playerRepository.LoginAsync(new LoginRequest {
                 email = email,
                 password = password
             });
 
             if ( response != null && response.isSuccess ) {
-                if ( !string.IsNullOrEmpty(response.refreshToken) ) {
-                    await tokenStorage.SaveRefreshTokenAsync(response.refreshToken);
+                if ( rememberMe ) {
+                    PlayerPrefs.SetInt(RememberMePrefKey, 1);
+                    PlayerPrefs.Save();
+                    if ( !string.IsNullOrEmpty(response.refreshToken) ) {
+                        await tokenStorage.SaveRefreshTokenAsync(response.refreshToken);
+                    }
                 }
+                else {
+                    PlayerPrefs.SetInt(RememberMePrefKey, 0);
+                    PlayerPrefs.Save();
+                    await tokenStorage.ClearAsync();
+                }
+
                 SetAuthenticatedUser(response.accessToken, response.profile);
             }
 

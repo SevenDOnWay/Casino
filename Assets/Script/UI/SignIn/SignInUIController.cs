@@ -41,11 +41,55 @@ namespace Assets.Script.UI.MainMenu {
         void OnEnable() {
             if ( submitButton != null ) submitButton.onClick.AddListener(OnSubmitClicked);
             if ( changeSubmitButton != null ) changeSubmitButton.onClick.AddListener(OnChangeSubmitClicked);
+            if ( rememberMeToggle != null ) {
+                rememberMeToggle.isOn = authService != null ? authService.IsRememberMeEnabled : PlayerPrefs.GetInt(AuthService.RememberMePrefKey, 0) == 1;
+                rememberMeToggle.onValueChanged.AddListener(OnRememberMeToggleChanged);
+            }
         }
 
         void OnDisable() {
             if ( submitButton != null ) submitButton.onClick.RemoveListener(OnSubmitClicked);
             if ( changeSubmitButton != null ) changeSubmitButton.onClick.RemoveListener(OnChangeSubmitClicked);
+            if ( rememberMeToggle != null ) rememberMeToggle.onValueChanged.RemoveListener(OnRememberMeToggleChanged);
+        }
+
+        private void Start() {
+            CheckAutoLoginAsync().Forget();
+        }
+
+        private void OnRememberMeToggleChanged( bool isOn ) {
+            PlayerPrefs.SetInt(AuthService.RememberMePrefKey, isOn ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        private async UniTaskVoid CheckAutoLoginAsync() {
+            if ( authService == null ) return;
+
+            if ( authService.IsAuthenticated ) {
+                NavigateToNextScene();
+                return;
+            }
+
+            if ( authService.IsRememberMeEnabled ) {
+                if ( loadingScreen != null ) loadingScreen.SetActive(true);
+
+                try {
+                    bool restored = await authService.RestoreSessionAsync();
+                    if ( restored ) {
+                        string name = authService.CurrentUser?.displayName ?? "Player";
+                        ShowAlert($"Welcome back, {name}!", AlertType.Success, 1.5f);
+                        await UniTask.Delay(TimeSpan.FromSeconds(0.6f));
+                        if ( loadingScreen != null ) loadingScreen.SetActive(false);
+                        NavigateToNextScene();
+                        return;
+                    }
+                }
+                catch ( Exception ex ) {
+                    Debug.LogWarning($"[SignInUIController] Auto-login failed: {ex.Message}");
+                }
+
+                if ( loadingScreen != null ) loadingScreen.SetActive(false);
+            }
         }
 
         private void OnSubmitClicked() {
@@ -63,15 +107,15 @@ namespace Assets.Script.UI.MainMenu {
 #endif
 
             AuthRequest dto = CreateAuthRequest(email, password);
-            SendRequest(dto);
+            SendRequest(dto, rememberMe);
 
             Debug.Log($"Sign In Clicked: Email={email}, Password={password}, RememberMe={rememberMe}");
         }
 
-        private async void SendRequest( AuthRequest request ) {
+        private async void SendRequest( AuthRequest request, bool rememberMe ) {
             try {
                 var response = isSignInMode
-                    ? await authService.LoginAsync(request.email, request.password)
+                    ? await authService.LoginAsync(request.email, request.password, rememberMe)
                     : await authService.RegisterAsync(request.email, request.password);
 
                 if ( response != null && response.isSuccess ) {
