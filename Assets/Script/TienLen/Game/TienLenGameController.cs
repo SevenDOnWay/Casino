@@ -23,7 +23,6 @@ namespace Assets.Script.TienLen.Game {
         [Header("Game Configuration")]
         [SerializeField] private int minPlayersToStart = 2;
         [SerializeField] private float turnDuration = 10f;
-        public float TurnDuration => turnDuration;
 
         private const int totalSeats = 4;
 
@@ -32,12 +31,10 @@ namespace Assets.Script.TienLen.Game {
         private LocalPlayerService localPlayerService;
         private TurnManager turnManager;
         private ISeatQueryService seatQueryService;
-        private TienLenRuleValidator validator;
         private IPlayerProfileService profileService;
 
         [Header("Domain Services")]
         private TienLenMatchOutcomeReporter outcomeReporter;
-        private TienLenTurnHandler turnHandler;
         private TienLenMigrationHandler migrationHandler;
 
         private readonly Dictionary<PlayerRef, List<Card>> pendingHands = new();
@@ -52,9 +49,16 @@ namespace Assets.Script.TienLen.Game {
         [Networked] public int BetStake { get; set; }
         [Networked, Capacity(13)] public NetworkArray<NetworkCard> CurrentTableCards => default;
         [Networked] public int CurrentTableCardCount { get; set; }
-        [Networked] public TickTimer TurnTimer { get; set; }
-
         #endregion
+
+        public TickTimer TurnTimer {
+            get => turnManager != null ? turnManager.TurnTimer : default;
+            set {
+                if ( turnManager != null ) turnManager.TurnTimer = value;
+            }
+        }
+
+        public float TurnDuration => turnManager != null ? turnManager.TurnDuration : turnDuration;
 
         public int CurrentBetStake {
             get {
@@ -68,18 +72,7 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        public float RemainingTurnTimeNormalized {
-            get {
-                if ( !IsGameStarted || CurrentTurnSeat == -1 || turnDuration <= 0f ) return 0f;
-                if ( TurnTimer.IsRunning ) {
-                    float? remaining = TurnTimer.RemainingTime(Runner);
-                    if ( remaining.HasValue ) {
-                        return Mathf.Clamp01(remaining.Value / turnDuration);
-                    }
-                }
-                return 0f;
-            }
-        }
+        public float RemainingTurnTimeNormalized => turnManager != null ? turnManager.RemainingTurnTimeNormalized : 0f;
 
         public int RegisteredPlayerCount =>
             seatQueryService != null ? seatQueryService.GetNetworkPlayer().Count : 0;
@@ -118,12 +111,10 @@ namespace Assets.Script.TienLen.Game {
             this.localPlayerService = localPlayerService;
             this.turnManager = turnManager;
             this.seatQueryService = seatQueryService;
-            this.validator = validator;
             this.resolver = resolver;
             this.profileService = profileService;
 
             this.outcomeReporter = outcomeReporter ?? new TienLenMatchOutcomeReporter(seatQueryService, localPlayerService, profileService);
-            this.turnHandler = new TienLenTurnHandler(cardCombinationEvaluator, validator);
             this.migrationHandler = migrationHandler ?? new TienLenMigrationHandler(seatQueryService, turnManager, cardCombinationEvaluator, validator);
         }
 
@@ -157,15 +148,6 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
-        public override void FixedUpdateNetwork() {
-            if ( !Object.HasStateAuthority ) return;
-            if ( !IsGameStarted || WinnerSeat != -1 ) return;
-
-            if ( TurnTimer.Expired(Runner) ) {
-                turnManager?.HandleTurnTimeout();
-            }
-        }
-
         public int SeatOfPlayer( TienLenPlayer player ) {
             if ( seatQueryService == null || player == null ) return -1;
             foreach ( var kvp in seatQueryService.GetSeatedPlayers() ) {
@@ -178,22 +160,7 @@ namespace Assets.Script.TienLen.Game {
             int seat = SeatOfPlayer(turnManager?.CurrentPlayer);
             if ( seat != -1 ) {
                 CurrentTurnSeat = seat;
-                if ( Object.HasStateAuthority ) {
-                    float duration = isDealingStart ? (turnDuration + 3.5f) : turnDuration;
-                    TurnTimer = TickTimer.CreateFromSeconds(Runner, duration);
-
-                    if ( turnManager.CurrentPlayer != null && turnManager.CurrentPlayer.IsInactive ) {
-                        AutoActInactivePlayerDelayed().Forget();
-                    }
-                }
-            }
-        }
-
-        private async UniTaskVoid AutoActInactivePlayerDelayed() {
-            await UniTask.Delay(600, cancellationToken: this.GetCancellationTokenOnDestroy());
-            if ( !Object.HasStateAuthority || WinnerSeat != -1 || !IsGameStarted ) return;
-            if ( turnManager?.CurrentPlayer != null && turnManager.CurrentPlayer.IsInactive ) {
-                turnManager.AutoActForCurrentPlayer();
+                turnManager?.StartTurnTimer(isDealingStart);
             }
         }
 

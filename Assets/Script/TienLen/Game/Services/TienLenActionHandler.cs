@@ -96,6 +96,7 @@ namespace Assets.Script.TienLen.Game.Services {
 
             // Execute play
             IsFirstPlayOfGame = false;
+            player.IsInactive = false;
             player.TryRemoveCards(cards);
             validator?.SetCurrentCombination(combination);
 
@@ -153,6 +154,7 @@ namespace Assets.Script.TienLen.Game.Services {
                 return false;
             }
 
+            player.IsInactive = false;
             turnManager?.AddPassPlayer(player);
 
             int seatIndex = SeatOfPlayer(player);

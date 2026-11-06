@@ -264,5 +264,30 @@ namespace Assets.Script.Data.Tests {
             turnManager.ResetRoundToLeader();
             Assert.AreEqual(p1, turnManager.CurrentPlayer, "P1 leads new round");
         }
+
+        [Test]
+        public void TurnManager_HandleTurnTimeout_MarksCurrentPlayerInactive() {
+            var validator = new TienLenRuleValidator();
+            var p1 = new TienLenPlayer(1, "Player 1", true);
+            var p2 = new TienLenPlayer(2, "Player 2", true);
+            p1.Hand.AddCard(new Card(CardRank.Three, CardSuit.Spades));
+            p2.Hand.AddCard(new Card(CardRank.Four, CardSuit.Hearts));
+
+            var turnManager = new TurnManager(validator);
+            turnManager.Initialize(new List<TienLenPlayer> { p1, p2 });
+
+            Assert.IsFalse(p1.IsInactive, "Player 1 should start active");
+
+            turnManager.HandleTurnTimeout();
+
+            Assert.IsTrue(p1.IsInactive, "Player 1 should be marked inactive upon turn timeout");
+        }
+
+        [Test]
+        public void TurnManager_TurnDurationProperty_CanBeConfigured() {
+            var turnManager = new TurnManager();
+            turnManager.TurnDuration = 15f;
+            Assert.AreEqual(15f, turnManager.TurnDuration);
+        }
     }
 }
