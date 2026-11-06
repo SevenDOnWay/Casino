@@ -1,8 +1,11 @@
-﻿using Assets.Script.Data.SO;
+using Assets.Script.Data.SO;
 using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Effects;
 using Assets.Script.TienLen.Game;
+using Assets.Script.TienLen.Game.Controller;
+using Assets.Script.TienLen.Game.Services;
+using Assets.Script.TienLen.Game.Visual;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using Assets.Script.TienLen.UI;
@@ -14,22 +17,30 @@ namespace Assets.Script.TienLen.LifeTimeScope {
     public class TienLenLifeTimeScope : LifetimeScope {
         [SerializeField] private TienLenNetWorkPlayer prefab;
 
-
-
         protected override void Configure( IContainerBuilder builder ) {
             // ScriptableObject Assets / Databases (scene-local copy)
-
             builder.RegisterComponentInNewPrefab(prefab, Lifetime.Scoped);
 
             // Rules & Evaluation
-            builder.Register<CardCombinationType>(Lifetime.Singleton);
             builder.Register<CardComparer>(Lifetime.Singleton);
             builder.Register<CardCombinationEvaluator>(Lifetime.Singleton);
             builder.Register<TienLenRuleValidator>(Lifetime.Singleton);
 
+            // Domain Services
+            builder.Register<TienLenMatchOutcomeReporter>(Lifetime.Singleton);
+            builder.Register<TienLenActionHandler>(Lifetime.Singleton)
+                   .As<IActionHandler>()
+                   .AsSelf();
+            builder.Register<TienLenTurnHandler>(Lifetime.Singleton);
+            builder.Register<TienLenMigrationHandler>(Lifetime.Singleton);
+
             // Session & Table State
             builder.RegisterComponentInHierarchy<SessionController>();
             builder.RegisterComponentInHierarchy<TienLenGameController>();
+            builder.RegisterComponentInHierarchy<MatchController>();
+            builder.RegisterComponentInHierarchy<TienLenAnimationHub>()
+                   .As<IAnimationPlayer>()
+                   .AsSelf();
             builder.RegisterComponentInHierarchy<TableVisualLayoutManager>();
             builder.RegisterComponentInHierarchy<SeatProvider>();
 
@@ -38,7 +49,7 @@ namespace Assets.Script.TienLen.LifeTimeScope {
                    .As<ISeatQueryService>()
                    .AsSelf();
 
-            builder.Register<TurnManager>(Lifetime.Singleton);
+            builder.RegisterComponentInHierarchy<TurnManager>();
 
             // UI & Effects
             builder.RegisterComponentInHierarchy<UiManager>();

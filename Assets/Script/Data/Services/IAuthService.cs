@@ -5,13 +5,14 @@ using System;
 namespace Assets.Script.Data.Services {
     public interface IAuthService {
         bool IsAuthenticated { get; }
+        bool IsRememberMeEnabled { get; }
         string AuthToken { get; }
         PlayerProfileData CurrentUser { get; }
 
         event Action<PlayerProfileData> OnUserAuthenticated;
         event Action OnUserLoggedOut;
 
-        UniTask<AuthResponse> LoginAsync( string email, string password );
+        UniTask<AuthResponse> LoginAsync( string email, string password, bool rememberMe = false );
         UniTask<AuthResponse> RegisterAsync( string email, string password );
         UniTask<bool> RestoreSessionAsync();
         UniTask<bool> RefreshSessionAsync();

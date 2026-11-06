@@ -1,4 +1,4 @@
-﻿using Assets.Script.Data.Models;
+using Assets.Script.Data.Models;
 using Assets.Script.Data.Services;
 using Assets.Script.TienLen.UI;
 using Cysharp.Threading.Tasks;
@@ -28,7 +28,6 @@ namespace Assets.Script.UI.MainMenu {
         [SerializeField] TextMeshProUGUI alertText;
         [SerializeField] GameObject loadingScreen;
 
-
         [Header("Next Scene")]
         string nextSceneName = "MainMenuScene";
 
@@ -39,58 +38,105 @@ namespace Assets.Script.UI.MainMenu {
             this.authService = authService;
         }
 
-        //void Awake() {
-        //    // SignInScene owns the persistent root container, pull the auth session from it.
-        //    RootLifeTimeScope.Ensure()?.InjectGameObject(gameObject);
-        //}
-
         void OnEnable() {
-            submitButton.onClick.AddListener(OnSubmitClicked);
-            changeSubmitButton.onClick.AddListener(OnChangeSubmitClicked);
+            if ( submitButton != null ) submitButton.onClick.AddListener(OnSubmitClicked);
+            if ( changeSubmitButton != null ) changeSubmitButton.onClick.AddListener(OnChangeSubmitClicked);
+            if ( rememberMeToggle != null ) {
+                rememberMeToggle.isOn = authService != null ? authService.IsRememberMeEnabled : PlayerPrefs.GetInt(AuthService.RememberMePrefKey, 0) == 1;
+                rememberMeToggle.onValueChanged.AddListener(OnRememberMeToggleChanged);
+            }
+        }
+
+        void OnDisable() {
+            if ( submitButton != null ) submitButton.onClick.RemoveListener(OnSubmitClicked);
+            if ( changeSubmitButton != null ) changeSubmitButton.onClick.RemoveListener(OnChangeSubmitClicked);
+            if ( rememberMeToggle != null ) rememberMeToggle.onValueChanged.RemoveListener(OnRememberMeToggleChanged);
+        }
+
+        private void Start() {
+            CheckAutoLoginAsync().Forget();
+        }
+
+        private void OnRememberMeToggleChanged( bool isOn ) {
+            PlayerPrefs.SetInt(AuthService.RememberMePrefKey, isOn ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        private async UniTaskVoid CheckAutoLoginAsync() {
+            if ( authService == null ) return;
+
+            if ( authService.IsAuthenticated ) {
+                NavigateToNextScene();
+                return;
+            }
+
+            if ( authService.IsRememberMeEnabled ) {
+                if ( loadingScreen != null ) loadingScreen.SetActive(true);
+
+                try {
+                    bool restored = await authService.RestoreSessionAsync();
+                    if ( restored ) {
+                        string name = authService.CurrentUser?.displayName ?? "Player";
+                        ShowAlert($"Welcome back, {name}!", AlertType.Success, 1.5f);
+                        await UniTask.Delay(TimeSpan.FromSeconds(0.6f));
+                        if ( loadingScreen != null ) loadingScreen.SetActive(false);
+                        NavigateToNextScene();
+                        return;
+                    }
+                }
+                catch ( Exception ex ) {
+                    Debug.LogWarning($"[SignInUIController] Auto-login failed: {ex.Message}");
+                }
+
+                if ( loadingScreen != null ) loadingScreen.SetActive(false);
+            }
         }
 
         private void OnSubmitClicked() {
             ReadInput(out string email, out string password, out bool rememberMe);
-
-            loadingScreen.SetActive(true);
 
             if ( !ValidateInput(email, password) ) {
                 ShowAlert("Please fill in all required fields.", AlertType.Error, 5f);
                 return;
             }
 
-
+            if ( loadingScreen != null ) loadingScreen.SetActive(true);
 
 #if UNITY_EDITOR
             CheckForAdmin();
 #endif
 
             AuthRequest dto = CreateAuthRequest(email, password);
-            SendRequest(dto);
+            SendRequest(dto, rememberMe);
 
             Debug.Log($"Sign In Clicked: Email={email}, Password={password}, RememberMe={rememberMe}");
         }
 
-        private async void SendRequest( AuthRequest request ) {
+        private async void SendRequest( AuthRequest request, bool rememberMe ) {
             try {
-                var response = await authService.LoginAsync(request.email, request.password); //TODO: Change this to RegisterAsync if isSignInMode is false, and handle the response accordingly.
+                var response = isSignInMode
+                    ? await authService.LoginAsync(request.email, request.password, rememberMe)
+                    : await authService.RegisterAsync(request.email, request.password);
 
                 if ( response != null && response.isSuccess ) {
                     string name = response.profile?.displayName ?? "Player";
-                    ShowAlert($"Signed in successfully! Welcome back, {name}.", AlertType.Success, 2f);
+                    string actionMsg = isSignInMode ? "Signed in successfully" : "Registered successfully";
+                    ShowAlert($"{actionMsg}! Welcome, {name}.", AlertType.Success, 2f);
                     await UniTask.Delay(TimeSpan.FromSeconds(0.8f));
-                    loadingScreen.SetActive(false);
+                    if ( loadingScreen != null ) loadingScreen.SetActive(false);
                     NavigateToNextScene();
                 }
                 else {
+                    if ( loadingScreen != null ) loadingScreen.SetActive(false);
                     string error = response?.errorMessage;
                     if ( string.IsNullOrEmpty(error) ) {
-                        error = "Unable to connect to server. Ensure backend is running at ";
+                        error = "Unable to connect to server. Ensure backend is running.";
                     }
                     ShowAlert(error, AlertType.Error, 5f);
                 }
             }
             catch ( Exception ex ) {
+                if ( loadingScreen != null ) loadingScreen.SetActive(false);
                 ShowAlert($"Connection error: {ex.Message}", AlertType.Error, 5f);
             }
         }
@@ -102,18 +148,21 @@ namespace Assets.Script.UI.MainMenu {
             return dto;
         }
 
-
         private void ReadInput( out string email, out string password, out bool rememberMe ) {
-            email = emailInputField.text;
-            password = passwordInputField.text;
-            rememberMe = rememberMeToggle.isOn;
+            email = emailInputField != null ? emailInputField.text : string.Empty;
+            password = passwordInputField != null ? passwordInputField.text : string.Empty;
+            rememberMe = rememberMeToggle != null && rememberMeToggle.isOn;
         }
 
         private void OnChangeSubmitClicked() {
             isSignInMode = !isSignInMode;
 
-            askButton.text = isSignInMode ? "Don't have an account? Sign Up" : "Already have an account? Sign In";
-            changeSubmitButtonText.text = isSignInMode ? "Sign In" : "Sign Up";
+            if ( askButton != null ) {
+                askButton.text = isSignInMode ? "Don't have an account? Sign Up" : "Already have an account? Sign In";
+            }
+            if ( changeSubmitButtonText != null ) {
+                changeSubmitButtonText.text = isSignInMode ? "Sign In" : "Sign Up";
+            }
         }
 
         private bool ValidateInput( string email, string password ) {
@@ -129,46 +178,43 @@ namespace Assets.Script.UI.MainMenu {
         }
 
         private void ShowAlert( string s, AlertType type, float duration ) {
-            loadingScreen.SetActive(false);
-
+            if ( loadingScreen != null ) loadingScreen.SetActive(false);
             StartCoroutine(ShowAlertCoroutine(s, type, duration));
         }
 
         IEnumerator ShowAlertCoroutine( string message, AlertType type, float duration ) {
-            alertPanel.SetActive(true);
-            alertText.text = message;
+            if ( alertPanel != null ) alertPanel.SetActive(true);
+            if ( alertText != null ) alertText.text = message;
 
-            switch ( type ) {
-                case AlertType.Success:
-                    alertPanelImage.color = new Color32(69, 129, 18, 255);
-                    break;
-                case AlertType.Error:
-                    alertPanelImage.color = new Color32(185, 47, 46, 255);
-                    break;
-                case AlertType.Info:
-                    alertPanelImage.color = new Color32(212, 231, 177, 255);
-                    break;
+            if ( alertPanelImage != null ) {
+                switch ( type ) {
+                    case AlertType.Success:
+                        alertPanelImage.color = new Color32(69, 129, 18, 255);
+                        break;
+                    case AlertType.Error:
+                        alertPanelImage.color = new Color32(185, 47, 46, 255);
+                        break;
+                    case AlertType.Info:
+                        alertPanelImage.color = new Color32(212, 231, 177, 255);
+                        break;
+                }
             }
-
 
             yield return new WaitForSeconds(duration);
 
-            alertPanel.SetActive(false);
+            if ( alertPanel != null ) alertPanel.SetActive(false);
         }
 
         private void NavigateToNextScene() {
             SceneManager.LoadSceneAsync(nextSceneName);
         }
 
-
-
         private void CheckForAdmin() {
-            if ( emailInputField.text == "admin" && passwordInputField.text == "admin" ) {
+            if ( emailInputField != null && passwordInputField != null &&
+                 emailInputField.text == "admin" && passwordInputField.text == "admin" ) {
                 Debug.Log("Admin credentials detected. Navigating to AdminScene.");
                 NavigateToNextScene();
             }
         }
-
     }
-
 }

@@ -121,3 +121,8 @@ Backend/**/obj/
 *.env
 .env.*
 Backend/**/*.env
+
+
+# Graphify generated data and cache (keep report for team reference)
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md

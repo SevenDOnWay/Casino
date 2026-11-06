@@ -170,6 +170,43 @@ namespace Assets.Script.UI {
             ClearAllFieldErrors();
         }
 
+        private void Start() {
+            CheckAutoLoginAsync().Forget();
+        }
+
+        private void OnRememberMeToggleChanged( bool isOn ) {
+            PlayerPrefs.SetInt(AuthService.RememberMePrefKey, isOn ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        private async UniTaskVoid CheckAutoLoginAsync() {
+            if ( authService == null ) return;
+
+            if ( authService.IsAuthenticated ) {
+                NavigateToNextScene();
+                return;
+            }
+
+            if ( authService.IsRememberMeEnabled ) {
+                SetSubmittingState(true);
+                try {
+                    bool restored = await authService.RestoreSessionAsync();
+                    if ( restored ) {
+                        string name = authService.CurrentUser?.displayName ?? "Player";
+                        ShowAlert($"Welcome back, {name}!", AlertType.Success, 1.5f);
+                        await UniTask.Delay(TimeSpan.FromSeconds(0.6f));
+                        SetSubmittingState(false);
+                        NavigateToNextScene();
+                        return;
+                    }
+                }
+                catch ( Exception ex ) {
+                    Debug.LogWarning($"[LoginPageController] Auto-login failed: {ex.Message}");
+                }
+                SetSubmittingState(false);
+            }
+        }
+
         private void OnDisable() {
             UnbindUI();
         }
@@ -199,6 +236,11 @@ namespace Assets.Script.UI {
             if ( facebookLoginBtn != null ) {
                 facebookLoginBtn.OnClicked += HandleSocialLogin;
             }
+
+            if ( rememberToggle != null ) {
+                rememberToggle.isOn = authService != null ? authService.IsRememberMeEnabled : PlayerPrefs.GetInt(AuthService.RememberMePrefKey, 0) == 1;
+                rememberToggle.onValueChanged.AddListener(OnRememberMeToggleChanged);
+            }
         }
 
         private void UnbindUI() {
@@ -220,6 +262,10 @@ namespace Assets.Script.UI {
 
             if ( facebookLoginBtn != null ) {
                 facebookLoginBtn.OnClicked -= HandleSocialLogin;
+            }
+
+            if ( rememberToggle != null ) {
+                rememberToggle.onValueChanged.RemoveListener(OnRememberMeToggleChanged);
             }
         }
 
@@ -295,7 +341,7 @@ namespace Assets.Script.UI {
 
             try {
                 //EnsureAuthService();
-                var response = await authService.LoginAsync(email, password);
+                var response = await authService.LoginAsync(email, password, rememberMe);
 
                 SetSubmittingState(false);
 

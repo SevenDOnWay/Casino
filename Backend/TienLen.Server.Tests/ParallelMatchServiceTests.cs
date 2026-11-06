@@ -79,5 +79,60 @@ namespace TienLen.Server.Tests {
             results.Should().AllSatisfy(r => r.Should().BeTrue());
             matchRecords.Should().HaveCount(parallelMatches);
         }
+
+        [Fact]
+        public async Task RecordMatchResult_WhenLossExceedsBalance_ClampsBalanceAtZero() {
+            var mockDb = new Mock<IDataBaseContext>();
+            var mockUserCollection = new Mock<IMongoCollection<UserDocument>>();
+            var mockMatchCollection = new Mock<IMongoCollection<MatchRecordDocument>>();
+
+            var userWithDeficit = new UserDocument {
+                Id = "player_broke",
+                DisplayName = "Bob",
+                Money = -250, // Negative balance after decrement
+                Exp = 15,
+                Level = 1
+            };
+
+            mockMatchCollection.Setup(c => c.InsertOneAsync(
+                It.IsAny<MatchRecordDocument>(),
+                It.IsAny<InsertOneOptions>(),
+                It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            mockUserCollection.Setup(c => c.FindOneAndUpdateAsync(
+                It.IsAny<FilterDefinition<UserDocument>>(),
+                It.IsAny<UpdateDefinition<UserDocument>>(),
+                It.IsAny<FindOneAndUpdateOptions<UserDocument, UserDocument>>(),
+                It.IsAny<CancellationToken>()))
+                .ReturnsAsync(userWithDeficit);
+
+            bool clampedToZero = false;
+            mockUserCollection.Setup(c => c.UpdateOneAsync(
+                It.IsAny<FilterDefinition<UserDocument>>(),
+                It.IsAny<UpdateDefinition<UserDocument>>(),
+                It.IsAny<UpdateOptions>(),
+                It.IsAny<CancellationToken>()))
+                .Callback<FilterDefinition<UserDocument>, UpdateDefinition<UserDocument>, UpdateOptions, CancellationToken>(( _, upd, _, _ ) => {
+                    clampedToZero = true;
+                })
+                .ReturnsAsync(new UpdateResult.Acknowledged(1, 1, null));
+
+            mockDb.Setup(d => d.Users).Returns(mockUserCollection.Object);
+            mockDb.Setup(d => d.Matches).Returns(mockMatchCollection.Object);
+
+            var matchService = new MatchService(mockDb.Object);
+
+            var report = new MatchResultReportDto {
+                MatchId = "clamp_test_match",
+                Results = new List<MatchPlayerSummaryDto> {
+                    new MatchPlayerSummaryDto { UserId = "player_broke", Rank = 2, MoneyEarned = -500, ExpEarned = 15 }
+                }
+            };
+
+            bool ok = await matchService.RecordMatchResultAsync(report);
+            ok.Should().BeTrue();
+            clampedToZero.Should().BeTrue();
+        }
     }
 }

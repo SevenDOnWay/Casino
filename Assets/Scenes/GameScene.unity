@@ -268,6 +268,8 @@ GameObject:
   m_Component:
   - component: {fileID: 183374123}
   - component: {fileID: 183374122}
+  - component: {fileID: 183374125}
+  - component: {fileID: 183374126}
   - component: {fileID: 183374124}
   m_Layer: 0
   m_Name: GameController
@@ -290,16 +292,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.TienLenGameController
   uiManager: {fileID: 1967596348}
   tableVisualLayoutManager: {fileID: 1611512765}
+  tableCenterPosition: {fileID: 937606375}
+  tienLenSO: {fileID: 11400000, guid: 4b726a4dce8693641a3fb80f1bcd6f7f, type: 2}
+  dealingAnimator: {fileID: 0}
+  tableAnimator: {fileID: 0}
   minPlayersToStart: 2
+  turnDuration: 15
   _IsGameStarted:
     RawValue: 0
   _CurrentTurnSeat: 0
   _WinnerSeat: 0
   _LastPassSeat: 0
+  _BetStake: 0
   _CurrentTableCardCount: 0
-  turnDuration: 15
-  tableCenterPosition: {fileID: 937606375}
-  tienLenSO: {fileID: 11400000, guid: 4b726a4dce8693641a3fb80f1bcd6f7f, type: 2}
 --- !u!4 &183374123
 Transform:
   m_ObjectHideFlags: 0
@@ -334,7 +339,39 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 183374122}
+  - {fileID: 183374125}
+  - {fileID: 183374126}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &183374125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 183374121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb49497e5021438aa5ed39e5f5a0dc53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.Controller.MatchController
+  minPlayersToStart: 2
+  celebrationDuration: 3.5
+--- !u!114 &183374126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 183374121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57e379505c934c2d838443b777d81a73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.Visual.TienLenAnimationHub
+  tienLenSO: {fileID: 11400000, guid: 4b726a4dce8693641a3fb80f1bcd6f7f, type: 2}
+  tableCenterPosition: {fileID: 937606375}
+  dealingAnimator: {fileID: 0}
+  tableAnimator: {fileID: 0}
 --- !u!1001 &335409598
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1465,6 +1502,103 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1038836613
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1038836614}
+  m_Layer: 0
+  m_Name: =============
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1038836614
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1038836613}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 435, y: 244.625, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1042030303
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1042030306}
+  - component: {fileID: 1042030305}
+  - component: {fileID: 1042030304}
+  m_Layer: 0
+  m_Name: TurnManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1042030304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042030303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 922495755
+  SendPriority: 1
+  EnableInterpolation: 1
+  Flags: 262146
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 1042030305}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &1042030305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042030303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63bd97fdc2599d54faa46f7875056665, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.TurnManager
+  _currentPlayerIndexNet: 0
+--- !u!4 &1042030306
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042030303}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 435, y: 244.625, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2843,10 +2977,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7612670617904368543, guid: ea88e677d86c915458f91fc326229e57, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ea88e677d86c915458f91fc326229e57, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -2859,9 +2990,11 @@ SceneRoots:
   - {fileID: 478564743}
   - {fileID: 2034101243}
   - {fileID: 1967596345}
+  - {fileID: 1038836614}
   - {fileID: 1049600310}
   - {fileID: 767955857}
   - {fileID: 937606376}
   - {fileID: 1611512766}
   - {fileID: 183374123}
   - {fileID: 1937543991}
+  - {fileID: 1042030306}

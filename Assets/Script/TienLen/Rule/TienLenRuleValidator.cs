@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using VContainer;
 
 namespace Assets.Script.TienLen.Rule {
@@ -29,10 +29,16 @@ namespace Assets.Script.TienLen.Rule {
 
             // If same type, compare standard Tiến Lên ranking.
             if ( CurrentCombination.Type == next.Type ) {
-                // Straights and PairSequences must match card count exactly.
-                if ( CurrentCombination.Type == CardCombinationType.Straight ||
-                     CurrentCombination.Type == CardCombinationType.PairSequence ) {
+                if ( CurrentCombination.Type == CardCombinationType.Straight ) {
                     if ( CurrentCombination.Cards.Count != next.Cards.Count ) {
+                        return false;
+                    }
+                }
+                else if ( CurrentCombination.Type == CardCombinationType.PairSequence ) {
+                    if ( next.PairCount > CurrentCombination.PairCount ) {
+                        return true; // e.g. 4 đôi thông cuts 3 đôi thông
+                    }
+                    if ( next.PairCount < CurrentCombination.PairCount ) {
                         return false;
                     }
                 }
@@ -70,8 +76,15 @@ namespace Assets.Script.TienLen.Rule {
                 if ( next.Type == CardCombinationType.PairSequence && next.PairCount >= 4 ) return true;
             }
 
-            // 3. Four of a Kind can be cut by:
-            //    - Higher Four of a Kind
+            // 3. 3 Pair Sequence (3 đôi thông) can be cut by:
+            //    - Four of a Kind (Tứ quý)
+            //    - 4+ Pair Sequence
+            if ( previous.Type == CardCombinationType.PairSequence && previous.PairCount == 3 ) {
+                if ( next.Type == CardCombinationType.FourOfAKind ) return true;
+                if ( next.Type == CardCombinationType.PairSequence && next.PairCount >= 4 ) return true;
+            }
+
+            // 4. Four of a Kind can be cut by:
             //    - 4 Pair Sequence (4 đôi thông)
             if ( previous.Type == CardCombinationType.FourOfAKind ) {
                 if ( next.Type == CardCombinationType.PairSequence && next.PairCount >= 4 ) return true;

@@ -1,4 +1,4 @@
-﻿using Assets.Script.Data.SO;
+using Assets.Script.Data.SO;
 using Assets.Script.TienLen.Player;
 using TMPro;
 using UnityEngine;
@@ -31,6 +31,12 @@ namespace Assets.Script.TienLen.UI {
             }
         }
 
+        private void Awake() {
+            if ( money == null ) {
+                money = GetComponentInChildren<TMP_Text>(true);
+            }
+        }
+
         public void Initialize(
             SpriteRenderer avatar = null,
             TMP_Text money = null,
@@ -54,6 +60,7 @@ namespace Assets.Script.TienLen.UI {
             }
 
             if ( money != null ) {
+                money.gameObject.SetActive(true);
                 money.text = FormatMoney(player.Money);
             }
 
@@ -69,6 +76,7 @@ namespace Assets.Script.TienLen.UI {
 
         public void UpdateMoney( long newAmount ) {
             if ( money != null ) {
+                money.gameObject.SetActive(true);
                 money.text = FormatMoney(newAmount);
             }
         }
@@ -76,8 +84,6 @@ namespace Assets.Script.TienLen.UI {
         public void UpdateMoney( int newAmount ) {
             UpdateMoney((long)newAmount);
         }
-
-        
 
         public void SetAvatarVisible( bool visible ) {
             if ( avatar != null && avatar.gameObject != null ) {
@@ -118,6 +124,9 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public static string FormatMoney( long amount ) {
+            if ( amount < 0 ) {
+                return $"-{FormatMoney(-amount)}";
+            }
             if ( amount >= 1_000_000 ) {
                 return $"${(amount / 1_000_000.0):0.#}M";
             }

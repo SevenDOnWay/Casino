@@ -1,4 +1,5 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.NetWorkScript;
+using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Assets.Script.TienLen.Rule;
 using System.Collections.Generic;
@@ -28,17 +29,13 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private Button passBtn;
 
         private GameObject panelRootObject;
-        private bool lastPushedIsTurn;
+        private bool isThisPlayerTurn;
         private CardHolder subscribedHand;
 
         private CardHolder LocalHand {
             get {
-                if ( subscribedHand != null ) return subscribedHand;
-                if ( tableVisualLayoutManager != null ) {
-                    return tableVisualLayoutManager.GetLocalCardHolder();
-                }
-                tableVisualLayoutManager = FindAnyObjectByType<TableVisualLayoutManager>();
-                return tableVisualLayoutManager?.GetLocalCardHolder();
+                var hand = tableVisualLayoutManager != null ? tableVisualLayoutManager.GetLocalCardHolder() : null;
+                return hand != null ? hand : subscribedHand;
             }
         }
 
@@ -63,7 +60,6 @@ namespace Assets.Script.TienLen.UI {
             if ( sortBtn != null ) sortBtn.onClick.AddListener(OnSortBtnClick);
             if ( passBtn != null ) passBtn.onClick.AddListener(OnPassBtnClick);
 
-            SetSortInteractable(true);
             SetPlayInteractable(false);
             SetPassInteractable(false);
 
@@ -86,7 +82,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void EnsureHandSubscribed() {
-            CardHolder hand = LocalHand;
+            CardHolder hand = tableVisualLayoutManager != null ? tableVisualLayoutManager.GetLocalCardHolder() : subscribedHand;
             if ( hand != null && hand != subscribedHand ) {
                 UnsubscribeHand();
                 subscribedHand = hand;
@@ -114,7 +110,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public void RenderTurnState( bool isLocalTurn ) {
-            lastPushedIsTurn = isLocalTurn;
+            isThisPlayerTurn = isLocalTurn;
             RefreshActionState();
         }
 
@@ -139,26 +135,15 @@ namespace Assets.Script.TienLen.UI {
 
         private void OnSortBtnClick() {
             CardHolder hand = LocalHand;
-            if ( hand == null ) {
-                Debug.LogWarning("[ActionPanel] Sort ignored: no local hand.");
-                return;
+            if ( hand != null ) {
+                hand.SortCards();
+                hand.ArrangeCards(animate: true);
             }
-
-            hand.SortCards();
-            hand.ArrangeCards(animate: true);
         }
 
         private void OnPlayBtnClick() {
-            if ( !lastPushedIsTurn ) {
-                Debug.LogWarning("[ActionPanel] Play ignored: not local player's turn.");
-                return;
-            }
-
             CardHolder hand = LocalHand;
-            if ( hand == null ) {
-                Debug.LogWarning("[ActionPanel] Play ignored: no local hand.");
-                return;
-            }
+            if ( hand == null ) return;
 
             IReadOnlyList<CardView> selectedCards = hand.SelectedCards;
             if ( selectedCards == null || selectedCards.Count == 0 ) {
@@ -170,8 +155,13 @@ namespace Assets.Script.TienLen.UI {
                 .Select(view => view.Card)
                 .ToList();
 
-            if ( combinationEvaluator == null
-                || !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) {
+            TienLenNetWorkPlayer networkPlayer = localPlayerService?.GetLocalNetworkPlayer();
+            if ( networkPlayer == null ) {
+                Debug.LogWarning("[ActionPanel] Play ignored: local network player is null.");
+                return;
+            }
+
+            if ( combinationEvaluator == null || !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) {
                 Debug.Log("[ActionPanel] Play ignored: selected cards are not a valid combination.");
                 return;
             }
@@ -181,69 +171,42 @@ namespace Assets.Script.TienLen.UI {
                 return;
             }
 
-            TienLenNetWorkPlayer networkPlayer = localPlayerService?.GetLocalNetworkPlayer();
-            if ( networkPlayer == null ) {
-                Debug.LogWarning("[ActionPanel] Play ignored: local network player is null.");
-                return;
-            }
-
             NetworkCard[] networkCards = combination.Cards
                 .Select(card => new NetworkCard(card))
                 .ToArray();
 
-            networkPlayer.RPCRequestPlayCard(networkCards);
+            networkPlayer.RPCSendPlayCard(networkCards);
 
             hand.ClearSelection();
             RefreshActionState();
         }
 
         private void OnPassBtnClick() {
-            if ( !lastPushedIsTurn ) {
-                Debug.LogWarning("[ActionPanel] Pass ignored: not local player's turn.");
-                return;
-            }
-
             TienLenNetWorkPlayer networkPlayer = localPlayerService?.GetLocalNetworkPlayer();
             if ( networkPlayer == null ) {
                 Debug.LogWarning("[ActionPanel] Pass ignored: local network player is null.");
                 return;
             }
 
+            SetPlayInteractable(false);
+            SetPassInteractable(false);
+
             networkPlayer.RPCRequestPass();
+            RefreshActionState();
         }
 
         #endregion
 
         #region State Evaluation
 
-        private void RefreshActionState() {
-            SetSortInteractable(true);
-
-            bool canAct = lastPushedIsTurn;
-            SetPlayInteractable(canAct && HasPlayableSelection());
-            SetPassInteractable(canAct);
-        }
-
-        private bool HasPlayableSelection() {
-            CardHolder hand = LocalHand;
-            if ( hand == null || combinationEvaluator == null ) return false;
-
-            IReadOnlyList<CardView> selected = hand.SelectedCards;
-            if ( selected == null || selected.Count == 0 ) return false;
-
-            List<Card> cards = selected
-                .Select(view => view.Card)
-                .ToList();
-
-            if ( !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) {
-                return false;
+        public void RefreshActionState() {
+            if ( !isThisPlayerTurn ) {
+                SetPlayInteractable(false);
+                SetPassInteractable(false);
+                return;
             }
-
-            return validator == null || validator.CanPlay(combination);
-        }
-
-        private void SetSortInteractable( bool interactable ) {
-            if ( sortBtn != null ) sortBtn.interactable = interactable;
+            SetPlayInteractable(CheckForPlayable());
+            SetPassInteractable(validator?.CurrentCombination != null);
         }
 
         private void SetPlayInteractable( bool interactable ) {
@@ -255,5 +218,23 @@ namespace Assets.Script.TienLen.UI {
         }
 
         #endregion
+
+        private bool CheckForPlayable() {
+            CardHolder hand = LocalHand;
+            if ( hand == null ) return false;
+
+            IReadOnlyList<CardView> selectedCards = hand.SelectedCards;
+            if ( selectedCards == null || selectedCards.Count == 0 ) {
+                return false;
+            }
+            List<Card> cards = selectedCards
+                .Select(view => view.Card)
+                .ToList();
+
+            if ( combinationEvaluator == null || !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) return false;
+            if ( validator != null && !validator.CanPlay(combination) ) return false;
+
+            return true;
+        }
     }
 }

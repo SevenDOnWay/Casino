@@ -1,5 +1,8 @@
-﻿using Assets.Script.TienLen;
+using Assets.Script.TienLen;
 using Assets.Script.TienLen.Game;
+using Assets.Script.TienLen.Game.Services;
+using Assets.Script.TienLen.Player;
+using Assets.Script.TienLen.Rule;
 using Fusion;
 using System;
 using UnityEngine;
@@ -10,11 +13,14 @@ namespace Assets.Script.NetWorkScript {
     public class TienLenNetWorkPlayer : NetworkBehaviour {
         [Header("Dependencies")]
         private TienLenGameController controller;
-        private ILocalPlayerService localPlayerService;
+        private LocalPlayerService localPlayerService;
+        private IActionHandler actionHandler;
+        private ISeatQueryService seatQueryService;
 
         public event Action<TienLenNetWorkPlayer> OnPlayerDataUpdated;
 
         [Networked] public PlayerRef PlayerRef { get; set; }
+        [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public NetworkString<_32> UserId { get; set; }
         [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public NetworkString<_16> PlayerName { get; set; }
         [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public int AvatarId { get; set; }
         [Networked, OnChangedRender(nameof(OnNetworkPlayerDataChanged))] public int Level { get; set; }
@@ -25,43 +31,65 @@ namespace Assets.Script.NetWorkScript {
         }
 
         [Inject]
-        public void Construct( ILocalPlayerService localPlayerService, TienLenGameController controller ) {
+        public void Construct(
+            LocalPlayerService localPlayerService,
+            TienLenGameController controller,
+            IActionHandler actionHandler = null,
+            ISeatQueryService seatQueryService = null ) {
             this.localPlayerService = localPlayerService;
             this.controller = controller;
+            this.actionHandler = actionHandler;
+            this.seatQueryService = seatQueryService;
         }
 
         public override void Spawned() {
-            if ( controller == null || localPlayerService == null ) {
-                var scope = LifetimeScope.Find<LifetimeScope>();
-                if ( scope != null ) {
-                    scope.Container.Inject(this);
+            if ( controller == null || localPlayerService == null || actionHandler == null || seatQueryService == null ) {
+                var scope = LifetimeScope.Find<LifetimeScope>(gameObject.scene);
+                if ( scope != null && scope.Container != null ) {
+                    scope.Container.InjectGameObject(gameObject);
+                }
+                else {
+                    Debug.LogError($"[TienLenNetWorkPlayer] Dependencies not injected on '{name}'. Ensure DynamicNetworkObjectProvider is configured on the NetworkRunner.");
                 }
             }
 
-            if ( Object.HasInputAuthority && localPlayerService != null ) {
-                localPlayerService.SetLocalNetworkPlayer(this);
-
-                string name = localPlayerService.GetName() ?? "Player";
-                int avatar = localPlayerService.GetAvatarId();
-                int lvl = localPlayerService.GetLevel();
-                long money = localPlayerService.GetMoney();
-
-                if ( Object.HasStateAuthority ) {
-                    PlayerName = name;
-                    AvatarId = avatar;
-                    Level = lvl;
-                    Money = money;
-                }
-                else {
-                    RPCSetPlayerData(name, avatar, lvl, money);
-                }
-
-                Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{PlayerName}' ({PlayerRef.PlayerId}) Avatar={AvatarId} Level={Level} Money={Money}.");
+            if ( Object.HasInputAuthority ) {
+                RegisterSelfWithServices();
             }
         }
 
+        private void RegisterSelfWithServices() {
+            if ( localPlayerService == null ) {
+                Debug.LogError("[TienLenNetWorkPlayer] localPlayerService is null on Spawned().");
+                return;
+            }
+
+            localPlayerService.SetLocalNetworkPlayer(this);
+
+            string id = localPlayerService.GetID() ?? string.Empty;
+            string name = localPlayerService.GetName() ?? $"Player {PlayerRef.PlayerId}";
+            int avatar = localPlayerService.GetAvatarId();
+            int lvl = localPlayerService.GetLevel();
+            long money = localPlayerService.GetMoney();
+
+            if ( Object.HasStateAuthority ) {
+                UserId = id;
+                PlayerName = name;
+                AvatarId = avatar;
+                Level = lvl;
+                Money = money;
+                OnPlayerDataUpdated?.Invoke(this);
+            }
+            else {
+                RPCSetPlayerData(id, name, avatar, lvl, money);
+            }
+
+            Debug.Log($"[TienLenNetWorkPlayer] Bound local player '{name}' (UserId: {id}, PlayerRef: {PlayerRef.PlayerId}) Avatar={avatar} Level={lvl} Money={money}.");
+        }
+
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-        public void RPCSetPlayerData( string name, int avatarId, int level, long money ) {
+        public void RPCSetPlayerData( string userId, string name, int avatarId, int level, long money ) {
+            UserId = userId;
             PlayerName = name;
             AvatarId = avatarId;
             Level = level;
@@ -70,45 +98,27 @@ namespace Assets.Script.NetWorkScript {
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-        public void RPCRequestPlayCard( NetworkCard[] cards, RpcInfo info = default ) {
+        public void RPCSendPlayCard( NetworkCard[] cards, RpcInfo info = default ) {
+            if ( cards == null || cards.Length == 0 ) return;
+
             PlayerRef sender = (info.Source != PlayerRef.None) ? info.Source : Object.InputAuthority;
+            if ( sender == PlayerRef.None ) sender = PlayerRef;
 
-            if ( sender == PlayerRef.None ) {
-                sender = PlayerRef;
-            }
+            TienLenPlayer logicPlayer = seatQueryService?.GetLogicPlayer(sender) ?? localPlayerService?.GetLocalLogicPlayer();
+            if ( logicPlayer == null || actionHandler == null ) return;
 
-            Debug.Log(
-                $"[TienLenNetWorkPlayer.RPCRequestPlayCard] info.Source={info.Source}, " +
-                $"InputAuthority={Object.InputAuthority}, resolvedSender={sender}, cardCount={cards?.Length ?? 0}"
-            );
-
-            if ( controller == null ) {
-                Debug.LogError("[TienLenNetWorkPlayer.RPCRequestPlayCard] Controller is null.");
-                return;
-            }
-
-            controller.HandlePlayRequest(sender, cards);
+            actionHandler.TryValidateAndExecutePlay(logicPlayer, cards, out _, out _);
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
         public void RPCRequestPass( RpcInfo info = default ) {
             PlayerRef sender = (info.Source != PlayerRef.None) ? info.Source : Object.InputAuthority;
+            if ( sender == PlayerRef.None ) sender = PlayerRef;
 
-            if ( sender == PlayerRef.None ) {
-                sender = PlayerRef;
-            }
+            TienLenPlayer logicPlayer = seatQueryService?.GetLogicPlayer(sender) ?? localPlayerService?.GetLocalLogicPlayer();
+            if ( logicPlayer == null || actionHandler == null ) return;
 
-            Debug.Log(
-                $"[TienLenNetWorkPlayer.RPCRequestPass] info.Source={info.Source}, " +
-                $"InputAuthority={Object.InputAuthority}, resolvedSender={sender}"
-            );
-
-            if ( controller == null ) {
-                Debug.LogError("[TienLenNetWorkPlayer.RPCRequestPass] Controller is null.");
-                return;
-            }
-
-            controller.HandlePassRequest(sender);
+            actionHandler.TryExecutePass(logicPlayer, out _, out _);
         }
 
         [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
