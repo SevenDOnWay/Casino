@@ -289,5 +289,85 @@ namespace Assets.Script.Data.Tests {
             turnManager.TurnDuration = 15f;
             Assert.AreEqual(15f, turnManager.TurnDuration);
         }
+
+        [Test]
+        public void ActionHandler_WhenWinnerSeatAlreadySet_RejectsPlayAndPass() {
+            var go = new GameObject("TestGameController");
+            var gc = go.AddComponent<TienLenGameController>();
+            gc.WinnerSeat = 1;
+            gc.IsGameStarted = true;
+
+            var p1 = new TienLenPlayer(1, "Alice", true);
+            var actionHandler = new TienLenActionHandler(
+                cardCombinationEvaluator: new CardCombinationEvaluator(new CardComparer()),
+                turnManager: null,
+                validator: new TienLenRuleValidator(),
+                seatQueryService: null,
+                gameController: gc
+            );
+
+            bool playOk = actionHandler.TryValidateAndExecutePlay(p1, new Assets.Script.TienLen.NetworkCard[1], out _, out string playFail);
+            Assert.IsFalse(playOk);
+            Assert.That(playFail, Does.Contain("concluded"));
+
+            bool passOk = actionHandler.TryExecutePass(p1, out _, out string passFail);
+            Assert.IsFalse(passOk);
+            Assert.That(passFail, Does.Contain("concluded"));
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void MatchOutcomeReporter_WhenUserIdIsNumericFusionId_OmitsNumericId() {
+            var mockSeat = new MockSeatQueryService();
+            var p1 = new TienLenPlayer(1, "Player1", true, 0, 1, 5000, null);
+            mockSeat.Seated[0] = p1;
+
+            var report = TienLenMatchOutcomeReporter.BuildMatchReport(0, 10, mockSeat);
+            Assert.IsNotNull(report);
+            Assert.AreEqual(1, report.results.Count);
+            Assert.IsTrue(string.IsNullOrEmpty(report.results[0].userId), "Numeric ID should not be set as userId");
+        }
+
+        [Test]
+        public void MigrationHandler_TryResumeState_RestoresFirstPlayState() {
+            var validator = new TienLenRuleValidator();
+            var p1 = new TienLenPlayer(1, "P1", true);
+            var p2 = new TienLenPlayer(2, "P2", true);
+            var mockSeat = new MockSeatQueryService();
+            mockSeat.Seated[0] = p1;
+            mockSeat.Seated[1] = p2;
+
+            var goTurn = new GameObject("TestTurnManager");
+            var turnManager = goTurn.AddComponent<TurnManager>();
+            turnManager.Construct(validator);
+
+            var actionHandler = new TienLenActionHandler(
+                cardCombinationEvaluator: new CardCombinationEvaluator(new CardComparer()),
+                turnManager: turnManager,
+                validator: validator,
+                seatQueryService: mockSeat
+            );
+            actionHandler.IsFirstPlayOfGame = true;
+
+            var migrationHandler = new TienLenMigrationHandler(
+                mockSeat, turnManager, new CardCombinationEvaluator(new CardComparer()), validator
+            );
+
+            var tableCards = new List<Card> { new Card(CardRank.Three, CardSuit.Spades) };
+            bool resumed = migrationHandler.TryResumeState(
+                currentTableCardCount: 1,
+                tableCards: tableCards,
+                currentTurnSeat: 0,
+                singleRemainingWinnerSeat: out _,
+                turnAdvanced: out _,
+                actionHandler: actionHandler
+            );
+
+            Assert.IsTrue(resumed);
+            Assert.IsFalse(actionHandler.IsFirstPlayOfGame, "First play should be false when resuming with table cards");
+
+            Object.DestroyImmediate(goTurn);
+        }
     }
 }

@@ -46,7 +46,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         [Header("Turn Timing")]
-        [SerializeField] private float turnDuration = 10f;
+        [SerializeField] private float turnDuration = 15f;
         public float TurnDuration {
             get => turnDuration;
             set => turnDuration = value;
@@ -169,6 +169,7 @@ namespace Assets.Script.TienLen.Game {
                 }
                 SetStartingPlayer(startingIndex >= 0 ? startingIndex : 0);
                 if ( ActionHandler != null ) ActionHandler.IsFirstPlayOfGame = false;
+                if ( GameController != null ) GameController.IsFirstPlayOfGame = false;
                 Debug.Log($"[TurnManager] Previous winner at seat {startingSeat} (order index {startingIndex}) leads next match.");
             }
             else {
@@ -176,11 +177,13 @@ namespace Assets.Script.TienLen.Game {
                 if ( holderIndex >= 0 ) {
                     SetStartingPlayer(holderIndex);
                     if ( ActionHandler != null ) ActionHandler.IsFirstPlayOfGame = true;
+                    if ( GameController != null ) GameController.IsFirstPlayOfGame = true;
                     Debug.Log($"[TurnManager] Player at order index {holderIndex} holds 3 of Spades and must lead the match.");
                 }
                 else {
                     SetStartingPlayer(0);
                     if ( ActionHandler != null ) ActionHandler.IsFirstPlayOfGame = false;
+                    if ( GameController != null ) GameController.IsFirstPlayOfGame = false;
                     Debug.Log("[TurnManager] 3 of Spades is not held by any player. Host starts freely.");
                 }
             }

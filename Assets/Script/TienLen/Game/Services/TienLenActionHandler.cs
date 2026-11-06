@@ -54,6 +54,13 @@ namespace Assets.Script.TienLen.Game.Services {
                 return false;
             }
 
+            // Reject actions if match has concluded or is not active
+            if ( gameController != null && (gameController.WinnerSeat != -1 || !gameController.IsGameStarted) ) {
+                failureReason = "Match is not in progress or has already concluded.";
+                Debug.LogWarning($"[TienLenActionHandler] {failureReason}");
+                return false;
+            }
+
             // Must be player's turn
             if ( turnManager != null && !turnManager.IsPlayerTurn(player) ) {
                 failureReason = $"Player {player.Id} attempted to play out of turn.";
@@ -96,6 +103,9 @@ namespace Assets.Script.TienLen.Game.Services {
 
             // Execute play
             IsFirstPlayOfGame = false;
+            if ( gameController != null ) {
+                gameController.IsFirstPlayOfGame = false;
+            }
             player.IsInactive = false;
             player.TryRemoveCards(cards);
             validator?.SetCurrentCombination(combination);
@@ -138,6 +148,13 @@ namespace Assets.Script.TienLen.Game.Services {
 
             if ( player == null ) {
                 failureReason = "Player is null.";
+                return false;
+            }
+
+            // Reject actions if match has concluded or is not active
+            if ( gameController != null && (gameController.WinnerSeat != -1 || !gameController.IsGameStarted) ) {
+                failureReason = "Match is not in progress or has already concluded.";
+                Debug.LogWarning($"[TienLenActionHandler] {failureReason}");
                 return false;
             }
 

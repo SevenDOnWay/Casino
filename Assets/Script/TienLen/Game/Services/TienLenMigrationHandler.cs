@@ -31,7 +31,9 @@ namespace Assets.Script.TienLen.Game.Services {
             IReadOnlyList<Card> tableCards,
             int currentTurnSeat,
             out int singleRemainingWinnerSeat,
-            out bool turnAdvanced
+            out bool turnAdvanced,
+            bool? isFirstPlayOverride = null,
+            IActionHandler actionHandler = null
         ) {
             singleRemainingWinnerSeat = -1;
             turnAdvanced = false;
@@ -62,6 +64,17 @@ namespace Assets.Script.TienLen.Game.Services {
             }
             else {
                 validator?.Reset();
+            }
+
+            // Restore first play of game state
+            if ( actionHandler != null ) {
+                if ( isFirstPlayOverride.HasValue ) {
+                    actionHandler.IsFirstPlayOfGame = isFirstPlayOverride.Value;
+                }
+                else {
+                    bool hasPlayOccurred = currentTableCardCount > 0 || (tableCards != null && tableCards.Count > 0);
+                    actionHandler.IsFirstPlayOfGame = !hasPlayOccurred;
+                }
             }
 
             // Restore active turn player

@@ -71,10 +71,13 @@ namespace Assets.Script.TienLen.Game.Controller {
                 }
             }
 
-            int solventCount = seatedPlayers.Values.Count(p => p != null && !p.IsInactive);
+            CleanUpInactivePlayers();
+
+            // Re-evaluate solvent seated players after excluding underfunded seats
+            seatedPlayers = seatQueryService.GetSeatedPlayers();
+            int solventCount = seatedPlayers.Values.Count(p => p != null && !p.IsInactive && p.Money >= bet);
             if ( solventCount < minPlayersToStart ) {
                 Debug.LogWarning("[MatchController] Not enough solvent players to start match.");
-                CleanUpInactivePlayers();
                 return;
             }
 
@@ -82,6 +85,7 @@ namespace Assets.Script.TienLen.Game.Controller {
                 gameController.IsGameStarted = true;
                 gameController.WinnerSeat = -1;
                 gameController.LastPassSeat = -1;
+                gameController.IsFirstPlayOfGame = true;
             }
 
             CreateAndDealCards();
@@ -98,12 +102,13 @@ namespace Assets.Script.TienLen.Game.Controller {
             deck.Shuffle();
 
             var seatedPlayers = seatQueryService.GetSeatedPlayers();
-            foreach ( var p in seatedPlayers.Values ) {
+            var activePlayers = seatedPlayers.Values.Where(p => p != null && !p.IsInactive).ToList();
+            foreach ( var p in activePlayers ) {
                 p.Hand?.Clear();
             }
 
             for ( int i = 0; i < 13; i++ ) {
-                foreach ( var player in seatedPlayers.Values ) {
+                foreach ( var player in activePlayers ) {
                     var drawnCard = deck.DrawCard();
                     player.Hand.AddCard(drawnCard);
                 }
@@ -147,6 +152,14 @@ namespace Assets.Script.TienLen.Game.Controller {
             }
 
             if ( !Object.HasStateAuthority ) return;
+
+            int bet = gameController != null ? gameController.CurrentBetStake : 5;
+            foreach ( var p in seatQueryService.GetSeatedPlayers().Values ) {
+                if ( p != null && p.Money < bet ) {
+                    p.IsInactive = true;
+                    Debug.LogWarning($"[MatchController] Player {p.Id} has insufficient funds for next match ({p.Money} < {bet}). Marked inactive.");
+                }
+            }
 
             CleanUpInactivePlayers();
 

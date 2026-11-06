@@ -55,10 +55,15 @@ namespace TienLen.Server.Services {
                 );
 
                 if ( updatedUser != null ) {
-                    // Non-negative wallet balance guard: never allow balance to stay below 0
+                    // Non-negative wallet balance guard: condition clamp on balance still being negative
+                    // so concurrent winning increments for the same account are never overwritten
                     if ( updatedUser.Money < 0 ) {
+                        var clampFilter = Builders<UserDocument>.Filter.And(
+                            Builders<UserDocument>.Filter.Eq(u => u.Id, p.UserId),
+                            Builders<UserDocument>.Filter.Lt(u => u.Money, 0)
+                        );
                         await db.Users.UpdateOneAsync(
-                            filter,
+                            clampFilter,
                             Builders<UserDocument>.Update.Set(u => u.Money, 0)
                         );
                     }

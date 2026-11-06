@@ -40,16 +40,51 @@ namespace Assets.Script.TienLen.Game {
         private readonly Dictionary<PlayerRef, List<Card>> pendingHands = new();
         private int explicitBetStake = 0;
 
+        private int localWinnerSeat = -1;
+        private bool localIsGameStarted = false;
+        private bool localIsFirstPlayOfGame = true;
+
         #region Networked Properties
 
-        [Networked] public NetworkBool IsGameStarted { get; set; }
+        [Networked] private NetworkBool IsGameStartedNet { get; set; }
         [Networked] public int CurrentTurnSeat { get; set; }
-        [Networked] public int WinnerSeat { get; set; }
+        [Networked] private int WinnerSeatNet { get; set; }
         [Networked] public int LastPassSeat { get; set; }
         [Networked] public int BetStake { get; set; }
+        [Networked] private NetworkBool IsFirstPlayOfGameNet { get; set; }
         [Networked, Capacity(13)] public NetworkArray<NetworkCard> CurrentTableCards => default;
         [Networked] public int CurrentTableCardCount { get; set; }
         #endregion
+
+        public NetworkBool IsGameStarted {
+            get => (Object != null && Object.IsValid) ? IsGameStartedNet : localIsGameStarted;
+            set {
+                localIsGameStarted = value;
+                if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                    IsGameStartedNet = value;
+                }
+            }
+        }
+
+        public int WinnerSeat {
+            get => (Object != null && Object.IsValid) ? WinnerSeatNet : localWinnerSeat;
+            set {
+                localWinnerSeat = value;
+                if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                    WinnerSeatNet = value;
+                }
+            }
+        }
+
+        public NetworkBool IsFirstPlayOfGame {
+            get => (Object != null && Object.IsValid) ? IsFirstPlayOfGameNet : localIsFirstPlayOfGame;
+            set {
+                localIsFirstPlayOfGame = value;
+                if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                    IsFirstPlayOfGameNet = value;
+                }
+            }
+        }
 
         public TickTimer TurnTimer {
             get => turnManager != null ? turnManager.TurnTimer : default;
@@ -59,6 +94,7 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public float TurnDuration => turnManager != null ? turnManager.TurnDuration : turnDuration;
+        public float TurnDurationConfig => turnDuration;
 
         public int CurrentBetStake {
             get {
@@ -113,6 +149,10 @@ namespace Assets.Script.TienLen.Game {
             this.seatQueryService = seatQueryService;
             this.resolver = resolver;
             this.profileService = profileService;
+
+            if ( this.turnManager != null && this.turnDuration > 0 ) {
+                this.turnManager.TurnDuration = this.turnDuration;
+            }
 
             this.outcomeReporter = outcomeReporter ?? new TienLenMatchOutcomeReporter(seatQueryService, localPlayerService, profileService);
             this.migrationHandler = migrationHandler ?? new TienLenMigrationHandler(seatQueryService, turnManager, cardCombinationEvaluator, validator);
@@ -229,7 +269,8 @@ namespace Assets.Script.TienLen.Game {
                 tableCards.Add(CurrentTableCards[i].ToCard());
             }
 
-            if ( migrationHandler.TryResumeState(CurrentTableCardCount, tableCards, CurrentTurnSeat, out int singleWinnerSeat, out bool turnAdvanced) ) {
+            var actionHandler = resolver?.Resolve<IActionHandler>();
+            if ( migrationHandler.TryResumeState(CurrentTableCardCount, tableCards, CurrentTurnSeat, out int singleWinnerSeat, out bool turnAdvanced, IsFirstPlayOfGame, actionHandler) ) {
                 if ( singleWinnerSeat != -1 ) {
                     TriggerGameOver(singleWinnerSeat);
                     return;

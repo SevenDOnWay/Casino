@@ -79,8 +79,9 @@ namespace Assets.Script.TienLen.Game.Services {
                     userId = player.UserId;
                 }
 
-                if ( string.IsNullOrEmpty(userId) ) {
-                    userId = player.Id.ToString();
+                // Do not substitute numeric network player IDs for user IDs; omit if unassigned or numeric
+                if ( !string.IsNullOrEmpty(userId) && long.TryParse(userId, out _) ) {
+                    userId = string.Empty;
                 }
 
                 long moneyEarned = isWinner ? (loserCount * currentBet) : -currentBet;
@@ -101,6 +102,17 @@ namespace Assets.Script.TienLen.Game.Services {
                 matchId = Guid.NewGuid().ToString("N"),
                 results = summaries
             };
+        }
+
+        public static bool IsValidMongoObjectId( string id ) {
+            if ( string.IsNullOrEmpty(id) || id.Length != 24 ) return false;
+            for ( int i = 0; i < id.Length; i++ ) {
+                char c = id[i];
+                if ( !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) ) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public async UniTask<bool> ReportMatchOutcomeAsync( int winnerSeat, int currentBet ) {
