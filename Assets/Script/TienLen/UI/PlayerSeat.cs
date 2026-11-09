@@ -1,4 +1,4 @@
-﻿using Assets.Script.TienLen.Player;
+using Assets.Script.TienLen.Player;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -82,6 +82,8 @@ namespace Assets.Script.TienLen.UI {
             if ( cardHolder != null ) {
                 cardHolder.Clear();
             }
+
+            StopTurnTimer();
 
             if ( infoView != null ) {
                 infoView.Clear();

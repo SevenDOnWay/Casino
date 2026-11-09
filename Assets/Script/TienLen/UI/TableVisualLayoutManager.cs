@@ -1,4 +1,4 @@
-﻿using Assets.Script.NetWorkScript;
+using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Game;
 using Assets.Script.TienLen.Player;
 using Fusion;
@@ -46,12 +46,7 @@ namespace Assets.Script.TienLen.UI {
         /// Uses a diff so unchanged slots are not re-bound.
         /// </summary>
         public void RefreshLayout() {
-            if ( seatProvider == null ) {
-                Debug.LogWarning("[TableLayout] seatProvider is null, skipping layout refresh.");
-                return;
-            }
-
-            visualSlots ??= seatProvider.GetPlayerSeats();
+            EnsureVisualSlots();
 
             if ( visualSlots == null || visualSlots.Length == 0 ) {
                 Debug.LogWarning("[TableLayout] visualSlots is null or empty, skipping layout refresh.");
@@ -69,7 +64,9 @@ namespace Assets.Script.TienLen.UI {
                 int netSeat = kvp.Key;
                 var logicPlayer = kvp.Value;
 
-                int visualSlotIndex = seatProvider.CalculateVisualSlotIndex(netSeat, localSeatIndex);
+                int visualSlotIndex = seatProvider != null
+                    ? seatProvider.CalculateVisualSlotIndex(netSeat, localSeatIndex)
+                    : netSeat;
 
                 if ( visualSlotIndex < 0 || visualSlotIndex >= visualSlots.Length ) {
                     Debug.LogWarning($"[TableLayout] Visual slot {visualSlotIndex} out of range for net seat {netSeat}, skipping.");
@@ -129,6 +126,7 @@ namespace Assets.Script.TienLen.UI {
         }
 
         public PlayerSeat GetSeatByNetworkIndex( int networkSeatIndex ) {
+            EnsureVisualSlots();
             if ( visualSlots == null || networkSeatIndex < 0 ) return null;
             for ( int i = 0; i < visualSlots.Length; i++ ) {
                 if ( visualSlots[i] != null && visualSlots[i].BoundSeatIndex == networkSeatIndex ) {

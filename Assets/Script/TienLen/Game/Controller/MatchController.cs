@@ -126,6 +126,8 @@ namespace Assets.Script.TienLen.Game.Controller {
             if ( !Object.HasStateAuthority || gameController == null ) return;
 
             gameController.WinnerSeat = winnerSeat;
+            gameController.CurrentTurnSeat = -1;
+            turnManager?.StopTurnTimer();
             Debug.Log($"[MatchController] Player at seat {winnerSeat} wins!");
 
             ReportMatchOutcome(winnerSeat).Forget();
@@ -179,6 +181,7 @@ namespace Assets.Script.TienLen.Game.Controller {
             gameController.WinnerSeat = -1;
             gameController.CurrentTurnSeat = -1;
             gameController.CurrentTableCardCount = 0;
+            turnManager?.StopTurnTimer();
             animationPlayer?.ClearTableCenter();
         }
 

@@ -93,6 +93,9 @@ namespace Assets.Script.TienLen.Game {
             }
         }
 
+        public TurnManager TurnManager => turnManager;
+        public float RemainingTurnTimeNormalized => turnManager != null ? turnManager.RemainingTurnTimeNormalized : 0f;
+
         public float TurnDuration => turnManager != null ? turnManager.TurnDuration : turnDuration;
         public float TurnDurationConfig => turnDuration;
 
@@ -107,8 +110,6 @@ namespace Assets.Script.TienLen.Game {
                 return explicitBetStake > 0 ? explicitBetStake : 5;
             }
         }
-
-        public float RemainingTurnTimeNormalized => turnManager != null ? turnManager.RemainingTurnTimeNormalized : 0f;
 
         public int RegisteredPlayerCount =>
             seatQueryService != null ? seatQueryService.GetNetworkPlayer().Count : 0;
@@ -129,6 +130,8 @@ namespace Assets.Script.TienLen.Game {
 
         public void TriggerGameOver( int winnerSeat ) {
             WinnerSeat = winnerSeat;
+            CurrentTurnSeat = -1;
+            turnManager?.StopTurnTimer();
             var matchController = resolver?.Resolve<MatchController>();
             matchController?.EndGame(winnerSeat);
         }
@@ -149,7 +152,6 @@ namespace Assets.Script.TienLen.Game {
             this.seatQueryService = seatQueryService;
             this.resolver = resolver;
             this.profileService = profileService;
-
             if ( this.turnManager != null && this.turnDuration > 0 ) {
                 this.turnManager.TurnDuration = this.turnDuration;
             }

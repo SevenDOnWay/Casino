@@ -209,32 +209,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2ba9c7ee5cf7b74990e775593ec3aad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.ClockWipe
-  fillAmount: 0
+  fillAmount: 1
   clockwise: 1
-  showEmptyAsTint: 0
+  showEmptyAsTint: 1
   emptyColor: {r: 0, g: 0, b: 0, a: 0.5}
   useGradient: 1
-  fillColor: {r: 1, g: 1, b: 1, a: 1}
+  fillColor: {r: 0.37233847, g: 0.98490566, b: 0.34750444, a: 0.33333334}
   colorGradient:
     serializedVersion: 2
-    key0: {r: 1, g: 1, b: 1, a: 1}
-    key1: {r: 1, g: 1, b: 1, a: 1}
-    key2: {r: 0, g: 0, b: 0, a: 0}
+    key0: {r: 0.27273044, g: 0.8867924, b: 0.3678882, a: 1}
+    key1: {r: 0.87169814, g: 0.8310788, b: 0.16282657, a: 1}
+    key2: {r: 0.8792453, g: 0.058063243, b: 0.1917856, a: 0}
     key3: {r: 0, g: 0, b: 0, a: 0}
     key4: {r: 0, g: 0, b: 0, a: 0}
     key5: {r: 0, g: 0, b: 0, a: 0}
     key6: {r: 0, g: 0, b: 0, a: 0}
     key7: {r: 0, g: 0, b: 0, a: 0}
     ctime0: 0
-    ctime1: 65535
-    ctime2: 0
+    ctime1: 34926
+    ctime2: 62258
     ctime3: 0
     ctime4: 0
     ctime5: 0
     ctime6: 0
     ctime7: 0
     atime0: 0
-    atime1: 65535
+    atime1: 64687
     atime2: 0
     atime3: 0
     atime4: 0
@@ -243,7 +243,7 @@ MonoBehaviour:
     atime7: 0
     m_Mode: 0
     m_ColorSpace: -1
-    m_NumColorKeys: 2
+    m_NumColorKeys: 3
     m_NumAlphaKeys: 2
 --- !u!1 &3759174359743761359
 GameObject:
@@ -293,9 +293,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.PlayerInfoView
   avatarDatabase: {fileID: 11400000, guid: 58f96e23b1024344ca21894d01b1e389, type: 2}
   avatar: {fileID: 6705115509396569517}
-  nameText: {fileID: 0}
   money: {fileID: 3240613732645009732}
-  levelText: {fileID: 0}
   infoRoot: {fileID: 3759174359743761359}
   turnTimer: {fileID: 1482757838138975901}
 --- !u!1 &5652390236681503147

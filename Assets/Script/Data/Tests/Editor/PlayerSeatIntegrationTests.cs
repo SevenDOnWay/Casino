@@ -117,6 +117,45 @@ namespace Assets.Script.Data.Tests {
         }
 
         [Test]
+        public void ClockWipe_SetProgress_HandlesGradientGracefully() {
+            var cwObj = new GameObject("ClockWipeTest");
+            var cw = cwObj.AddComponent<ClockWipe>();
+
+            Assert.DoesNotThrow(() => cw.SetProgress(0.75f));
+            Assert.AreEqual(0.75f, cw.FillAmount, 0.001f);
+
+            cw.SetProgress(0.0f);
+            Assert.AreEqual(0.0f, cw.FillAmount, 0.001f);
+
+            cw.SetProgress(1.5f);
+            Assert.AreEqual(1.0f, cw.FillAmount, 0.001f, "Progress above 1 should clamp to 1");
+
+            Object.DestroyImmediate(cwObj);
+        }
+
+        [Test]
+        public void PlayerSeat_ClearSeat_StopsTurnTimer() {
+            var player = new TienLenPlayer(1, "Eve", true, 0, 1, 1000);
+            seat.BindPlayer(player, 0);
+            seat.StartTurnTimer(0.9f);
+            Assert.IsTrue(timerObject.activeSelf);
+
+            seat.ClearSeat();
+            Assert.IsFalse(timerObject.activeSelf, "Clearing seat must stop and deactivate turn timer ClockWipe");
+        }
+
+        [Test]
+        public void PlayerWinEffectController_PlayAndStop_WorksWithoutExceptions() {
+            var effectObj = new GameObject("WinEffectTest");
+            var ctrl = effectObj.AddComponent<Assets.Script.TienLen.Effects.PlayerWinEffectController>();
+
+            Assert.DoesNotThrow(() => ctrl.PlayWinEffect(0, Vector3.zero));
+            Assert.DoesNotThrow(() => ctrl.StopWinEffect());
+
+            Object.DestroyImmediate(effectObj);
+        }
+
+        [Test]
         public void FormatMoney_FormatsValuesCorrectly() {
             Assert.AreEqual("$500", PlayerInfoView.FormatMoney(500));
             Assert.AreEqual("$10K", PlayerInfoView.FormatMoney(10000));

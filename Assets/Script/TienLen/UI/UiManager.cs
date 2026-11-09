@@ -28,10 +28,13 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private TienLenGameController tienLenGameController;
         [SerializeField] private SessionController lobbySessionController;
         [SerializeField] private SeatManager seatManager;
+        [SerializeField] private TurnManager turnManager;
         private ISeatQueryService seatQueryService;
         private ILocalPlayerService localPlayerService;
-        private TurnManager turnManager;
 
+        private TurnManager TurnMgr => turnManager != null
+            ? turnManager
+            : (turnManager = (tienLenGameController != null ? tienLenGameController.TurnManager : null) ?? FindAnyObjectByType<TurnManager>());
 
         [Header("UI Views")]
         [SerializeField] private SessionDisplayUI sessionDisplayUI;
@@ -40,13 +43,12 @@ namespace Assets.Script.TienLen.UI {
         [SerializeField] private TableVisualLayoutManager tableVisualLayoutManager;
         [SerializeField] private PlayerWinEffectController winEffectController;
 
-        
-
         private NetworkBehaviour.ChangeDetector seatDetector;
         private NetworkBehaviour.ChangeDetector gameDetector;
 
         private int lastRenderedSeatRevision = -1;
         private bool lastRenderedStarted;
+        private int lastRenderedWinnerSeat = -1;
 
         [Inject]
         void Construct(
@@ -68,6 +70,11 @@ namespace Assets.Script.TienLen.UI {
 
         private void Awake() {
             EnsureWinEffectController();
+        }
+
+        private void OnDisable() {
+            winEffectController?.StopWinEffect();
+            StopAllTurnTimers();
         }
 
         private void EnsureWinEffectController() {
@@ -92,6 +99,8 @@ namespace Assets.Script.TienLen.UI {
             if ( startGameUI != null && startGameUI.StartButton != null ) {
                 startGameUI.StartButton.onClick.RemoveListener(HandleStartClicked);
             }
+            winEffectController?.StopWinEffect();
+            StopAllTurnTimers();
         }
 
         public override void Render() {
@@ -123,12 +132,14 @@ namespace Assets.Script.TienLen.UI {
                 foreach ( var propertyName in gameDetector.DetectChanges(tienLenGameController) ) {
                     switch ( propertyName ) {
                         case nameof(TienLenGameController.IsGameStarted):
+                        case "IsGameStartedNet":
                             Refresh(LobbyChangeReason.GameStarted);
                             break;
                         case nameof(TienLenGameController.CurrentTurnSeat):
                             Refresh(LobbyChangeReason.TurnChanged);
                             break;
                         case nameof(TienLenGameController.WinnerSeat):
+                        case "WinnerSeatNet":
                             Refresh(LobbyChangeReason.GameOver);
                             break;
                         case nameof(TienLenGameController.LastPassSeat):
@@ -141,6 +152,7 @@ namespace Assets.Script.TienLen.UI {
             // Catch-up if model revision advanced without direct network dict change
             int seatRevision = SeatQuery != null ? SeatQuery.SeatRevision : -1;
             bool started = IsGameLogicReady() && tienLenGameController.IsGameStarted;
+            int winner = IsGameLogicReady() ? tienLenGameController.WinnerSeat : -1;
 
             if ( seatRevision != lastRenderedSeatRevision || started != lastRenderedStarted ) {
                 lastRenderedSeatRevision = seatRevision;
@@ -148,6 +160,11 @@ namespace Assets.Script.TienLen.UI {
                 RenderSeats();
                 RenderStartButton();
                 RenderGamePhase();
+            }
+
+            if ( winner != lastRenderedWinnerSeat ) {
+                lastRenderedWinnerSeat = winner;
+                Refresh(LobbyChangeReason.GameOver);
             }
 
             UpdateTurnTimers();
@@ -190,10 +207,17 @@ namespace Assets.Script.TienLen.UI {
             RenderGamePhase();
             RenderTurn();
             RenderPassNote();
-            UpdateTurnTimers();
+
+            if ( IsGameLogicReady() && tienLenGameController.WinnerSeat != -1 ) {
+                RenderGameOver();
+            }
+            else {
+                UpdateTurnTimers();
+            }
 
             lastRenderedSeatRevision = SeatQuery != null ? SeatQuery.SeatRevision : -1;
             lastRenderedStarted = IsGameLogicReady() && tienLenGameController.IsGameStarted;
+            lastRenderedWinnerSeat = IsGameLogicReady() ? tienLenGameController.WinnerSeat : -1;
         }
 
         public void ShowAnnouncement( string message ) {
@@ -253,6 +277,7 @@ namespace Assets.Script.TienLen.UI {
             }
             else {
                 winEffectController?.StopWinEffect();
+                StopAllTurnTimers();
                 actionPanel.ReturnToLobby();
             }
         }
@@ -274,7 +299,7 @@ namespace Assets.Script.TienLen.UI {
             if ( tienLenGameController.CurrentTurnSeat != -1 ) {
                 return localSeat == tienLenGameController.CurrentTurnSeat;
             }
-            return turnManager != null && localSeat == turnManager.currentPlayerIndex;
+            return TurnMgr != null && localSeat == TurnMgr.currentPlayerIndex;
         }
 
         private int ResolveLocalSeat() {
@@ -307,13 +332,19 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void RenderGameOver() {
-            if ( !IsGameLogicReady() ) return;
+            if ( !IsGameLogicReady() ) {
+                StopAllTurnTimers();
+                return;
+            }
+
             int seat = tienLenGameController.WinnerSeat;
             if ( seat == -1 ) {
+                EnsureWinEffectController();
                 winEffectController?.StopWinEffect();
                 sessionDisplayUI?.RenderAnnouncement(string.Empty);
                 RenderStartButton();
                 RenderGamePhase();
+                StopAllTurnTimers();
                 return;
             }
 
@@ -326,32 +357,52 @@ namespace Assets.Script.TienLen.UI {
             if ( winnerSlot != null ) {
                 winPos = winnerSlot.transform.position;
             }
+            EnsureWinEffectController();
             winEffectController?.PlayWinEffect(seat, winPos);
 
-            UpdateTurnTimers();
+            StopAllTurnTimers();
         }
 
         private void UpdateTurnTimers() {
-            if ( tableVisualLayoutManager == null || !IsGameLogicReady() ) return;
+            if ( tableVisualLayoutManager == null ) return;
+
+            if ( !IsGameLogicReady() ) {
+                StopAllTurnTimers();
+                return;
+            }
 
             int currentTurnSeat = tienLenGameController.CurrentTurnSeat;
             bool isGameActive = tienLenGameController.IsGameStarted && tienLenGameController.WinnerSeat == -1;
 
+            if ( !isGameActive || currentTurnSeat == -1 ) {
+                StopAllTurnTimers();
+                return;
+            }
+
             var allSlots = tableVisualLayoutManager.GetAllVisualSlots();
             if ( allSlots == null ) return;
 
-            float progress = tienLenGameController.RemainingTurnTimeNormalized;
+            var activeTurnMgr = TurnMgr;
+            float progress = activeTurnMgr != null ? activeTurnMgr.RemainingTurnTimeNormalized : 0f;
 
             for ( int i = 0; i < allSlots.Count; i++ ) {
                 var slot = allSlots[i];
                 if ( slot == null ) continue;
 
-                if ( isGameActive && currentTurnSeat != -1 && slot.BoundSeatIndex == currentTurnSeat ) {
+                if ( slot.BoundSeatIndex == currentTurnSeat ) {
                     slot.UpdateTurnTimer(progress);
                 }
                 else {
                     slot.StopTurnTimer();
                 }
+            }
+        }
+
+        public void StopAllTurnTimers() {
+            var allSlots = tableVisualLayoutManager?.GetAllVisualSlots();
+            if ( allSlots == null ) return;
+            for ( int i = 0; i < allSlots.Count; i++ ) {
+                allSlots[i]?.StopTurnTimer();
             }
         }
 
