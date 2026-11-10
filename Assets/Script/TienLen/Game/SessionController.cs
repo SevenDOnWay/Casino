@@ -52,6 +52,8 @@ namespace Assets.Script.TienLen.Game {
         public override void Spawned() {
             Runner.AddCallbacks(this);
 
+            RestoreQueuedDisconnects();
+
             if ( Object.HasStateAuthority && Runner != null && Runner.LocalPlayer.IsValid ) {
                 if ( CheckPlayerCanJoin(Runner.LocalPlayer) ) {
                     OnPlayerJoined(Runner, Runner.LocalPlayer);
@@ -104,6 +106,11 @@ namespace Assets.Script.TienLen.Game {
 
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
             queuedDisconnectPlayers.Remove(player);
+            if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                if ( QueuedDisconnectsNet.ContainsKey(player) ) {
+                    QueuedDisconnectsNet.Remove(player);
+                }
+            }
             if ( !Object.HasStateAuthority ) return;
 
             if ( GameController != null && GameController.IsGameStarted && GameController.WinnerSeat == -1 ) {
@@ -200,18 +207,52 @@ namespace Assets.Script.TienLen.Game {
 
         #region Disconnect Queue & Kicking
 
+        [Networked, Capacity(4), OnChangedRender(nameof(OnQueuedDisconnectsChanged))]
+        public NetworkDictionary<PlayerRef, NetworkBool> QueuedDisconnectsNet => default;
+
+        private void OnQueuedDisconnectsChanged() {
+            RestoreQueuedDisconnects();
+        }
+
         private readonly HashSet<PlayerRef> queuedDisconnectPlayers = new();
 
         public bool IsLocalDisconnectQueued { get; private set; }
 
-        public bool HasQueuedDisconnects => queuedDisconnectPlayers.Count > 0 || IsLocalDisconnectQueued;
+        public bool HasQueuedDisconnects =>
+            queuedDisconnectPlayers.Count > 0 ||
+            IsLocalDisconnectQueued ||
+            (Object != null && Object.IsValid && QueuedDisconnectsNet.Count > 0);
 
         public bool IsPlayerDisconnectQueued( PlayerRef player ) {
             if ( Runner != null && Runner.LocalPlayer == player && IsLocalDisconnectQueued ) return true;
-            return queuedDisconnectPlayers.Contains(player);
+            if ( queuedDisconnectPlayers.Contains(player) ) return true;
+            if ( Object != null && Object.IsValid && QueuedDisconnectsNet.ContainsKey(player) ) return true;
+            return false;
         }
 
-        public IReadOnlyCollection<PlayerRef> GetQueuedDisconnectPlayers() => queuedDisconnectPlayers;
+        public IReadOnlyCollection<PlayerRef> GetQueuedDisconnectPlayers() {
+            if ( Object != null && Object.IsValid ) {
+                foreach ( var kvp in QueuedDisconnectsNet ) {
+                    if ( kvp.Value ) queuedDisconnectPlayers.Add(kvp.Key);
+                }
+            }
+            return queuedDisconnectPlayers;
+        }
+
+        public void RestoreQueuedDisconnects() {
+            if ( Object != null && Object.IsValid ) {
+                queuedDisconnectPlayers.Clear();
+                foreach ( var kvp in QueuedDisconnectsNet ) {
+                    if ( kvp.Value ) {
+                        queuedDisconnectPlayers.Add(kvp.Key);
+                    }
+                }
+
+                if ( Runner != null && Runner.LocalPlayer.IsValid ) {
+                    IsLocalDisconnectQueued = queuedDisconnectPlayers.Contains(Runner.LocalPlayer);
+                }
+            }
+        }
 
         public void RequestLeaveToLobby() {
             bool isGameInProgress = GameController != null && GameController.IsGameStarted && GameController.WinnerSeat == -1;
@@ -233,8 +274,9 @@ namespace Assets.Script.TienLen.Game {
 
             if ( Object != null && Object.IsValid ) {
                 if ( Object.HasStateAuthority ) {
-                    if ( Runner == null || player != Runner.LocalPlayer ) {
-                        queuedDisconnectPlayers.Add(player);
+                    queuedDisconnectPlayers.Add(player);
+                    if ( !QueuedDisconnectsNet.ContainsKey(player) ) {
+                        QueuedDisconnectsNet.Add(player, true);
                     }
                 }
                 else {
@@ -247,19 +289,37 @@ namespace Assets.Script.TienLen.Game {
         }
 
         [Rpc(sources: RpcSources.All, targets: RpcTargets.StateAuthority)]
-        public void RPCQueuePlayerDisconnect( PlayerRef player ) {
-            Debug.Log($"[SessionController] Player {player.PlayerId} queued disconnect at end of game.");
-            queuedDisconnectPlayers.Add(player);
+        public void RPCQueuePlayerDisconnect( PlayerRef player, RpcInfo info = default ) {
+            PlayerRef sender = (info.Source != PlayerRef.None) ? info.Source : player;
+            if ( info.Source != PlayerRef.None && info.Source != player ) {
+                Debug.LogWarning($"[SessionController] Unauthorized disconnect request: client {info.Source.PlayerId} attempted to queue player {player.PlayerId}. Rejected.");
+                return;
+            }
+
+            Debug.Log($"[SessionController] Player {sender.PlayerId} queued disconnect at end of game.");
+            queuedDisconnectPlayers.Add(sender);
+
+            if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                if ( !QueuedDisconnectsNet.ContainsKey(sender) ) {
+                    QueuedDisconnectsNet.Add(sender, true);
+                }
+            }
         }
 
         public void KickQueuedPlayers() {
             if ( Object == null || !Object.HasStateAuthority ) return;
 
+            RestoreQueuedDisconnects();
+
             if ( queuedDisconnectPlayers.Count > 0 ) {
                 var toKick = new List<PlayerRef>(queuedDisconnectPlayers);
                 queuedDisconnectPlayers.Clear();
+                if ( Object.IsValid ) {
+                    QueuedDisconnectsNet.Clear();
+                }
 
                 foreach ( var pRef in toKick ) {
+                    if ( Runner != null && pRef == Runner.LocalPlayer ) continue;
                     Debug.Log($"[SessionController] Kicking queued player {pRef.PlayerId}.");
                     RPCKickPlayer(pRef);
                     RemovePlayer(pRef);
@@ -281,6 +341,9 @@ namespace Assets.Script.TienLen.Game {
             if ( Object == null || !Object.HasStateAuthority ) return;
 
             queuedDisconnectPlayers.Remove(player);
+            if ( Object.IsValid && QueuedDisconnectsNet.ContainsKey(player) ) {
+                QueuedDisconnectsNet.Remove(player);
+            }
             RPCKickPlayer(player);
             RemovePlayer(player);
         }
@@ -296,6 +359,9 @@ namespace Assets.Script.TienLen.Game {
         public void LeaveLocalToLobby() {
             IsLocalDisconnectQueued = false;
             queuedDisconnectPlayers.Clear();
+            if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                QueuedDisconnectsNet.Clear();
+            }
 
             if ( Runner != null && Runner.IsRunning ) {
                 Runner.Shutdown();

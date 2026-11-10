@@ -15,7 +15,8 @@ namespace Assets.Script.TienLen.Effects {
         [SerializeField] private float autoDestroyAfterSeconds = 6.0f;
 
         private GameObject currentEffectInstance;
-        private static Texture2D cachedCircleTexture;
+        private Material proceduralMaterial;
+        private Texture2D proceduralCircleTexture;
 
         public void PlayWinEffect( int winnerSeatIndex, Vector3 worldPosition ) {
             StopWinEffect();
@@ -52,10 +53,13 @@ namespace Assets.Script.TienLen.Effects {
             }
         }
 
-        private static Texture2D GetOrCreateCircleTexture() {
-            if ( cachedCircleTexture != null ) return cachedCircleTexture;
+        private Texture2D GetOrCreateCircleTexture() {
+            if ( proceduralCircleTexture != null ) return proceduralCircleTexture;
             int size = 32;
-            cachedCircleTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            proceduralCircleTexture = new Texture2D(size, size, TextureFormat.RGBA32, false) {
+                name = "ProceduralCircleTexture",
+                hideFlags = HideFlags.DontSave
+            };
             float center = (size - 1) * 0.5f;
             float radius = size * 0.5f;
             for ( int y = 0; y < size; y++ ) {
@@ -63,11 +67,35 @@ namespace Assets.Script.TienLen.Effects {
                     float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
                     float alpha = Mathf.Clamp01(1f - (dist / radius));
                     alpha = Mathf.SmoothStep(0f, 1f, alpha);
-                    cachedCircleTexture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                    proceduralCircleTexture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
                 }
             }
-            cachedCircleTexture.Apply();
-            return cachedCircleTexture;
+            proceduralCircleTexture.Apply();
+            return proceduralCircleTexture;
+        }
+
+        private Material GetOrCreateProceduralMaterial() {
+            if ( proceduralMaterial != null ) return proceduralMaterial;
+
+            Shader particleShader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                ?? Shader.Find("Particles/Standard Unlit")
+                ?? Shader.Find("Universal Render Pipeline/Unlit")
+                ?? Shader.Find("Sprites/Default");
+
+            if ( particleShader == null ) return null;
+
+            proceduralMaterial = new Material(particleShader) {
+                name = "ProceduralWinParticleMaterial",
+                hideFlags = HideFlags.DontSave
+            };
+
+            Texture2D circleTex = GetOrCreateCircleTexture();
+            proceduralMaterial.mainTexture = circleTex;
+            if ( proceduralMaterial.HasProperty("_BaseMap") ) {
+                proceduralMaterial.SetTexture("_BaseMap", circleTex);
+            }
+
+            return proceduralMaterial;
         }
 
         private GameObject CreateProceduralParticles( Vector3 position ) {
@@ -149,19 +177,9 @@ namespace Assets.Script.TienLen.Effects {
                 renderer.sortingLayerName = "Default";
                 renderer.sortingOrder = 500;
 
-                Shader particleShader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                    ?? Shader.Find("Particles/Standard Unlit")
-                    ?? Shader.Find("Universal Render Pipeline/Unlit")
-                    ?? Shader.Find("Sprites/Default");
-
-                if ( particleShader != null ) {
-                    Material mat = new Material(particleShader);
-                    Texture2D circleTex = GetOrCreateCircleTexture();
-                    mat.mainTexture = circleTex;
-                    if ( mat.HasProperty("_BaseMap") ) {
-                        mat.SetTexture("_BaseMap", circleTex);
-                    }
-                    renderer.material = mat;
+                Material mat = GetOrCreateProceduralMaterial();
+                if ( mat != null ) {
+                    renderer.sharedMaterial = mat;
                 }
             }
 
@@ -175,6 +193,29 @@ namespace Assets.Script.TienLen.Effects {
 
         private void OnDestroy() {
             StopWinEffect();
+            DestroyProceduralResources();
+        }
+
+        private void DestroyProceduralResources() {
+            if ( proceduralMaterial != null ) {
+                if ( Application.isPlaying ) {
+                    Destroy(proceduralMaterial);
+                }
+                else {
+                    DestroyImmediate(proceduralMaterial);
+                }
+                proceduralMaterial = null;
+            }
+
+            if ( proceduralCircleTexture != null ) {
+                if ( Application.isPlaying ) {
+                    Destroy(proceduralCircleTexture);
+                }
+                else {
+                    DestroyImmediate(proceduralCircleTexture);
+                }
+                proceduralCircleTexture = null;
+            }
         }
     }
 }
