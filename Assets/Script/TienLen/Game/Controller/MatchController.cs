@@ -25,20 +25,43 @@ namespace Assets.Script.TienLen.Game.Controller {
         private TienLenMatchOutcomeReporter outcomeReporter;
         private IAnimationPlayer animationPlayer;
         private SessionController sessionController;
+        private UiManager uiManager;
+        [Networked] bool IsGameStarted { get; set; } = false;
 
         public int MinPlayersToStart => minPlayersToStart;
 
         public int RegisteredPlayerCount =>
             seatQueryService != null ? seatQueryService.GetNetworkPlayer().Count : 0;
 
+        public int ActiveSolventPlayerCount {
+            get {
+                if ( seatQueryService == null ) return 0;
+                int bet = gameController != null ? gameController.CurrentBetStake : 5;
+                var seated = seatQueryService.GetSeatedPlayers();
+                var netMap = seatQueryService.GetNetworkPlayerMap();
+                int count = 0;
+                foreach ( var kvp in seated ) {
+                    var logicPlayer = kvp.Value;
+                    if ( logicPlayer == null || logicPlayer.IsInactive || logicPlayer.Money < bet ) continue;
+                    if ( sessionController != null && netMap != null && netMap.TryGetValue(kvp.Key, out var netPlayer) && netPlayer != null ) {
+                        if ( sessionController.IsPlayerDisconnectQueued(netPlayer.PlayerRef) ) continue;
+                    }
+                    count++;
+                }
+                return count;
+            }
+        }
+
         public bool HasEnoughPlayersToPlay =>
-            Object != null && Object.IsValid && seatQueryService != null && RegisteredPlayerCount >= minPlayersToStart;
+            Object != null && Object.IsValid && ActiveSolventPlayerCount >= minPlayersToStart;
 
         public bool CanStartGame() {
             if ( !HasEnoughPlayersToPlay ) return false;
             if ( gameController != null && gameController.IsGameStarted ) return false;
             return true;
         }
+
+        private UiManager UiMgr => uiManager != null ? uiManager : (uiManager = FindAnyObjectByType<UiManager>());
 
         [Inject]
         public void Construct(
@@ -47,19 +70,23 @@ namespace Assets.Script.TienLen.Game.Controller {
             TienLenGameController gameController,
             TienLenMatchOutcomeReporter outcomeReporter,
             IAnimationPlayer animationPlayer = null,
-            SessionController sessionController = null ) {
+            SessionController sessionController = null,
+            UiManager uiManager = null ) {
             this.seatQueryService = seatQueryService;
             this.turnManager = turnManager;
             this.gameController = gameController;
             this.outcomeReporter = outcomeReporter;
             this.animationPlayer = animationPlayer;
             this.sessionController = sessionController;
+            this.uiManager = uiManager;
         }
 
         #region Match Start
 
         public void StartGame() {
-            if ( !Object.HasStateAuthority || !CanStartGame() || (gameController != null && gameController.IsGameStarted) ) return;
+            if ( !Object.HasStateAuthority || !CanStartGame() ) return;
+
+            IsGameStarted = true;
 
             var seatedPlayers = seatQueryService.GetSeatedPlayers();
             int bet = gameController != null ? gameController.CurrentBetStake : 5;
@@ -70,8 +97,6 @@ namespace Assets.Script.TienLen.Game.Controller {
                     Debug.LogWarning($"[MatchController] Player {p.Id} has insufficient funds ({p.Money} < {bet}). Marked inactive.");
                 }
             }
-
-            CleanUpInactivePlayers();
 
             // Re-evaluate solvent seated players after excluding underfunded seats
             seatedPlayers = seatQueryService.GetSeatedPlayers();
@@ -88,9 +113,10 @@ namespace Assets.Script.TienLen.Game.Controller {
                 gameController.IsFirstPlayOfGame = true;
             }
 
-            CreateAndDealCards();
+            IsGameStarted = true;
 
-            // Delegate turn setup entirely to TurnManager
+            CreateAndDealCards();
+            // Delegate turn setup to TurnManager
             turnManager?.InitializeTurns();
         }
 
@@ -126,6 +152,8 @@ namespace Assets.Script.TienLen.Game.Controller {
             if ( !Object.HasStateAuthority || gameController == null ) return;
 
             gameController.WinnerSeat = winnerSeat;
+            gameController.CurrentTurnSeat = -1;
+            turnManager?.StopTurnTimer();
             Debug.Log($"[MatchController] Player at seat {winnerSeat} wins!");
 
             ReportMatchOutcome(winnerSeat).Forget();
@@ -153,6 +181,9 @@ namespace Assets.Script.TienLen.Game.Controller {
 
             if ( !Object.HasStateAuthority ) return;
 
+            // Let out any players who queued to leave at the end of the match
+            sessionController?.KickQueuedPlayers();
+
             int bet = gameController != null ? gameController.CurrentBetStake : 5;
             foreach ( var p in seatQueryService.GetSeatedPlayers().Values ) {
                 if ( p != null && p.Money < bet ) {
@@ -179,7 +210,14 @@ namespace Assets.Script.TienLen.Game.Controller {
             gameController.WinnerSeat = -1;
             gameController.CurrentTurnSeat = -1;
             gameController.CurrentTableCardCount = 0;
+            turnManager?.StopTurnTimer();
             animationPlayer?.ClearTableCenter();
+
+            if ( seatQueryService != null ) {
+                foreach ( var p in seatQueryService.GetSeatedPlayers().Values ) {
+                    p?.Hand?.Clear();
+                }
+            }
         }
 
         #endregion
@@ -188,6 +226,12 @@ namespace Assets.Script.TienLen.Game.Controller {
 
         private void StartNextMatch( int previousWinnerSeat ) {
             if ( !Object.HasStateAuthority || seatQueryService == null || gameController == null ) return;
+
+            if ( !HasEnoughPlayersToPlay ) {
+                Debug.LogWarning("[MatchController] Guard: Not enough players to start next match. Returning to lobby.");
+                ResetToLobby();
+                return;
+            }
 
             Debug.Log("[MatchController] Starting next game match...");
 

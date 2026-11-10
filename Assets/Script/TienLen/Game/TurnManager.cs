@@ -19,7 +19,22 @@ namespace Assets.Script.TienLen.Game {
         private IObjectResolver resolver;
 
         private IActionHandler ActionHandler => resolver?.Resolve<IActionHandler>();
-        private TienLenGameController GameController => resolver?.Resolve<TienLenGameController>();
+
+        [SerializeField] private TienLenGameController gameController;
+        private TienLenGameController GameController {
+            get {
+                if ( gameController != null ) return gameController;
+                if ( resolver != null ) {
+                    try {
+                        gameController = resolver.Resolve<TienLenGameController>();
+                        if ( gameController != null ) return gameController;
+                    }
+                    catch { }
+                }
+                return gameController ??= FindAnyObjectByType<TienLenGameController>();
+            }
+        }
+
         private TienLenTurnHandler TurnHandler => turnHandler ??= resolver?.Resolve<TienLenTurnHandler>();
 
         private IReadOnlyList<TienLenPlayer> players;
@@ -68,9 +83,12 @@ namespace Assets.Script.TienLen.Game {
         public float RemainingTurnTimeNormalized {
             get {
                 var gc = GameController;
-                if ( gc == null || !gc.IsGameStarted || gc.WinnerSeat != -1 || turnDuration <= 0f ) return 0f;
-                if ( TurnTimer.IsRunning ) {
-                    float? remaining = TurnTimer.RemainingTime(Runner);
+                if ( gc != null && (!gc.IsGameStarted || gc.WinnerSeat != -1) ) return 0f;
+                if ( turnDuration <= 0f || Runner == null ) return 0f;
+
+                var timer = TurnTimer;
+                if ( timer.IsRunning ) {
+                    float? remaining = timer.RemainingTime(Runner);
                     if ( remaining.HasValue ) {
                         return Mathf.Clamp01(remaining.Value / turnDuration);
                     }
@@ -95,10 +113,6 @@ namespace Assets.Script.TienLen.Game {
             this.resolver = resolver;
         }
 
-        private void SyncNetworkState() {
-            // currentPlayerIndex is [Networked] and synced automatically across Fusion peers
-        }
-
         public override void Spawned() {
         }
 
@@ -108,30 +122,22 @@ namespace Assets.Script.TienLen.Game {
             if ( gc == null || !gc.IsGameStarted || gc.WinnerSeat != -1 ) return;
 
             if ( TurnTimer.Expired(Runner) ) {
+                TurnTimer = TickTimer.None;
                 HandleTurnTimeout();
             }
         }
 
         public void StartTurnTimer( bool isDealingStart = false, float? customDuration = null ) {
             float duration = customDuration ?? (isDealingStart ? (turnDuration + 3.5f) : turnDuration);
-            if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
-                TurnTimer = TickTimer.CreateFromSeconds(Runner, duration);
-            }
-
-            if ( CurrentPlayer != null && CurrentPlayer.IsInactive ) {
-                if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
-                    AutoActInactivePlayerDelayed().Forget();
+            if ( Runner != null ) {
+                if ( Object == null || !Object.IsValid || Object.HasStateAuthority ) {
+                    TurnTimer = TickTimer.CreateFromSeconds(Runner, duration);
                 }
             }
         }
 
-        private async UniTaskVoid AutoActInactivePlayerDelayed() {
-            await UniTask.Delay(600, cancellationToken: this.GetCancellationTokenOnDestroy());
-            var gc = GameController;
-            if ( Object == null || !Object.IsValid || !Object.HasStateAuthority || gc == null || gc.WinnerSeat != -1 || !gc.IsGameStarted ) return;
-            if ( CurrentPlayer != null && CurrentPlayer.IsInactive ) {
-                AutoActForCurrentPlayer();
-            }
+        public void StopTurnTimer() {
+            TurnTimer = TickTimer.None;
         }
 
         public void Initialize( IReadOnlyList<TienLenPlayer> players ) {
@@ -146,7 +152,6 @@ namespace Assets.Script.TienLen.Game {
             if ( players == null || players.Count == 0 ) return;
             currentPlayerIndex = Mathf.Clamp(orderIndex, 0, players.Count - 1);
             lastPlayIndex = currentPlayerIndex;
-            SyncNetworkState();
         }
 
         public void InitializeTurns( int startingSeat = -1 ) {
@@ -231,7 +236,6 @@ namespace Assets.Script.TienLen.Game {
                         StartNewRound();
                     }
 
-                    SyncNetworkState();
                     OnTurnChanged?.Invoke(nextIndex);
                     return;
                 }
@@ -261,7 +265,6 @@ namespace Assets.Script.TienLen.Game {
             currentPlayerIndex = leaderIndex;
             lastPlayIndex = leaderIndex;
             StartNewRound();
-            SyncNetworkState();
             OnTurnChanged?.Invoke(currentPlayerIndex);
         }
 
@@ -274,7 +277,6 @@ namespace Assets.Script.TienLen.Game {
             for ( int i = 0; i < players.Count; i++ ) {
                 if ( ReferenceEquals(players[i], player) ) {
                     currentPlayerIndex = i;
-                    SyncNetworkState();
                     OnTurnChanged?.Invoke(currentPlayerIndex);
                     return;
                 }
@@ -287,8 +289,6 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void HandleTurnTimeout() {
-            var gc = GameController;
-            if ( Object != null && Object.IsValid && (!Object.HasStateAuthority || gc == null || !gc.IsGameStarted || gc.WinnerSeat != -1) ) return;
             if ( CurrentPlayer == null ) return;
 
             Debug.Log($"[TurnManager] Turn timer expired for player {CurrentPlayer.Id}. Marking player as inactive and auto-acting...");
@@ -327,7 +327,10 @@ namespace Assets.Script.TienLen.Game {
                     break;
             }
 
-            if ( Object != null && Object.IsValid && Object.HasStateAuthority && (!TurnTimer.IsRunning || TurnTimer.Expired(Runner)) ) {
+            if ( Object != null && 
+                Object.IsValid && 
+                Object.HasStateAuthority && 
+                (!TurnTimer.IsRunning || TurnTimer.Expired(Runner)) ) {
                 StartTurnTimer();
             }
         }

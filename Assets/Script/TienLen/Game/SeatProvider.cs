@@ -1,4 +1,5 @@
-﻿using Assets.Script.TienLen.UI;
+using System.Linq;
+using Assets.Script.TienLen.UI;
 using UnityEngine;
 
 namespace Assets.Script.TienLen.Game {
@@ -39,13 +40,18 @@ namespace Assets.Script.TienLen.Game {
         }
 
         protected virtual PlayerSeat[] EnsureInitialized() {
-            if ( playerSeats == null || playerSeats.Length == 0 || playerSeats[0] == null ) {
-                playerSeats = GetComponentsInChildren<PlayerSeat>(true);
+            if ( playerSeats == null || playerSeats.Length == 0 || System.Array.Exists(playerSeats, s => s == null) ) {
+                var found = GetComponentsInChildren<PlayerSeat>(true);
+                if ( found != null && found.Length > 0 ) {
+                    playerSeats = found.OrderBy(s => s.GetVisualIndex()).ToArray();
+                }
             }
 
-            for ( int i = 0; i < playerSeats.Length; i++ ) {
-                if ( playerSeats[i] != null ) {
-                    playerSeats[i].setVisualIndex(i);
+            if ( playerSeats != null ) {
+                for ( int i = 0; i < playerSeats.Length; i++ ) {
+                    if ( playerSeats[i] != null ) {
+                        playerSeats[i].setVisualIndex(i);
+                    }
                 }
             }
 

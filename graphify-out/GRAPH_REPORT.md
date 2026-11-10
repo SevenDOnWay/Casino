@@ -1,17 +1,17 @@
-# Graph Report - My project  (2026-11-06)
+# Graph Report - My project  (2026-11-10)
 
 ## Corpus Check
-- 268 files · ~279,497 words
+- 272 files · ~281,243 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 1391 file(s) not represented in the graph (top: .meta 1068, .prefab 57, .asset 56)
+- Unclassified: 1514 file(s) not represented in the graph (top: .meta 1133, .ttf 65, .asset 57)
 
 ## Summary
-- 6900 nodes · 17443 edges · 285 communities (199 shown, 86 thin omitted)
-- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 1085 edges (avg confidence: 0.84)
+- 6955 nodes · 17598 edges · 281 communities (191 shown, 90 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 1101 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7d298ee4`
+- Built from commit: `dd2ad4d1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -21,77 +21,77 @@
 - My project.slnx
 - OdinAttributeProxy
 - UniTask
-- PlayerSeat
+- Test
 - LobbySessionBrowserController
 - ILWeaver
-- DoIfAttributeDrawer
-- LocalPlayerService
-- Card
-- TienLenGameController
-- AsyncConfig
+- AuthService
 - ILWeaverLog
+- CardCombinationType
+- FusionMenuConnectionBehaviour
+- AsyncConfig
+- GUIContent
 - Fusion.Unity.Editor.cs
 - Dictionary
 - TienLenNetWorkPlayer
-- Fusion.CodeGen.cs
+- unityengine
 - RealtimeClient
-- ILWeaverAssembly
+- TypeReference
 - system_linq
 - Action
 - SerializedProperty
 - system_collections_generic
-- ClientAppType
+- TienLenGameController
 - TweenerCore
 - AssetDatabaseUtils
 - Fusion.Unity.cs
 - .Ok
 - system_threading_tasks
 - Rect
-- MessageIfDrawerBase
+- AuthService
 - AuthenticationValues
 - Type
 - EventBetter
 - RunnerVisibilityLink
-- UserDocument
-- UserDocument
+- .Main
+- ApiIntegrationTests
 - ReflectionUtils
-- FusionSceneSetupAssistants
+- DisconnectCause
 - UnityInternal
-- Text
+- DOTweenModuleEPOOutline
 - NetworkSceneManagerDefault
-- Task
+- Fact
 - with
 - Photon.Realtime
-- Room
-- MatchController
+- FusionEditorGUI
+- ISeatQueryService
 - FusionPluginCodeExporter
 - com.unity.modules.uielements@1.0.0
 - UiManager
 - UserProfileDto
 - NetworkRunner
 - Player
-- DOTweenModuleEPOOutline
-- PlayOptionUI
+- Image
+- ILWeaverAssembly
 - com.unity.modules.unitywebrequest@1.0.0
 - TienLenNetworkController
 - NetworkAssetSourceFactoryContext
 - FusionStatistics
 - List
-- Log
-- TypeReference
+- .Error
+- Fusion
 - TienLenPlayer
-- MonoCecilExtensions
+- LobbySessionBrowserPanelView
 - FusionPluginProjectSettings
 - Vector3
 - MultilineGraphData
-- DecoratingPropertyAttributeDrawer
+- Rect
 - Button
-- ConnectionHandler
-- UniTask
+- DisconnectCause
+- .Error
 - ScriptAttributeUtility
 - LineChart
-- Callbacks.cs
-- LobbySessionBrowserPanelView
+- PropertyDrawer
+- Statics
 - FusionEditorHubPage
 - FusionEditorHubWindow
 - Scene
@@ -100,7 +100,7 @@
 - packages-lock.json
 - com.unity.modules.jsonserialize@1.0.0
 - FusionMenuConnectionBehaviourSdk
-- RadialChart
+- EnumDrawer
 - MockLobbyRestService
 - dependencies
 - ColorDeposit
@@ -112,39 +112,39 @@
 - NetworkCharacterController
 - com.unity.modules.physics@1.0.0
 - LazyGUIStyle
-- FusionMenuConfig
+- RegionPinger
 - WebSocket
 - FusionMppm
-- NetworkObjectBaker
+- MonoBehaviour
 - com.unity.mathematics@1.2.6
 - FusionEditorHubWindowSdk
 - LogSettingsDrawer
 - com.unity.modules.animation@1.0.0
-- FusionBootstrapDebugGUI
+- FusionStatisticsForecastObjectStats
 - NetworkObjectProviderDefault
-- PlayerRef
-- SignInUIController
-- GUIContent
+- OdinDrawer
+- IPlayerProfileService
+- MessageIfDrawerBase
+- TransformPathCache
 - InspectorProperty
-- FusionEditorHubConditionEnum
 - FusionEditorHubWidgetTypeEnum
 - FusionEditorHubWidgetUpm
 - FusionGrid
-- LayerMatrixGUI
+- FusionBootstrapDebugGUI
 - FusionBootstrap
 - TienLen.Server.Tests
 - FusionEditorHubWidget
-- NetworkObjectPostprocessor
+- Region
 - Material
-- FusionStatisticsRoot
-- FixedBufferPropertyAttributeDrawer
-- Statics
+- SignInUIController
+- Callbacks.cs
+- GameObject
 - ClientState
 - ProtocolPorts
 - InternalTreeView
 - JsonUtilityExtensions
 - FusionBehaviourStatisticsPage
-- AuthResponseDto
+- FixedBufferPropertyAttributeDrawer
 - LobbyActionButton
 - com.unity.modules.imgui@1.0.0
 - com.unity.nuget.mono-cecil@1.11.5
@@ -152,105 +152,100 @@
 - FusionEditorSkin
 - FusionStatisticsNetworkObjectPage
 - FusionMenuUIController
-- RegionPinger
+- TienLenGame
 - com.unity.test-framework@1.4.6
 - com.unity.collections@2.4.3
 - com.unity.nuget.newtonsoft-json@3.2.1
 - HubWidgetState
-- .Main
-- FusionMenuUIParty
+- FusionEditorHubConditionEnum
+- TableVisualLayoutManager
 - RegionHandler
 - DOTweenModuleUI.cs
 - DOTweenModuleAudio
-- .Configure
+- FusionMenuUIParty
 - com.unity.2d.tilemap@1.0.0
 - RuntimeInitializeOnLoadMethod
-- NetworkProjectConfigImporter
+- NetworkAssetSourceStaticLazy
 - EditorGUI
 - RawDataDrawer
-- Region
+- .Info
 - FusionMenuUIMain
 - PingMono
-- RoomInfo
+- SettingPanel
 - ActionPanel
 - http
 - manifest.json
 - dependencies
 - com.unity.modules.imageconversion@1.0.0
 - GridItem
+- .Configure
 - FusionMenuUIGameplay
 - FusionMenuUIScenes
-- FusionMenuUIScreen
+- IntroInput
 - MatchRecordDocument
 - GuidFileId
 - FusionEditorMenuPriority
-- FusionStatisticsPage
+- MenuItem
 - AssetDatabaseEnumerator
-- FusionMenu.Common.cs
-- FusionMenuConnectionBehaviour
+- Exception
+- SocialLoginButtonUGUI
 - MemberReferenceFullNameComparer
 - CustomAuthenticationType
-- FusionEditorUtility
+- FusionLogInitializer
 - com.unity.ext.nunit
-- AppSettings
+- PreferredRunners
 - NetworkObject
 - NetworkPrefabsInspector
 - NetworkAssetSourceResource
 - FusionMenuUILoading
-- Enums.cs
+- FusionEditorUtility
 - Stage
-- Grid
+- FusionMppmCommand
 - NetworkAssetSourceAddressable
 - NetworkAssetSourceAssetBundle
 - NetworkAssetSourceStatic
-- SplitterState
-- IntroInput
+- StringBuilder
+- InternalStyles
 - com.unity.modules.subsystems@1.0.0
 - InitializeOnLoadMethod
-- Lazy
-- .DrawStatisticsWidget
 - FusionCoroutine
-- JoinType
+- .DrawStatisticsWidget
+- Enums.cs
+- FusionBasicBillboard
 - EventCaching
-- InternalStyles
+- ClientAppType
 - StartModes
 - FusionInstaller
 - HashCodeUtilities
 - RunnerAOIGizmos
-- FusionMenuConnectArgs
-- LobbyType
+- Lazy
+- LobbyChangeReason
 - RoomOptionBit
 - NativeSocketState
 - AsmDefType
-- FusionBasicBillboard
-- .Error
+- DOTweenModuleUtils
 - FusionPluginExportDataSummary
-- CardCombinationType
-- ReceiverGroup
-- .CreateRootCanvas
-- unityengine
+- FusionPluginAutoExportFlags
+- AutoActionResultType
+- CancellationTokenSource
+- Fusion.Menu
 - CustomTypesUnity
-- FusionMenuImageFitter
-- LobbyChangeReason
+- RunnerLagCompensationGizmos
+- SimpleStartMenu
 - com.unity.collab-proxy
 - jp.hadashikick.vcontainer
-- PropertyDrawer
-- NetworkAssetSourceStaticLazy
-- EnableOnSingleRunner
-- FusionBuildTriggers
-- JoinMode
-- PropertyTypeFlag
-- FusionPluginAutoExportFlags
-- DOTweenModuleUtils
-- TableVisualLayoutManager
+- FusionPluginCodeExportSummary
+- .Test_AtlasConnection_IfEnvProvided
+- JoinType
+- LobbyType
+- NetworkProjectConfigImporterEditor
+- NetworkObject
 - How to Run Live Stress Tests
 - com.unity.multiplayer.center
 - package.json
-- AuthModeOption
-- CommandEventSubcode
-- MatchmakingMode
-- StringBuilder
-- .Test_AtlasConnection_IfEnvProvided
+- Grid
+- ReceiverGroup
+- JoinMode
 - com.unity.2d.psdimporter@12.0.1
 - com.unity.2d.sprite@1.0.0
 - com.unity.2d.spriteshape@13.0.0
@@ -294,43 +289,41 @@
 - com.unity.timeline@1.8.10
 - com.unity.visualscripting@1.9.9
 - jp.hadashikick.vcontainer@https://github.com/hadashiA/VContaine...
+- PropertyTypeFlag
+- CommandEventSubcode
 
 ## God Nodes (most connected - your core abstractions)
 1. `RealtimeClient` - 176 edges
 2. `ILWeaverOpCodes` - 84 edges
 3. `ILWeaverAssembly` - 83 edges
-4. `TienLenPlayer` - 77 edges
+4. `TienLenPlayer` - 78 edges
 5. `FusionEditorGUI` - 76 edges
-6. `ILWeaver` - 67 edges
-7. `TienLenGameController` - 67 edges
+6. `TienLenGameController` - 68 edges
+7. `ILWeaver` - 67 edges
 8. `ReflectionUtils` - 66 edges
 9. `FusionEditorHubWindow` - 65 edges
-10. `AssetDatabaseUtils` - 59 edges
+10. `SessionController` - 60 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `What It Tests on Live Cloud` --references--> `LobbyService`  [INFERRED]
   Backend/TienLen.LoadTester/README.md → Backend/TienLen.Server/Services/LobbyService.cs
 - `ApiIntegrationTests` --references--> `Program`  [EXTRACTED]
   Backend/TienLen.Server.Tests/ApiIntegrationTests.cs → Backend/TienLen.Server/Program.cs
-- `FusionMenuConnectArgs` --references--> `FusionMenuSceneInfo`  [EXTRACTED]
-  Assets/Photon/FusionMenu/Runtime/FusionMenu.Common.cs → Assets/Photon/Fusion/Runtime/FusionMenuSceneInfo.cs
 - `FusionMenuUIController` --references--> `FusionMenuConnectArgs`  [EXTRACTED]
   Assets/Photon/FusionMenu/Runtime/FusionMenuUIController.cs → Assets/Photon/FusionMenu/Runtime/FusionMenu.Common.cs
-- `FusionMenuConnectionBehaviourSdk` --inherits--> `FusionMenuConnectionBehaviour`  [EXTRACTED]
-  Assets/Photon/FusionMenu/Runtime/FusionMenuConnectionBehaviourSdk.cs → Assets/Photon/FusionMenu/Runtime/FusionMenu.Common.cs
+- `FusionMenuScreenPluginPing` --references--> `FusionMenuConnectionBehaviour`  [EXTRACTED]
+  Assets/Photon/FusionMenu/Runtime/FusionMenuScreenPluginPing.cs → Assets/Photon/FusionMenu/Runtime/FusionMenu.Common.cs
+- `FusionMenuUIController` --references--> `FusionMenuConnectionBehaviour`  [EXTRACTED]
+  Assets/Photon/FusionMenu/Runtime/FusionMenuUIController.cs → Assets/Photon/FusionMenu/Runtime/FusionMenu.Common.cs
 
 ## Import Cycles
 - None detected.
 
-## Communities (285 total, 86 thin omitted)
-
-### Community 0 - "Instruction"
-Cohesion: 0.05
-Nodes (3): ILWeaverOpCodes, InstructionEqualityComparer, RpcMethodContext
+## Communities (281 total, 90 thin omitted)
 
 ### Community 1 - "NetworkTypeInfo"
 Cohesion: 0.04
-Nodes (28): CalculateWordCountDelegate, EmitDelegate, EmitInitDelegate, EmitStoreDelegate, GetCapacityDelegate, GetMemberWordCountDelegate, GetUnitySerializableTypeDelegate, InvalidOperationException (+20 more)
+Nodes (24): CalculateWordCountDelegate, EmitDelegate, EmitInitDelegate, EmitStoreDelegate, GetCapacityDelegate, GetMemberWordCountDelegate, GetUnitySerializableTypeDelegate, ILWeaverException (+16 more)
 
 ### Community 2 - "My project.slnx"
 Cohesion: 0.02
@@ -338,123 +331,123 @@ Nodes (99): Assembly-CSharp, Assembly-CSharp-Editor, com.unity.multiplayer.tools
 
 ### Community 3 - "OdinAttributeProxy"
 Cohesion: 0.05
-Nodes (19): CodeDoc, DisplayNameAttributeDrawer, DrawIfAttributeDrawer, Attribute, FieldEditorButtonAttributeDrawer, FusionCodeDoc, CrefColor, FusionOdinAttributeConverterAttribute (+11 more)
+Nodes (33): BinaryDataAttributeDrawer, DisplayNameAttributeDrawer, DrawIfAttributeDrawer, Attribute, ErrorIfAttributeDrawer, Attribute, InlineBoxColor, IsBox (+25 more)
 
 ### Community 4 - "UniTask"
-Cohesion: 0.10
-Nodes (12): ApiResponse, UpdateProfileRequest, MatchHistoryItem, PlayerProfileData, IDataRepository, IPlayerRepository, MockPlayerRepository, RestPlayerRepository (+4 more)
+Cohesion: 0.09
+Nodes (19): AddFriendRequest, ApiResponse, AuthRequest, AuthResponse, LoginRequest, LogoutRequest, RefreshTokenRequest, RegisterRequest (+11 more)
 
-### Community 5 - "PlayerSeat"
+### Community 5 - "Test"
 Cohesion: 0.05
-Nodes (20): ClockWipe, ColorGradient, EmptyColor, FillAmount, FillColor, UseGradient, LobbySeatFlowTests, PlayerSeatIntegrationTests (+12 more)
+Nodes (20): ClockWipe, Clockwise, ColorGradient, EmptyColor, FillAmount, FillColor, ShowEmptyAsTint, UseGradient (+12 more)
 
 ### Community 6 - "LobbySessionBrowserController"
 Cohesion: 0.06
-Nodes (16): LobbyNetworkTests, MockLobbySessionBrowserView, LastChannelCount, LastLoadingState, LastRenderedSessions, LastSelectedChannel, LoadingCallCount, RenderSessionsCallCount (+8 more)
+Nodes (18): ApiListResponseWrapper, LobbySessionDto, LobbyNetworkTests, MockLobbySessionBrowserView, LastChannelCount, LastLoadingState, LastRenderedSessions, LastSelectedChannel (+10 more)
 
 ### Community 7 - "ILWeaver"
 Cohesion: 0.06
-Nodes (9): ILWeaver, ILWeaverException, NetworkedPropertyWriteMode, Prediction, StateAuthority, StateAuthorityUnlessCustomPlugin, ReadOnlyInitializer, WeavablePropertyMeta (+1 more)
+Nodes (8): ILWeaver, InstructionEqualityComparer, NetworkedPropertyWriteMode, Prediction, StateAuthority, StateAuthorityUnlessCustomPlugin, ReadOnlyInitializer, WeavablePropertyMeta
 
-### Community 8 - "DoIfAttributeDrawer"
-Cohesion: 0.09
-Nodes (13): DrawScriptPropertyField(), AssetObjectEditor, ButtonEntry, LastError, ButtonFlags, HasNested, IsNested, CustomEditorScope (+5 more)
-
-### Community 9 - "LocalPlayerService"
+### Community 8 - "AuthService"
 Cohesion: 0.07
-Nodes (17): MatchPlayerSummary, MatchResultReportRequest, IPlayerProfileService, CachedProfile, ILocalPlayerService, Profile, LocalPlayerService, NetworkPlayer (+9 more)
+Nodes (26): ApiResponse, Data, IsSuccess, Message, AuthResponseDto, AccessToken, AccessTokenExpiresAtUtc, ErrorMessage (+18 more)
 
-### Community 10 - "Card"
-Cohesion: 0.07
-Nodes (23): Card, Rank, Suit, TienLenMigrationHandler, AutoActionDecision, AutoActionResultType, ForceAdvance, Pass (+15 more)
+### Community 9 - "ILWeaverLog"
+Cohesion: 0.03
+Nodes (28): ConfigPathSource, Find, PathFile, User, GetCollectionCountOrZero, ILWeaverBindings, ILWeaverLog, Logger (+20 more)
 
-### Community 11 - "TienLenGameController"
-Cohesion: 0.08
-Nodes (19): TienLenGameController, BetStake, CurrentBetStake, CurrentTableCardCount, CurrentTableCards, CurrentTurnSeat, HasEnoughPlayersToPlay, IsFirstPlayOfGame (+11 more)
+### Community 10 - "CardCombinationType"
+Cohesion: 0.25
+Nodes (8): CardCombinationType, FourOfAKind, Invalid, Pair, PairSequence, Single, Straight, Triple
+
+### Community 11 - "FusionMenuConnectionBehaviour"
+Cohesion: 0.18
+Nodes (4): FusionMenuFpsAvgCounter, FusionMenuScreenPlugin, FusionMenuScreenPluginTooltip, FusionMenuScreenPluginVersion
 
 ### Community 12 - "AsyncConfig"
-Cohesion: 0.09
-Nodes (29): AsyncConfig, CancellationToken, CreateServiceTask, IsCancellationRequested, OperationTimeoutSec, ServiceIntervalMs, TaskFactory, TaskScheduler (+21 more)
+Cohesion: 0.15
+Nodes (18): AsyncConfig, CancellationToken, CreateServiceTask, IsCancellationRequested, OperationTimeoutSec, ServiceIntervalMs, TaskFactory, TaskScheduler (+10 more)
 
-### Community 13 - "ILWeaverLog"
+### Community 13 - "GUIContent"
 Cohesion: 0.09
-Nodes (9): ConfigPathSource, Find, PathFile, User, ILWeaverBindings, DefaultConfigPath, ReflectionImporter, ReflectionImporterProvider (+1 more)
+Nodes (13): CodeDoc, EnabledScope, ExpandableEnumAttributeDrawer, attribute, FusionCodeDoc, CrefColor, GUIContentScope, InlineHelpAttributeDrawer (+5 more)
 
 ### Community 14 - "Fusion.Unity.Editor.cs"
-Cohesion: 0.04
-Nodes (22): DrawEditorButtons(), BehaviourEditor, FusionBootstrapEditor, FusionMonoBehaviourDefaultEditor, FusionOdinAttributeProcessor, FusionScriptableObjectDefaultEditor, HierarchyIteratorExtensions, MaxStringByteCountAttributeDrawer (+14 more)
+Cohesion: 0.03
+Nodes (20): DrawEditorButtons(), BehaviourEditor, FusionBootstrapEditor, FusionBuildTriggers, callbackOrder, FusionMonoBehaviourDefaultEditor, FusionOdinAttributeProcessor, FusionScriptableObjectDefaultEditor (+12 more)
 
 ### Community 15 - "Dictionary"
 Cohesion: 0.05
 Nodes (38): CardRank, Ace, Eight, Five, Four, Jack, King, Nine (+30 more)
 
 ### Community 16 - "TienLenNetWorkPlayer"
-Cohesion: 0.09
-Nodes (12): TienLenNetWorkPlayer, AvatarId, Level, Money, PlayerName, PlayerRef, UserId, SeatManager (+4 more)
+Cohesion: 0.05
+Nodes (20): ILocalPlayerService, Profile, LocalPlayerService, NetworkPlayer, Player, Profile, TienLenNetWorkPlayer, AvatarId (+12 more)
 
-### Community 17 - "Fusion.CodeGen.cs"
-Cohesion: 0.06
-Nodes (8): EnsureMacro, GetCollectionCountOrZero, NewArrayWithLengthEqualToOtherArrayOrZero, TmpVariable, GenericPlaceholder_T, Ptr, Ref, Fusion.CodeGen
+### Community 17 - "unityengine"
+Cohesion: 0.08
+Nodes (5): Assets.Script.UI.Components, Assets.Script.UI.MainMenu, Assets.Script.Core, Fusion.Statistics, Assets.Script.TienLen.Effects
 
 ### Community 18 - "RealtimeClient"
-Cohesion: 0.03
-Nodes (43): CallbackTargetChange, EncryptionMode, DatagramEncryptionGCM, PayloadEncryption, ClientWorkflowOption, Default, GetRegionsAndPing, GetRegionsOnly (+35 more)
-
-### Community 19 - "ILWeaverAssembly"
 Cohesion: 0.04
-Nodes (31): ILWeaverAssembly, Float, FusionUnsafe, Int, MethodBase, NetworkBehaviourUtils, NetworkedBehaviour, NetworkedBehaviourId (+23 more)
+Nodes (40): CallbackTargetChange, ClientWorkflowOption, Default, GetRegionsAndPing, GetRegionsOnly, RealtimeClient, AppId, AppSettings (+32 more)
+
+### Community 19 - "TypeReference"
+Cohesion: 0.04
+Nodes (11): InvalidOperationException, ILWeaverImportedType, MonoCecilExtensions, ILProcessorMacro, ILWeaverExtensions, TypeOrTypeRef, Type, TypeReference (+3 more)
 
 ### Community 20 - "system_linq"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (12): Assets.Script.TienLen.UI, Assets.Script.Data.Tests, Assets.Script.TienLen.Game.Services, Assets.Script.TienLen.Player, Assets.Script.TienLen.Game, Assets.Script.NetWorkScript, Assets.Script.TienLen.Rule, Assets.Script.Data.SO (+4 more)
 
 ### Community 21 - "Action"
-Cohesion: 0.07
-Nodes (12): DictionaryForEachMacro, ForLoopMacro, ILMacroStruct, LoadVariableAddressMacro, MethodContext, Assembly, HasValueAddrGetter, HasValueGetter (+4 more)
+Cohesion: 0.08
+Nodes (15): DictionaryForEachMacro, EnsureMacro, ForLoopMacro, ILMacroStruct, LoadVariableAddressMacro, MethodContext, Assembly, HasValueAddrGetter (+7 more)
 
 ### Community 22 - "SerializedProperty"
-Cohesion: 0.06
-Nodes (13): DrawInlineAttributeDrawer, RangeExAttributeDrawer, SelectionMode, Custom, Default, SerializableDictionaryDrawer, SerializedPropertyEnumerable, SerializedPropertyEnumerator (+5 more)
+Cohesion: 0.05
+Nodes (14): DrawInlineAttributeDrawer, NormalizedRectAttributeDrawer, RangeExAttributeDrawer, SelectionMode, Custom, Default, SerializableDictionaryDrawer, SerializedPropertyEnumerable (+6 more)
 
 ### Community 23 - "system_collections_generic"
-Cohesion: 0.10
-Nodes (10): DataLayerUnitTests, LoginThemePaletteSO, Assets.Script.UI.SO, Assets.Script.UI.Components, Assets.Script.UI.MainMenu, Assets.Script.Data.Models, Assets.Script.UI.MainMenu.Panel, Assets.Script.Data.Services (+2 more)
+Cohesion: 0.12
+Nodes (8): DataLayerUnitTests, LoginThemePaletteSO, Assets.Script.UI.SO, Assets.Script.Data.Models, Assets.Script.UI.MainMenu.Panel, Assets.Script.Data.Services, Assets.Script.Data.Repositories, Assets.Script.UI
 
-### Community 24 - "ClientAppType"
-Cohesion: 0.29
-Nodes (7): ClientAppType, Chat, Detect, Fusion, Quantum, Realtime, Voice
+### Community 24 - "TienLenGameController"
+Cohesion: 0.06
+Nodes (23): IActionHandler, IsFirstPlayOfGame, TienLenGameController, BetStake, CurrentBetStake, CurrentTableCardCount, CurrentTableCards, CurrentTurnSeat (+15 more)
 
 ### Community 25 - "TweenerCore"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (3): DOTweenModuleUI, Utils, DOTweenModuleUIToolkit
 
 ### Community 26 - "AssetDatabaseUtils"
-Cohesion: 0.05
+Cohesion: 0.06
 Nodes (7): AssetDatabaseUtils, ValidBuildTargetGroups, LazyGUIContent, NeedsUpdate, Value, FusionAddressablesUtils, ObjectExtensions
 
 ### Community 27 - "Fusion.Unity.cs"
-Cohesion: 0.05
+Cohesion: 0.06
 Nodes (11): EntityId, None, FusionUnityEditorPaths, PhysicsExtensions, simulationMode, SimulationMode, FixedUpdate, Script (+3 more)
 
 ### Community 28 - ".Ok"
-Cohesion: 0.20
-Nodes (4): AuthController, LobbyController, UserController, CurrentUserId
+Cohesion: 0.12
+Nodes (8): ConnectResult, AuthController, LobbyController, MatchesController, UserController, CurrentUserId, IMatchService, IUserService
 
 ### Community 29 - "system_threading_tasks"
-Cohesion: 0.09
-Nodes (10): Program, FusionDemo, TienLen.Server.DTOs, TienLen.Server.Controllers, TienLen.Server.Tests.Stress, TienLen.Server.Models, TienLen.Server.Data, TienLen.Server.Services (+2 more)
+Cohesion: 0.10
+Nodes (9): Program, TienLen.Server.DTOs, TienLen.Server.Controllers, TienLen.Server.Tests.Stress, TienLen.Server.Models, TienLen.Server.Data, TienLen.Server.Services, TienLen.LoadTester (+1 more)
 
 ### Community 30 - "Rect"
-Cohesion: 0.08
-Nodes (16): AsmDefData, AssemblyInfo, AssemblyNameAttributeDrawer, DirectoryPathAttributeDrawer, DisplayAsEnumAttributeDrawer, Entry, NetworkObjectGuidDrawer, NetworkPrefabAttributeDrawer (+8 more)
+Cohesion: 0.07
+Nodes (18): AsmDefData, AssemblyInfo, AssemblyNameAttributeDrawer, DirectoryPathAttributeDrawer, DisplayAsEnumAttributeDrawer, Entry, NetworkObjectGuidDrawer, NetworkPrefabAttributeDrawer (+10 more)
 
-### Community 31 - "MessageIfDrawerBase"
-Cohesion: 0.09
-Nodes (22): ErrorIfAttributeDrawer, Attribute, InlineBoxColor, IsBox, Message, MessageIcon, MessageType, MessageIfDrawerBase (+14 more)
+### Community 31 - "AuthService"
+Cohesion: 0.12
+Nodes (10): AuthService, AuthToken, CurrentUser, IsAuthenticated, IsRememberMeEnabled, InMemoryTokenStorage, ITokenStorage, PlayerPrefsTokenStorage (+2 more)
 
 ### Community 32 - "AuthenticationValues"
-Cohesion: 0.06
-Nodes (24): AuthenticationValues, AuthGetParameters, AuthPostData, AuthType, Token, UserId, MatchmakingArguments, CanRejoin (+16 more)
+Cohesion: 0.05
+Nodes (28): AuthenticationValues, AuthGetParameters, AuthPostData, AuthType, Token, UserId, MatchmakingMode, FillRoom (+20 more)
 
 ### Community 33 - "Type"
 Cohesion: 0.08
@@ -466,43 +459,51 @@ Nodes (18): EventBetter, EventBetterWorker, EventEntry, Count, HandlerFlags, Don
 
 ### Community 35 - "RunnerVisibilityLink"
 Cohesion: 0.06
-Nodes (17): NetworkRunnerVisibilityExtensions, RunnerVisibility, IsVisible, ComponentType, Behaviour, None, Renderer, PreferredRunners (+9 more)
+Nodes (14): NetworkRunnerVisibilityExtensions, RunnerVisibility, IsVisible, EnableOnSingleRunner, ComponentType, Behaviour, None, Renderer (+6 more)
 
-### Community 36 - "UserDocument"
-Cohesion: 0.13
-Nodes (16): UserDocument, AvatarId, CreatedAt, DisplayName, Email, Exp, FriendIds, Id (+8 more)
+### Community 36 - ".Main"
+Cohesion: 0.15
+Nodes (9): Program, RequestMetric, ChannelQueryResponse, HeartbeatRequest, LobbySessionDto, QuickJoinResponse, RegisterSessionRequest, ILobbyService (+1 more)
 
-### Community 37 - "UserDocument"
+### Community 37 - "ApiIntegrationTests"
 Cohesion: 0.06
-Nodes (32): IDatabaseContext, IDataBaseContext, LobbySessions, Matches, RefreshSessions, Users, IMongoDbContext, MongoDbContext (+24 more)
+Nodes (33): IDatabaseContext, IDataBaseContext, LobbySessions, Matches, RefreshSessions, Users, IMongoDbContext, MongoDbContext (+25 more)
+
+### Community 39 - "DisconnectCause"
+Cohesion: 0.06
+Nodes (26): ConnectionCallbacksContainer, IConnectionCallbacks, OnCustomAuthenticationFailedMsg, OnCustomAuthenticationResponseMsg, OnRegionListReceivedMsg, DisconnectCause, ApplicationQuit, AuthenticationTicketExpired (+18 more)
 
 ### Community 40 - "UnityInternal"
-Cohesion: 0.05
-Nodes (27): AssetDatabase, AssetImporter, BoolSetterDelegate, CopySearchFilterFromDelegate, DisplayCustomMenuDelegate, DoDrawDefaultInspectorDelegate, Editor, EditorApplication (+19 more)
+Cohesion: 0.04
+Nodes (32): AssetDatabase, AssetImporter, BoolSetterDelegate, CopySearchFilterFromDelegate, DisplayCustomMenuDelegate, DoDrawDefaultInspectorDelegate, Editor, EditorApplication (+24 more)
+
+### Community 41 - "DOTweenModuleEPOOutline"
+Cohesion: 0.09
+Nodes (3): MultilineGraphLegendItem, DOTweenModuleEPOOutline, DOTweenModuleSprite
 
 ### Community 42 - "NetworkSceneManagerDefault"
 Cohesion: 0.09
 Nodes (10): GetAddressableScenesResult, LoadingScope, MultiPeerSceneRoot, NetworkSceneManagerDefault, IsBusy, IsMultiplePeer, MainRunnerScene, MultiPeerDontDestroyOnLoadRoot (+2 more)
 
-### Community 43 - "Task"
-Cohesion: 0.15
-Nodes (8): ConnectResult, ChannelQueryResponse, LobbySessionDto, QuickJoinResponse, RegisterSessionRequest, ILobbyService, LobbyService, LobbyServiceTests
+### Community 43 - "Fact"
+Cohesion: 0.16
+Nodes (7): RefreshTokenRequestDto, RefreshToken, AuthService, AuthServiceTests, LobbyServiceTests, LobbyStressTests, UserServiceTests
 
 ### Community 44 - "with"
 Cohesion: 0.05
 Nodes (45): TEST_OUTCOME, UNITY_EMAIL, UNITY_PASSWORD, UNITY_SERIAL, jobs, repository-guards, unity-editmode, name (+37 more)
 
 ### Community 45 - "Photon.Realtime"
-Cohesion: 0.09
-Nodes (6): OpJoinRandomRoomParams, LoadBalancingClient, Photon.Client, Assets.Script, ExitGames.Client.Photon, Photon.Realtime
-
-### Community 46 - "Room"
-Cohesion: 0.07
-Nodes (22): Room, AutoCleanUp, BroadcastPropertiesChangeToAll, CheckUserOnJoin, DeleteNullProperties, EmptyRoomTtl, ExpectedUsers, IsOffline (+14 more)
-
-### Community 47 - "MatchController"
 Cohesion: 0.08
-Nodes (18): Deck, Cards, Count, MatchController, HasEnoughPlayersToPlay, MinPlayersToStart, RegisteredPlayerCount, IAnimationPlayer (+10 more)
+Nodes (7): EnterRoomParams, OpJoinRandomRoomParams, LoadBalancingClient, Photon.Client, Assets.Script, ExitGames.Client.Photon, Photon.Realtime
+
+### Community 46 - "FusionEditorGUI"
+Cohesion: 0.04
+Nodes (23): DrawScriptPropertyField(), BackgroundColorScope, BoxScope, ColorScope, ContentColorScope, CustomEditorScope, HadChanges, ErrorScope (+15 more)
+
+### Community 47 - "ISeatQueryService"
+Cohesion: 0.11
+Nodes (11): MatchController, ActiveSolventPlayerCount, HasEnoughPlayersToPlay, IsGameStarted, MinPlayersToStart, RegisteredPlayerCount, UiMgr, IAnimationPlayer (+3 more)
 
 ### Community 48 - "FusionPluginCodeExporter"
 Cohesion: 0.10
@@ -513,108 +514,108 @@ Cohesion: 0.05
 Nodes (42): dependencies, depth, source, url, version, dependencies, depth, source (+34 more)
 
 ### Community 50 - "UiManager"
-Cohesion: 0.12
-Nodes (7): SessionDisplayUI, IPlayerWinEffect, PlayerWinEffectController, StartGameUI, StartButton, UiManager, SeatQuery
+Cohesion: 0.11
+Nodes (8): SessionDisplayUI, IPlayerWinEffect, PlayerWinEffectController, StartGameUI, StartButton, UiManager, SeatQuery, TurnMgr
 
 ### Community 51 - "UserProfileDto"
-Cohesion: 0.09
-Nodes (24): MatchHistoryItemDto, ExpEarned, MatchId, MoneyEarned, PlayedAt, Players, Rank, AddFriendRequestDto (+16 more)
+Cohesion: 0.10
+Nodes (23): MatchHistoryItemDto, ExpEarned, MatchId, MoneyEarned, PlayedAt, Players, Rank, AddFriendRequestDto (+15 more)
 
 ### Community 52 - "NetworkRunner"
 Cohesion: 0.06
-Nodes (5): NetworkRunnerUtilities, RunnerEnableVisibility, LobbySessionSyncHandler, IsRegistered, SessionName
+Nodes (4): RunnerEnableVisibility, LobbySessionSyncHandler, IsRegistered, SessionName
 
 ### Community 53 - "Player"
-Cohesion: 0.05
-Nodes (19): IInRoomCallbacks, InRoomCallbacksContainer, OnMasterClientSwitchedMsg, OnPlayerEnteredRoomMsg, OnPlayerLeftRoomMsg, OnPlayerPropertiesUpdateMsg, OnRoomPropertiesUpdateMsg, propertiesThatChanged (+11 more)
+Cohesion: 0.04
+Nodes (37): IInRoomCallbacks, InRoomCallbacksContainer, OnMasterClientSwitchedMsg, OnPlayerEnteredRoomMsg, OnPlayerLeftRoomMsg, OnPlayerPropertiesUpdateMsg, Player, ActorNumber (+29 more)
 
-### Community 55 - "PlayOptionUI"
-Cohesion: 0.13
-Nodes (4): PlayOptionUI, TableButtonScript, maxPlayerCount, playerCount
+### Community 54 - "Image"
+Cohesion: 0.21
+Nodes (5): RadialChart, Title, FusionMenuImageFitter, ColorThresholds, FusionMenuScreenPluginPing
+
+### Community 55 - "ILWeaverAssembly"
+Cohesion: 0.05
+Nodes (30): ILWeaverAssembly, Float, FusionUnsafe, Int, MethodBase, NetworkBehaviourUtils, NetworkedBehaviour, NetworkedBehaviourId (+22 more)
 
 ### Community 56 - "com.unity.modules.unitywebrequest@1.0.0"
 Cohesion: 0.06
 Nodes (40): dependencies, depth, source, version, dependencies, depth, source, version (+32 more)
 
 ### Community 58 - "NetworkAssetSourceFactoryContext"
-Cohesion: 0.07
-Nodes (24): INetworkAssetSourceFactory, Order, INetworkPrefabSourceDrawer, NetworkAssetSourceFactory, NetworkAssetSourceFactoryAddressable, Order, NetworkAssetSourceFactoryAssetBundle, Order (+16 more)
+Cohesion: 0.10
+Nodes (20): INetworkAssetSourceFactory, Order, INetworkPrefabSourceDrawer, NetworkAssetSourceFactory, NetworkAssetSourceFactoryAddressable, Order, NetworkAssetSourceFactoryAssetBundle, Order (+12 more)
 
 ### Community 59 - "FusionStatistics"
-Cohesion: 0.11
-Nodes (10): FusionStatistics, Config, EstimateFusionAfterUpdatesPerSecond, GlobalStatisticsCanvas, Pages, Root, FusionStatisticsConfig, Side (+2 more)
+Cohesion: 0.06
+Nodes (20): FusionStatisticsPage, PageName, Runner, Statistics, StatisticsManager, FusionStatistics, Config, EstimateFusionAfterUpdatesPerSecond (+12 more)
 
 ### Community 60 - "List"
-Cohesion: 0.14
-Nodes (5): AnimatorControllerTools, NetworkMecanimAnimatorBaker, JsonHelper, Wrapper, LobbySessionDto
+Cohesion: 0.18
+Nodes (4): AnimatorControllerTools, NetworkMecanimAnimatorBaker, JsonHelper, Wrapper
 
-### Community 61 - "Log"
-Cohesion: 0.09
-Nodes (11): Log, LogOutputOption, Auto, Console, Debug, UnityDebug, PrefixOptions, Level (+3 more)
+### Community 61 - ".Error"
+Cohesion: 0.06
+Nodes (19): AppSettings, IsBestRegion, IsDefaultNameServer, IsDefaultPort, IsMasterServerAddress, EncryptionMode, DatagramEncryptionGCM, PayloadEncryption (+11 more)
 
-### Community 62 - "TypeReference"
-Cohesion: 0.07
-Nodes (8): ILProcessorMacro, ILWeaverExtensions, TypeOrTypeRef, Type, TypeReference, TypeRefOrGenericArg, IsGenericArg, TypeReference
+### Community 62 - "Fusion"
+Cohesion: 0.08
+Nodes (5): IRunnerVisibilityRecognizedType, Assets.Script.TienLen, FusionDemo, FusionIntroShared, Fusion
 
 ### Community 63 - "TienLenPlayer"
-Cohesion: 0.06
-Nodes (29): MatchOutcomeCalculationTests, MockSeatQueryService, SeatRevision, IActionHandler, IsFirstPlayOfGame, TienLenActionHandler, IsFirstPlayOfGame, TurnManager (+21 more)
+Cohesion: 0.04
+Nodes (46): Card, Rank, Suit, MatchOutcomeCalculationTests, MockSeatQueryService, SeatRevision, TienLenActionHandler, IsFirstPlayOfGame (+38 more)
 
-### Community 64 - "MonoCecilExtensions"
-Cohesion: 0.06
-Nodes (9): ILWeaverLog, Logger, ILWeaverLogger, ILWeaverLoggerDiagnosticMessages, Messages, ILWeaverLoggerUnityDebug, LogScope, Elapsed (+1 more)
-
-### Community 65 - "FusionPluginProjectSettings"
-Cohesion: 0.11
-Nodes (6): ChangeDllManager, FusionPluginCodeExportSummary, Duration, FilesGenerated, FilesRemoved, FusionPluginProjectSettings
-
-### Community 66 - "Vector3"
-Cohesion: 0.14
-Nodes (3): DOTweenModulePhysics2D, DOTweenModulePhysics, Physics
+### Community 64 - "LobbySessionBrowserPanelView"
+Cohesion: 0.08
+Nodes (9): BetButtonScript, ChannelDropDown, Index, LobbySessionBrowserPanelView, Controller, CurrentChannel, MaxChannels, SelectedStake (+1 more)
 
 ### Community 67 - "MultilineGraphData"
-Cohesion: 0.06
-Nodes (13): FusionStatisticsForecastObjectPage, PageName, FusionStatisticsForecastObjectStats, MultilineGraph, MultilineGraphData, LineCount, MaxValue, MinValue (+5 more)
+Cohesion: 0.09
+Nodes (10): MultilineGraph, MultilineGraphData, LineCount, MaxValue, MinValue, ThresholdCount, RangeType, Adaptive (+2 more)
 
-### Community 68 - "DecoratingPropertyAttributeDrawer"
-Cohesion: 0.23
-Nodes (4): DecoratingPropertyAttributeDrawer, NextDrawer, PathUtils, SpaceAfterAttributeDrawer
+### Community 68 - "Rect"
+Cohesion: 0.08
+Nodes (13): DecoratingPropertyAttributeDrawer, NextDrawer, DisabledGroupScope, FieldEditorButtonAttributeDrawer, FusionEditorGUIDisplayTypePickerMenuFlags, Default, GroupByNamespace, None (+5 more)
 
 ### Community 69 - "Button"
-Cohesion: 0.07
-Nodes (20): CloseButton, SocialAuthProvider, Apple, Custom, Discord, Facebook, Google, SocialLoginButton (+12 more)
+Cohesion: 0.12
+Nodes (11): SocialAuthProvider, Apple, Custom, Discord, Facebook, Google, SocialLoginButton, CustomProviderName (+3 more)
 
-### Community 70 - "ConnectionHandler"
-Cohesion: 0.08
-Nodes (7): HierarchyWindowDelegateWrapper, ConnectionHandler, Client, CountSendAcksOnly, FallbackThreadRunning, SCSBitPos, SystemConnectionSummary
+### Community 70 - "DisconnectCause"
+Cohesion: 0.09
+Nodes (6): ConnectionHandler, Client, CountSendAcksOnly, FallbackThreadRunning, SCSBitPos, SystemConnectionSummary
 
-### Community 71 - "UniTask"
-Cohesion: 0.07
-Nodes (23): AddFriendRequest, AuthRequest, AuthResponse, LoginRequest, LogoutRequest, RefreshTokenRequest, RegisterRequest, TokenRefreshResponse (+15 more)
+### Community 71 - ".Error"
+Cohesion: 0.09
+Nodes (4): OnRoomPropertiesUpdateMsg, propertiesThatChanged, Extensions, Hashtable
 
 ### Community 72 - "ScriptAttributeUtility"
 Cohesion: 0.09
 Nodes (18): GetDrawerTypeForPropertyAndTypeDelegate, GetDrawerTypeForTypeDelegate, GetFieldAttributesDelegate, GetFieldInfoFromPropertyDelegate, GetHandlerDelegate, GetPropertyHashDelegate, PropertyHandler, decoratorDrawers (+10 more)
 
 ### Community 73 - "LineChart"
-Cohesion: 0.10
-Nodes (12): StatAccumulator, LastTimeStamp, Value, ValuePerSecond, FusionStatisticsNetworkPage, PageName, FusionStatisticsSimulationPage, PageName (+4 more)
+Cohesion: 0.06
+Nodes (13): FusionStatsLookup, FusionStatisticsMemoryPage, PageName, FusionStatisticsNetworkPage, PageName, FusionStatisticsSimulationPage, PageName, LagCompensationStatisticsPage (+5 more)
 
-### Community 74 - "Callbacks.cs"
-Cohesion: 0.04
-Nodes (43): ConnectionCallbacksContainer, ErrorInfoCallbacksContainer, IConnectionCallbacks, IErrorInfoCallback, IMatchmakingCallbacks, IOnEventCallback, IOnMessageCallback, MatchMakingCallbacksContainer (+35 more)
+### Community 74 - "PropertyDrawer"
+Cohesion: 0.05
+Nodes (18): DecoratorDrawer, DummyPropertyDrawer, FusionEditorHubConditionDrawer, FusionEditorHubWidgetTypeDrawer, InterestManagementConfigDrawer, LayerAttributeDrawer, NetworkBoolDrawer, PropertyDrawer (+10 more)
 
-### Community 75 - "LobbySessionBrowserPanelView"
-Cohesion: 0.09
-Nodes (10): BetButtonScript, ChannelDropDown, Index, LobbySessionBrowserPanelView, Controller, CurrentChannel, MaxChannels, SelectedStake (+2 more)
+### Community 75 - "Statics"
+Cohesion: 0.12
+Nodes (10): InspectorWindow, isLocked, ObjectSelector, get, isVisible, objectSelectorID, searchFilter, Statics (+2 more)
 
 ### Community 76 - "FusionEditorHubPage"
 Cohesion: 0.10
-Nodes (8): CustomConditionCheck, CustomDrawWidget, FusionEditorHubCondition, FusionEditorHubPage, HideAsEnum, IsPopupRequired, FusionEditorHubWidgetBase, FusionEditorHubPageSO
+Nodes (7): CustomConditionCheck, CustomDrawWidget, FusionEditorHubPage, HideAsEnum, IsPopupRequired, FusionEditorHubWidgetBase, FusionEditorHubPageSO
 
 ### Community 77 - "FusionEditorHubWindow"
 Cohesion: 0.08
-Nodes (14): FusionEditorHubWindow, Footer, GetBoxStyle, GetButtonPaneStyle, HubStyles, AppId, AppIdVoice, ContentSize (+6 more)
+Nodes (15): FusionEditorHubWindow, Footer, GetBoxStyle, GetButtonPaneStyle, HubStyles, AppId, AppIdVoice, ContentSize (+7 more)
+
+### Community 78 - "Scene"
+Cohesion: 0.08
+Nodes (5): FusionAssistants, FusionUnitySceneManagerUtils, SceneEqualityComparer, FusionAddressablePrefabsPreloader, PlayerSpawner
 
 ### Community 81 - "packages-lock.json"
 Cohesion: 0.08
@@ -625,44 +626,40 @@ Cohesion: 0.07
 Nodes (30): dependencies, depth, source, url, version, dependencies, depth, source (+22 more)
 
 ### Community 83 - "FusionMenuConnectionBehaviourSdk"
-Cohesion: 0.10
-Nodes (9): MatchmakingArgumentsExtensions, FusionMenuConnectionBehaviourSdk, AppVersion, IsConnected, MaxPlayerCount, Ping, Region, SessionName (+1 more)
+Cohesion: 0.04
+Nodes (35): MatchmakingArgumentsExtensions, FusionMenuSceneInfo, NameOrSceneName, SceneName, FusionMenuUIControllerEditor, FusionMenuConnectArgs, Scene, FusionMenuConnectionBehaviour (+27 more)
 
-### Community 84 - "RadialChart"
-Cohesion: 0.14
-Nodes (7): FusionStatsLookup, FusionStatisticsMemoryPage, PageName, LagCompensationStatisticsPage, PageName, RadialChart, Title
+### Community 84 - "EnumDrawer"
+Cohesion: 0.20
+Nodes (7): EnumDrawer, BitMask, EnumType, Fields, IsFlags, Names, Values
 
 ### Community 85 - "MockLobbyRestService"
-Cohesion: 0.10
-Nodes (17): ApiListResponseWrapper, ApiResponseWrapper, ChannelQueryResponseDto, HeartbeatPayload, ILobbyRestService, QuickJoinResponseDto, RegisterSessionPayload, RestLobbyService (+9 more)
+Cohesion: 0.09
+Nodes (16): ApiResponseWrapper, ChannelQueryResponseDto, HeartbeatPayload, ILobbyRestService, QuickJoinResponseDto, RegisterSessionPayload, RestLobbyService, MockLobbyRestService (+8 more)
 
 ### Community 86 - "dependencies"
 Cohesion: 0.07
 Nodes (29): dependencies, depth, hash, source, version, dependencies, depth, source (+21 more)
 
 ### Community 87 - "ColorDeposit"
-Cohesion: 0.11
-Nodes (8): ColorDeposit, _color, ColorPicker, ColorResult, _currentColorRequestIndex, IInteractable, PlayerColor, _color
+Cohesion: 0.10
+Nodes (9): ColorDeposit, _color, ColorPicker, ColorResult, _currentColorRequestIndex, IInteractable, PlayerColor, _color (+1 more)
 
 ### Community 88 - "Tween"
 Cohesion: 0.16
 Nodes (14): DOTweenCYInstruction, DOTweenModuleUnityVersion, WaitForCompletion, keepWaiting, WaitForElapsedLoops, keepWaiting, WaitForKill, keepWaiting (+6 more)
-
-### Community 89 - "NetworkProjectConfigUtilities"
-Cohesion: 0.10
-Nodes (5): EditorRecompileHook, NetworkProjectConfigUtilities, NetworkProjectConfigImporterEditor, extraDataType, showImportedObject
 
 ### Community 90 - "Func"
 Cohesion: 0.12
 Nodes (10): DelegateSwizzle, DelegateSwizzle, Converters, Types, InstanceAccessor, LazyAsset, LazyAsset, NeedsUpdate (+2 more)
 
 ### Community 91 - "FusionUnityExtensions"
-Cohesion: 0.15
-Nodes (7): FindObjectsInactive, Exclude, Include, FindObjectsSortMode, InstanceID, None, FusionUnityExtensions
+Cohesion: 0.13
+Nodes (8): NetworkRunnerUtilities, FindObjectsInactive, Exclude, Include, FindObjectsSortMode, InstanceID, None, FusionUnityExtensions
 
 ### Community 92 - "PlayerProfilePanelView"
-Cohesion: 0.08
-Nodes (7): AvatarDatabaseSO, Avatars, TotalAvatars, AvatarEntry, MainMenuLifeTimeScope, PlayerProfilePanelView, PlayerProfileUI
+Cohesion: 0.07
+Nodes (8): IPlayerProfileService, CachedProfile, MockPlayerProfileService, CachedProfile, MainMenuLifeTimeScope, SignInLifeTimeScope, PlayerProfilePanelView, PlayerProfileUI
 
 ### Community 93 - "NetworkCharacterController"
 Cohesion: 0.09
@@ -673,24 +670,24 @@ Cohesion: 0.07
 Nodes (27): dependencies, depth, source, version, dependencies, depth, source, version (+19 more)
 
 ### Community 95 - "LazyGUIStyle"
-Cohesion: 0.07
-Nodes (16): ArrayLengthAttributeDrawer, FusionHierarchyWindowOverlay, LazyGUIStyle, fixedHeight, fixedWidth, font, fontStyle, margin (+8 more)
+Cohesion: 0.08
+Nodes (14): ArrayLengthAttributeDrawer, FusionHierarchyWindowOverlay, LazyGUIStyle, fixedHeight, fixedWidth, font, fontStyle, margin (+6 more)
 
-### Community 96 - "FusionMenuConfig"
-Cohesion: 0.10
-Nodes (15): FusionMenuSceneInfo, NameOrSceneName, SceneName, FusionMenuUIControllerEditor, FusionMenuConfig, AdaptFramerateForMobilePlatform, AvailableAppVersions, AvailableRegions (+7 more)
+### Community 96 - "RegionPinger"
+Cohesion: 0.20
+Nodes (4): PhotonPing, RegionPinger, Aborted, Done
 
 ### Community 97 - "WebSocket"
 Cohesion: 0.07
 Nodes (9): SocketWebTcp, WebSocket, Connected, ConnectedOLD, DebugReturn, Error, ErrorOLD, ProxyAddress (+1 more)
 
 ### Community 98 - "FusionMppm"
-Cohesion: 0.10
-Nodes (14): Regexes, AckMessage, CommandWrapper, FusionMppm, FusionMppmCommand, NeedsAck, PersistentKey, FusionMppmRegisterCustomDependencyCommand (+6 more)
+Cohesion: 0.16
+Nodes (8): Regexes, AckMessage, CommandWrapper, FusionMppm, FusionMppmStatus, Disabled, MainInstance, VirtualInstance
 
-### Community 99 - "NetworkObjectBaker"
-Cohesion: 0.09
-Nodes (10): NetworkObjectBakerEditTime, _Indices, NetworkObjectBaker, Result, BehaviourCount, HadChanges, ObjectCount, TransformPath (+2 more)
+### Community 99 - "MonoBehaviour"
+Cohesion: 0.12
+Nodes (7): NetworkObjectBakerEditTime, NetworkObjectBaker, Result, BehaviourCount, HadChanges, ObjectCount, NewMonoBehaviour
 
 ### Community 100 - "com.unity.mathematics@1.2.6"
 Cohesion: 0.08
@@ -704,29 +701,29 @@ Nodes (9): FusionEditorHubModeSelectionWindow, CustomConditions, CustomWidgetTyp
 Cohesion: 0.09
 Nodes (24): dependencies, depth, source, version, dependencies, depth, source, version (+16 more)
 
-### Community 104 - "FusionBootstrapDebugGUI"
-Cohesion: 0.19
-Nodes (3): FusionScalableIMGUI, FusionBootstrapDebugGUI, IsMultiplePeerMode
+### Community 104 - "FusionStatisticsForecastObjectStats"
+Cohesion: 0.18
+Nodes (3): FusionStatisticsForecastObjectPage, PageName, FusionStatisticsForecastObjectStats
 
-### Community 106 - "PlayerRef"
+### Community 106 - "OdinDrawer"
+Cohesion: 0.21
+Nodes (5): GetValueFunc, LayerMatrixAttributeDrawer, LayerMatrixGUI, Ref2Action, SetValueFunc
+
+### Community 107 - "IPlayerProfileService"
+Cohesion: 0.06
+Nodes (11): CloseButton, AlertType, Error, Info, Success, hostUiPanel, SessionEntry, PlayOptionUI (+3 more)
+
+### Community 108 - "MessageIfDrawerBase"
 Cohesion: 0.11
-Nodes (5): SessionController, GameController, RegisterService, SeatQuery, IPlayerRegisterService
+Nodes (11): AssetObjectEditor, ButtonEntry, LastError, ButtonFlags, HasNested, IsNested, DoIfAttributeDrawer, EditorButtonDrawer (+3 more)
 
-### Community 107 - "SignInUIController"
-Cohesion: 0.11
-Nodes (6): AlertType, Error, Info, Success, hostUiPanel, SignInUIController
+### Community 109 - "TransformPathCache"
+Cohesion: 0.24
+Nodes (3): _Indices, TransformPath, TransformPathCache
 
-### Community 108 - "GUIContent"
-Cohesion: 0.05
-Nodes (26): BackgroundColorScope, BoxScope, ColorScope, ContentColorScope, DisabledGroupScope, EnabledScope, ErrorScope, ExpandableEnumAttributeDrawer (+18 more)
-
-### Community 109 - "InspectorProperty"
-Cohesion: 0.11
-Nodes (5): FusionOdinExtensions, OdinDrawer, OdinDrawerBase, OdinUnitAttributeDrawer, UnitAttributeDrawer
-
-### Community 110 - "FusionEditorHubConditionEnum"
-Cohesion: 0.14
-Nodes (14): FusionEditorHubConditionEnum, AssetMissing, ButtonClicked, Custom, DefineEnabled, DefineMissing, GlobalScriptableObjectExists, None (+6 more)
+### Community 110 - "InspectorProperty"
+Cohesion: 0.13
+Nodes (4): FusionOdinExtensions, OdinDrawerBase, OdinUnitAttributeDrawer, UnitAttributeDrawer
 
 ### Community 111 - "FusionEditorHubWidgetTypeEnum"
 Cohesion: 0.09
@@ -736,9 +733,9 @@ Nodes (22): FusionEditorHubWidgetTypeEnum, Addon, AppIdBox, AppIdBoxVoice, Assem
 Cohesion: 0.12
 Nodes (5): FusionEditorHubWidgetUpm, UpmInstallState, AwaitWebRequestCheck, None, UpmClientRefreshPackages
 
-### Community 114 - "LayerMatrixGUI"
-Cohesion: 0.22
-Nodes (5): GetValueFunc, LayerMatrixAttributeDrawer, LayerMatrixGUI, Ref2Action, SetValueFunc
+### Community 114 - "FusionBootstrapDebugGUI"
+Cohesion: 0.17
+Nodes (3): FusionScalableIMGUI, FusionBootstrapDebugGUI, IsMultiplePeerMode
 
 ### Community 115 - "FusionBootstrap"
 Cohesion: 0.10
@@ -749,32 +746,28 @@ Cohesion: 0.10
 Nodes (21): TienLen.LoadTester, net10.0, Microsoft.NET.Sdk, TienLen.Server.Tests, net10.0, Microsoft.NET.Sdk, TienLen.Server, net10.0 (+13 more)
 
 ### Community 117 - "FusionEditorHubWidget"
-Cohesion: 0.12
-Nodes (11): EditorHubWidget, DrawNetworkedPropertiesIcon, FusionEditorHubWidget, AutoCompleteAsEnum, HasTypeAndTypeIsValid, HideAsEnum, State, WidgetModeAsEnum (+3 more)
+Cohesion: 0.11
+Nodes (13): EditorHubWidget, DrawNetworkedPropertiesIcon, FusionEditorHubWidget, AutoCompleteAsEnum, HasTypeAndTypeIsValid, HideAsEnum, State, WidgetModeAsEnum (+5 more)
 
-### Community 118 - "NetworkObjectPostprocessor"
-Cohesion: 0.08
-Nodes (13): NetworkObjectBakePrefabArgs, Baker, Handled, IsPrefabDirty, LoadedPrefabRoot, Path, NetworkObjectBakeSceneArgs, Baker (+5 more)
+### Community 118 - "Region"
+Cohesion: 0.20
+Nodes (6): Region, Cluster, Code, HostAndPort, Ping, WasPinged
 
-### Community 120 - "FusionStatisticsRoot"
-Cohesion: 0.19
-Nodes (4): FusionStatisticsRoot, ActiveRoot, IsVisible, Statistics
+### Community 120 - "SignInUIController"
+Cohesion: 0.13
+Nodes (6): IAuthService, AuthToken, CurrentUser, IsAuthenticated, IsRememberMeEnabled, SignInUIController
 
-### Community 121 - "FixedBufferPropertyAttributeDrawer"
-Cohesion: 0.17
-Nodes (9): FixedBufferPropertyAttributeDrawer, ActualFieldType, Capacity, SurrogateType, FusionUnitySurrogateBaseWrapper, PropertyEntry, SurrogatePool, Flush (+1 more)
+### Community 121 - "Callbacks.cs"
+Cohesion: 0.05
+Nodes (33): ErrorInfoCallbacksContainer, IErrorInfoCallback, ILobbyCallbacks, IMatchmakingCallbacks, IOnEventCallback, IOnMessageCallback, LobbyCallbacksContainer, MatchMakingCallbacksContainer (+25 more)
 
-### Community 122 - "Statics"
-Cohesion: 0.12
-Nodes (10): InspectorWindow, isLocked, ObjectSelector, get, isVisible, objectSelectorID, searchFilter, Statics (+2 more)
+### Community 122 - "GameObject"
+Cohesion: 0.07
+Nodes (13): FusionCustomDependency, LateDependencyRefreshAssetPostprocessor, NetworkObjectBakePrefabArgs, Baker, Handled, IsPrefabDirty, LoadedPrefabRoot, Path (+5 more)
 
 ### Community 123 - "ClientState"
 Cohesion: 0.10
 Nodes (21): ClientState, Authenticated, Authenticating, ConnectedToGameServer, ConnectedToMasterServer, ConnectedToNameServer, ConnectingToGameServer, ConnectingToMasterServer (+13 more)
-
-### Community 124 - "ProtocolPorts"
-Cohesion: 0.17
-Nodes (6): ServerConnection, GameServer, MasterServer, NameServer, ProtocolPorts, ServerPorts
 
 ### Community 125 - "InternalTreeView"
 Cohesion: 0.14
@@ -785,12 +778,12 @@ Cohesion: 0.18
 Nodes (5): InstanceIDHandlerDelegate, JsonUtilityExtensions, TypeNameWrapper, TypeResolverDelegate, TypeSerializerDelegate
 
 ### Community 127 - "FusionBehaviourStatisticsPage"
-Cohesion: 0.17
-Nodes (5): FusionBehaviourStatisticsPage, DisplayingFun, PageName, FusionBehaviourStats, BehaviourType
+Cohesion: 0.14
+Nodes (9): StatAccumulator, LastTimeStamp, Value, ValuePerSecond, FusionBehaviourStatisticsPage, DisplayingFun, PageName, FusionBehaviourStats (+1 more)
 
-### Community 128 - "AuthResponseDto"
-Cohesion: 0.08
-Nodes (25): AuthResponseDto, AccessToken, AccessTokenExpiresAtUtc, ErrorMessage, IsSuccess, Profile, RefreshToken, LoginRequestDto (+17 more)
+### Community 128 - "FixedBufferPropertyAttributeDrawer"
+Cohesion: 0.17
+Nodes (9): FixedBufferPropertyAttributeDrawer, ActualFieldType, Capacity, SurrogateType, FusionUnitySurrogateBaseWrapper, PropertyEntry, SurrogatePool, Flush (+1 more)
 
 ### Community 129 - "LobbyActionButton"
 Cohesion: 0.12
@@ -813,12 +806,12 @@ Cohesion: 0.11
 Nodes (16): FusionEditorSkin, ErrorInlineBoxColor, HelpButtonStyle, HelpInlineBoxColor, InlineBoxFullWidthScopeStyle, InlineBoxFullWidthStyle, InlineSelectorStyle, instance (+8 more)
 
 ### Community 134 - "FusionStatisticsNetworkObjectPage"
-Cohesion: 0.23
-Nodes (3): FusionStatisticsNetworkObjectPage, PageName, FusionStatisticsNetworkObjectStats
+Cohesion: 0.16
+Nodes (4): FusionStatisticsNetworkObjectPage, PageName, FusionStatisticsNetworkObjectStats, MultipleOptionsPanel
 
-### Community 136 - "RegionPinger"
-Cohesion: 0.20
-Nodes (4): PhotonPing, RegionPinger, Aborted, Done
+### Community 136 - "TienLenGame"
+Cohesion: 0.10
+Nodes (13): Deck, Cards, Count, TienLenGame, CurrentPlayer, Players, State, TienLenGameState (+5 more)
 
 ### Community 137 - "com.unity.test-framework@1.4.6"
 Cohesion: 0.11
@@ -836,49 +829,41 @@ Nodes (19): dependencies, depth, source, version, dependencies, depth, source, u
 Cohesion: 0.14
 Nodes (9): HubWidgetState, CachedStrings, HasCachedString, IsAutoCompleted, IsComplete, IsDrawn, IsHidden, StepIndex (+1 more)
 
-### Community 141 - ".Main"
-Cohesion: 0.17
-Nodes (7): Program, RequestMetric, ApiResponse, Data, IsSuccess, Message, HeartbeatRequest
+### Community 141 - "FusionEditorHubConditionEnum"
+Cohesion: 0.11
+Nodes (15): FusionEditorHubCondition, FusionEditorHubConditionEnum, AssetMissing, ButtonClicked, Custom, DefineEnabled, DefineMissing, GlobalScriptableObjectExists (+7 more)
+
+### Community 142 - "TableVisualLayoutManager"
+Cohesion: 0.12
+Nodes (11): SeatProvider, TotalSeats, TienLenSeatProvider, TotalSeats, PlayerSeat, BoundSeatIndex, CardHolder, InfoView (+3 more)
 
 ### Community 143 - "RegionHandler"
 Cohesion: 0.18
 Nodes (8): MonoBehaviourEmpty, RegionHandler, Aborted, AvailableRegionCodes, BestRegion, EnabledRegions, IsPinging, SummaryToCache
 
-### Community 146 - ".Configure"
-Cohesion: 0.22
-Nodes (8): INetworkConfig, ApiBaseUrl, UseWebSocketTransport, WebsocketBaseUrl, NetworkConfig, ApiBaseUrl, UseWebSocketTransport, WebsocketBaseUrl
-
 ### Community 147 - "com.unity.2d.tilemap@1.0.0"
 Cohesion: 0.12
 Nodes (18): dependencies, depth, dependencies, depth, source, url, version, source (+10 more)
 
-### Community 149 - "NetworkProjectConfigImporter"
-Cohesion: 0.07
-Nodes (10): FusionCustomDependency, ILWeaverUtils, LateDependencyRefreshAssetPostprocessor, FusionEditorHubWindowAssetPostprocessor, PostProcessor, FusionWeaverTriggerImporter, Postprocessor, NetworkProjectConfigImporter (+2 more)
+### Community 149 - "NetworkAssetSourceStaticLazy"
+Cohesion: 0.15
+Nodes (8): EntityId, None, LazyLoadReferenceExtensions, NetworkAssetSourceStaticLazy, Description, EditorInstance, IsCompleted, Prefab
 
 ### Community 150 - "EditorGUI"
 Cohesion: 0.14
 Nodes (9): DefaultPropertyFieldDelegate, DelayedTextFieldInternalDelegate, EditorGUI, DelayedTextFieldHash, indent, TextFieldHash, MultiFieldPrefixLabelDelegate, TextFieldInternalDelegate (+1 more)
 
-### Community 151 - "RawDataDrawer"
-Cohesion: 0.17
-Nodes (3): BinaryDataAttributeDrawer, RawDataDrawer, HasContent
-
-### Community 152 - "Region"
-Cohesion: 0.20
-Nodes (6): Region, Cluster, Code, HostAndPort, Ping, WasPinged
+### Community 152 - ".Info"
+Cohesion: 0.10
+Nodes (13): EnterRoomArgs, ServerConnection, GameServer, MasterServer, NameServer, FindFriendsArgs, FindFriendsOptions, JoinRandomRoomArgs (+5 more)
 
 ### Community 154 - "PingMono"
 Cohesion: 0.14
 Nodes (3): PingHttp, PingMono, PingNativeDynamic
 
-### Community 155 - "RoomInfo"
-Cohesion: 0.09
-Nodes (16): ILobbyCallbacks, LobbyCallbacksContainer, OnJoinedLobbyMsg, OnLeftLobbyMsg, OnLobbyStatisticsUpdateMsg, OnRoomListUpdateMsg, TypedLobbyInfo, PlayerCount (+8 more)
-
-### Community 156 - "ActionPanel"
-Cohesion: 0.10
-Nodes (3): NetworkCard, ActionPanel, LocalHand
+### Community 155 - "SettingPanel"
+Cohesion: 0.22
+Nodes (4): VolumeSetting, MusicVolume, SfxVolume, SettingPanel
 
 ### Community 157 - "http"
 Cohesion: 0.13
@@ -900,33 +885,29 @@ Nodes (16): dependencies, depth, source, version, dependencies, depth, source, v
 Cohesion: 0.17
 Nodes (11): FusionGridItem, TargetObject, GridItem, Description, Guid, InstanceCount, LoadState, Path (+3 more)
 
-### Community 165 - "FusionMenuUIScreen"
-Cohesion: 0.18
-Nodes (5): FusionMenuFpsAvgCounter, FusionMenuScreenPlugin, ColorThresholds, FusionMenuScreenPluginPing, FusionMenuScreenPluginTooltip
+### Community 162 - ".Configure"
+Cohesion: 0.13
+Nodes (11): IDataRepository, INetworkConfig, ApiBaseUrl, UseWebSocketTransport, WebsocketBaseUrl, NetworkConfig, ApiBaseUrl, UseWebSocketTransport (+3 more)
 
 ### Community 166 - "MatchRecordDocument"
-Cohesion: 0.09
-Nodes (26): MatchesController, MatchPlayerSummaryDto, AvatarId, DisplayName, ExpEarned, MoneyEarned, Rank, UserId (+18 more)
+Cohesion: 0.06
+Nodes (36): MatchPlayerSummaryDto, AvatarId, DisplayName, ExpEarned, MoneyEarned, Rank, UserId, MatchResultReportDto (+28 more)
 
 ### Community 168 - "FusionEditorMenuPriority"
 Cohesion: 0.14
 Nodes (14): FusionEditorMenuPriority, Bake, BOTTOM, CodeGen, Demo, Export, GlobalConfigs, Profilers (+6 more)
 
-### Community 169 - "FusionStatisticsPage"
-Cohesion: 0.19
-Nodes (5): FusionStatisticsPage, PageName, Runner, Statistics, StatisticsManager
-
 ### Community 170 - "AssetDatabaseEnumerator"
 Cohesion: 0.24
 Nodes (3): AssetDatabaseEnumerable, AssetDatabaseEnumerator, Current
 
-### Community 171 - "FusionMenu.Common.cs"
-Cohesion: 0.40
-Nodes (4): Apply(), ApplyUser(), ConnectFailReason, ResetStaticFields()
+### Community 171 - "Exception"
+Cohesion: 0.13
+Nodes (9): AsyncOperationHandler, CompletionSource, Disposables, IsCancellationRequested, Name, Task, Token, AuthenticationFailedException (+1 more)
 
-### Community 172 - "FusionMenuConnectionBehaviour"
-Cohesion: 0.16
-Nodes (9): FusionMenuConnectionBehaviour, AppVersion, IsConnected, MaxPlayerCount, Ping, Region, SessionName, Usernames (+1 more)
+### Community 172 - "SocialLoginButtonUGUI"
+Cohesion: 0.18
+Nodes (8): SocialLoginButtonUGUI, Button, ButtonBg, ButtonBorder, CustomProviderName, IconBadgeText, Provider, ProviderLabel
 
 ### Community 174 - "CustomAuthenticationType"
 Cohesion: 0.15
@@ -936,13 +917,9 @@ Nodes (13): CustomAuthenticationType, Custom, Epic, Facebook, FacebookGaming, Ni
 Cohesion: 0.15
 Nodes (13): dependencies, depth, source, version, dependencies, depth, source, url (+5 more)
 
-### Community 177 - "AppSettings"
-Cohesion: 0.20
-Nodes (5): AppSettings, IsBestRegion, IsDefaultNameServer, IsDefaultPort, IsMasterServerAddress
-
-### Community 178 - "NetworkObject"
-Cohesion: 0.12
-Nodes (4): FusionPluginAssetExporter, FusionEditorAssetLibrary, Instance, FusionPluginExportCallbacks
+### Community 177 - "PreferredRunners"
+Cohesion: 0.40
+Nodes (5): PreferredRunners, Auto, Client, InputAuthority, Server
 
 ### Community 179 - "NetworkPrefabsInspector"
 Cohesion: 0.18
@@ -952,17 +929,17 @@ Nodes (6): LoadState, Loaded, LoadedNoInstances, Loading, NotLoaded, NetworkPref
 Cohesion: 0.19
 Nodes (7): NetworkAssetSourceResource, Description, EditorInstance, IsCompleted, NetworkPrefabSourceResource, AssetGuid, AssetPath
 
-### Community 182 - "Enums.cs"
-Cohesion: 0.25
-Nodes (7): ActorProperties, EncryptionDataParameters, ErrorCode, EventCode, GamePropertyKey, OperationCode, ParameterCode
+### Community 182 - "FusionEditorUtility"
+Cohesion: 0.20
+Nodes (3): FusionEditorUtility, WhiteBoldLabelStyle, HierarchyWindowDelegateWrapper
 
 ### Community 183 - "Stage"
 Cohesion: 0.29
 Nodes (7): Stage, AllConnected, ConnectingClients, ConnectingServer, Disconnected, StartingUp, UnloadOriginalScene
 
-### Community 184 - "Grid"
-Cohesion: 0.19
-Nodes (4): FusionGrid, FusionGridState, Grid, InspectorTreeViewState
+### Community 184 - "FusionMppmCommand"
+Cohesion: 0.25
+Nodes (6): FusionMppmCommand, NeedsAck, PersistentKey, FusionMppmRegisterCustomDependencyCommand, NeedsAck, PersistentKey
 
 ### Community 185 - "NetworkAssetSourceAddressable"
 Cohesion: 0.18
@@ -976,33 +953,33 @@ Nodes (4): NetworkAssetSourceAssetBundle, Description, EditorInstance, IsComplet
 Cohesion: 0.25
 Nodes (5): NetworkAssetSourceStatic, Description, EditorInstance, IsCompleted, Prefab
 
-### Community 188 - "SplitterState"
-Cohesion: 0.15
-Nodes (5): SplitterGUILayout, SplitterState, realSizes, relativeSizes, splitSize
-
-### Community 189 - "IntroInput"
-Cohesion: 0.15
-Nodes (3): IntroInput, PlayerInteract, PlayerMovement
+### Community 189 - "InternalStyles"
+Cohesion: 0.18
+Nodes (10): InternalStyles, AddComponentButton, AnimationEventTooltip, AnimationEventTooltipArrow, BoxWithBorders, FoldoutTitlebar, HierarchyTreeViewLine, HierarchyTreeViewSceneBackground (+2 more)
 
 ### Community 190 - "com.unity.modules.subsystems@1.0.0"
 Cohesion: 0.18
 Nodes (11): dependencies, depth, source, version, dependencies, depth, source, version (+3 more)
 
-### Community 194 - "FusionCoroutine"
-Cohesion: 0.18
+### Community 192 - "FusionCoroutine"
+Cohesion: 0.20
 Nodes (5): FusionCoroutine, Current, Error, IsDone, Progress
 
-### Community 195 - "JoinType"
-Cohesion: 0.33
-Nodes (6): JoinType, CreateRoom, JoinOrCreateRoom, JoinRandomOrCreateRoom, JoinRandomRoom, JoinRoom
+### Community 194 - "Enums.cs"
+Cohesion: 0.17
+Nodes (11): ActorProperties, AuthModeOption, Auth, AuthOnce, AuthOnceWss, EncryptionDataParameters, ErrorCode, EventCode (+3 more)
+
+### Community 195 - "FusionBasicBillboard"
+Cohesion: 0.20
+Nodes (3): CanvasCreator, FusionBasicBillboard, MainCamera
 
 ### Community 196 - "EventCaching"
 Cohesion: 0.20
 Nodes (10): EventCaching, AddToRoomCache, AddToRoomCacheGlobal, DoNotCache, RemoveFromRoomCache, RemoveFromRoomCacheForActorsLeft, SliceIncreaseIndex, SlicePurgeIndex (+2 more)
 
-### Community 197 - "InternalStyles"
-Cohesion: 0.18
-Nodes (10): InternalStyles, AddComponentButton, AnimationEventTooltip, AnimationEventTooltipArrow, BoxWithBorders, FoldoutTitlebar, HierarchyTreeViewLine, HierarchyTreeViewSceneBackground (+2 more)
+### Community 197 - "ClientAppType"
+Cohesion: 0.29
+Nodes (7): ClientAppType, Chat, Detect, Fusion, Quantum, Realtime, Voice
 
 ### Community 198 - "StartModes"
 Cohesion: 0.50
@@ -1016,13 +993,9 @@ Nodes (4): FusionInstaller, DefineVersionExtendedMajor, DefineVersionExtendedMaj
 Cohesion: 0.22
 Nodes (5): CustomOptions, GizmoOptionsEnum, ShowActiveServerZones, ShowPlayerInterest, RunnerAOIGizmos
 
-### Community 202 - "FusionMenuConnectArgs"
-Cohesion: 0.25
-Nodes (3): FusionMenuConnectArgs, Scene, FusionMenuMppmJoinCommand
-
-### Community 203 - "LobbyType"
-Cohesion: 0.33
-Nodes (6): LobbyType, AsyncRandom, AsyncRandomLobby, Default, Sql, SqlLobby
+### Community 203 - "LobbyChangeReason"
+Cohesion: 0.29
+Nodes (7): LobbyChangeReason, GameOver, GameStarted, Initialized, PassOccurred, SeatsChanged, TurnChanged
 
 ### Community 204 - "RoomOptionBit"
 Cohesion: 0.25
@@ -1036,29 +1009,21 @@ Nodes (10): NativeSocketState, Connected, Connecting, ConnectionError, Disconnec
 Cohesion: 0.29
 Nodes (7): AsmDefType, All, Editor, InAssets, InPackages, Predefined, Runtime
 
-### Community 208 - ".Error"
-Cohesion: 0.09
-Nodes (10): EnterRoomArgs, EnterRoomParams, FindFriendsArgs, FindFriendsOptions, JoinRandomRoomArgs, TypedLobby, Default, IsDefault (+2 more)
-
 ### Community 209 - "FusionPluginExportDataSummary"
 Cohesion: 0.40
 Nodes (5): FusionPluginExportDataSummary, AssetCount, Duration, PrefabCount, SceneCount
 
-### Community 210 - "CardCombinationType"
-Cohesion: 0.25
-Nodes (8): CardCombinationType, FourOfAKind, Invalid, Pair, PairSequence, Single, Straight, Triple
+### Community 210 - "FusionPluginAutoExportFlags"
+Cohesion: 0.40
+Nodes (5): FusionPluginAutoExportFlags, Code, Prefabs, Scenes, ScriptableObjects
 
-### Community 211 - "ReceiverGroup"
-Cohesion: 0.33
-Nodes (5): ReceiverGroup, All, MasterClient, Others, RaiseEventArgs
+### Community 211 - "AutoActionResultType"
+Cohesion: 0.50
+Nodes (4): AutoActionResultType, ForceAdvance, Pass, PlayCards
 
-### Community 213 - "unityengine"
-Cohesion: 0.05
-Nodes (7): IRunnerVisibilityRecognizedType, Assets.Script.TienLen, Fusion.Menu, Fusion.Statistics, FusionIntroShared, Assets.Script.TienLen.Effects, Fusion
-
-### Community 216 - "LobbyChangeReason"
-Cohesion: 0.29
-Nodes (7): LobbyChangeReason, GameOver, GameStarted, Initialized, PassOccurred, SeatsChanged, TurnChanged
+### Community 213 - "Fusion.Menu"
+Cohesion: 0.17
+Nodes (5): Apply(), ApplyUser(), ConnectFailReason, ResetStaticFields(), Fusion.Menu
 
 ### Community 217 - "com.unity.collab-proxy"
 Cohesion: 0.33
@@ -1068,33 +1033,25 @@ Nodes (6): dependencies, depth, source, url, version, com.unity.collab-proxy
 Cohesion: 0.33
 Nodes (6): jp.hadashikick.vcontainer, dependencies, depth, hash, source, version
 
-### Community 220 - "PropertyDrawer"
-Cohesion: 0.04
-Nodes (24): DecoratorDrawer, DummyPropertyDrawer, EnumDrawer, BitMask, EnumType, Fields, IsFlags, Names (+16 more)
+### Community 220 - "FusionPluginCodeExportSummary"
+Cohesion: 0.50
+Nodes (4): FusionPluginCodeExportSummary, Duration, FilesGenerated, FilesRemoved
 
-### Community 221 - "NetworkAssetSourceStaticLazy"
-Cohesion: 0.15
-Nodes (8): EntityId, None, LazyLoadReferenceExtensions, NetworkAssetSourceStaticLazy, Description, EditorInstance, IsCompleted, Prefab
+### Community 224 - "JoinType"
+Cohesion: 0.33
+Nodes (6): JoinType, CreateRoom, JoinOrCreateRoom, JoinRandomOrCreateRoom, JoinRandomRoom, JoinRoom
 
-### Community 222 - "EnableOnSingleRunner"
-Cohesion: 0.16
-Nodes (3): FusionAssistants, EnableOnSingleRunner, RunnerLagCompensationGizmos
+### Community 225 - "LobbyType"
+Cohesion: 0.33
+Nodes (6): LobbyType, AsyncRandom, AsyncRandomLobby, Default, Sql, SqlLobby
 
-### Community 224 - "JoinMode"
-Cohesion: 0.40
-Nodes (5): JoinMode, CreateIfNotExists, Default, JoinOrRejoin, RejoinOnly
+### Community 227 - "NetworkProjectConfigImporterEditor"
+Cohesion: 0.09
+Nodes (9): ILWeaverUtils, FusionWeaverTriggerImporter, Postprocessor, NetworkProjectConfigImporter, Postprocessor, NetworkProjectConfigImporterEditor, extraDataType, showImportedObject (+1 more)
 
-### Community 225 - "PropertyTypeFlag"
-Cohesion: 0.40
-Nodes (5): PropertyTypeFlag, Actor, Game, GameAndActor, None
-
-### Community 226 - "FusionPluginAutoExportFlags"
-Cohesion: 0.40
-Nodes (5): FusionPluginAutoExportFlags, Code, Prefabs, Scenes, ScriptableObjects
-
-### Community 228 - "TableVisualLayoutManager"
-Cohesion: 0.16
-Nodes (5): SeatProvider, TotalSeats, TienLenSeatProvider, TotalSeats, TableVisualLayoutManager
+### Community 228 - "NetworkObject"
+Cohesion: 0.07
+Nodes (9): SessionController, GameController, HasQueuedDisconnects, IsLocalDisconnectQueued, RegisterService, SeatQuery, UiMgr, MenuPanel (+1 more)
 
 ### Community 229 - "How to Run Live Stress Tests"
 Cohesion: 0.22
@@ -1108,37 +1065,45 @@ Nodes (5): dependencies, depth, source, version, com.unity.multiplayer.center
 Cohesion: 0.50
 Nodes (3): displayName, name, version
 
-### Community 232 - "AuthModeOption"
-Cohesion: 0.50
-Nodes (4): AuthModeOption, Auth, AuthOnce, AuthOnceWss
+### Community 232 - "Grid"
+Cohesion: 0.19
+Nodes (4): FusionGrid, FusionGridState, Grid, InspectorTreeViewState
 
-### Community 233 - "CommandEventSubcode"
+### Community 233 - "ReceiverGroup"
+Cohesion: 0.33
+Nodes (5): ReceiverGroup, All, MasterClient, Others, RaiseEventArgs
+
+### Community 237 - "JoinMode"
+Cohesion: 0.40
+Nodes (5): JoinMode, CreateIfNotExists, Default, JoinOrRejoin, RejoinOnly
+
+### Community 285 - "PropertyTypeFlag"
+Cohesion: 0.40
+Nodes (5): PropertyTypeFlag, Actor, Game, GameAndActor, None
+
+### Community 289 - "CommandEventSubcode"
 Cohesion: 0.50
 Nodes (4): CommandEventSubcode, GenerateTicket, UpdateMute, UpdateProximity
 
-### Community 234 - "MatchmakingMode"
-Cohesion: 0.50
-Nodes (4): MatchmakingMode, FillRoom, RandomMatching, SerialMatching
-
 ## Knowledge Gaps
-- **1113 isolated node(s):** `_color`, `_currentColorRequestIndex`, `_color`, `Scene`, `SessionName` (+1108 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 2194 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **86 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1126 isolated node(s):** `_color`, `_currentColorRequestIndex`, `_color`, `Scene`, `SessionName` (+1121 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 2214 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **90 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `FusionEditorHubWindow` connect `FusionEditorHubWindow` to `Type`, `AssetDatabaseUtils`, `FusionEditorHubWindowSdk`, `LogSettingsDrawer`, `FusionBootstrapDebugGUI`, `FusionEditorHubPage`, `Fusion.Unity.Editor.cs`, `FusionEditorHubWidgetUpm`, `FusionEditorHubWidget`, `TweenerCore`, `NetworkProjectConfigUtilities`, `Statics`, `Fusion.Unity.cs`, `List`, `LazyGUIStyle`, `InitializeOnLoadMethod`?**
+- **Why does `FusionEditorHubWindow` connect `FusionEditorHubWindow` to `Type`, `FusionEditorHubWindowSdk`, `LogSettingsDrawer`, `Statics`, `FusionEditorHubPage`, `FusionEditorHubConditionEnum`, `Fusion.Unity.Editor.cs`, `FusionEditorHubWidgetUpm`, `FusionBootstrapDebugGUI`, `system_linq`, `FusionEditorHubWidget`, `TweenerCore`, `NetworkProjectConfigUtilities`, `AssetDatabaseUtils`, `Fusion.Unity.cs`, `List`, `LazyGUIStyle`, `InitializeOnLoadMethod`?**
   _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **What connects `_color`, `_currentColorRequestIndex`, `_color` to the rest of the system?**
-  _1113 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1126 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Instruction` be split into smaller, more focused modules?**
-  _Cohesion score 0.05448774466584377 - nodes in this community are weakly interconnected._
-- **Why does `RealtimeClient` connect `RealtimeClient` to `AsyncConfig`, `RegionHandler`, `ClientAppType`, `RoomInfo`, `AuthenticationValues`, `Type`, `EventBetter`, `Photon.Realtime`, `Room`, `AppSettings`, `Player`, `List`, `Log`, `JoinType`, `ConnectionHandler`, `Callbacks.cs`, `.Error`, `FusionMenuConnectionBehaviourSdk`, `CustomTypesUnity`, `Func`, `LogSettingsDrawer`, `ClientState`, `ProtocolPorts`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
+  _Cohesion score 0.056363636363636366 - nodes in this community are weakly interconnected._
+- **Why does `RealtimeClient` connect `RealtimeClient` to `AsyncConfig`, `RegionHandler`, `.Info`, `AuthenticationValues`, `Type`, `EventBetter`, `DisconnectCause`, `Photon.Realtime`, `Player`, `List`, `.Error`, `ClientAppType`, `DisconnectCause`, `.Error`, `FusionMenuConnectionBehaviourSdk`, `CustomTypesUnity`, `Func`, `JoinType`, `Callbacks.cs`, `ClientState`, `ProtocolPorts`?**
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
 - **Should `NetworkTypeInfo` be split into smaller, more focused modules?**
-  _Cohesion score 0.03772418058132344 - nodes in this community are weakly interconnected._
-- **Why does `TienLenGameController` connect `TienLenGameController` to `UniTask`, `ILWeaver`, `LocalPlayerService`, `PlayerRef`, `Card`, `List`, `MatchController`, `TienLenNetWorkPlayer`, `Dictionary`, `UiManager`, `system_linq`, `ActionPanel`, `TienLenPlayer`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+  _Cohesion score 0.04038050863909921 - nodes in this community are weakly interconnected._
+- **Why does `ILWeaverAssembly` connect `ILWeaverAssembly` to `Instruction`, `NetworkTypeInfo`, `Type`, `ILWeaver`, `ILWeaverLog`, `Dictionary`, `TypeReference`, `Action`, `List`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
 - **Should `My project.slnx` be split into smaller, more focused modules?**
   _Cohesion score 0.02 - nodes in this community are weakly interconnected._

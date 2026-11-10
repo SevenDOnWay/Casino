@@ -258,6 +258,10 @@ namespace Assets.Script.NetWorkScript {
                     if ( sceneNO.TryGetComponent<SeatManager>(out var seatManager) ) {
                         seatManager.CleanupDisconnectedSeats();
                     }
+
+                    if ( sceneNO.TryGetComponent<SessionController>(out var sessionController) ) {
+                        sessionController.RestoreQueuedDisconnects();
+                    }
                 }
             }
 

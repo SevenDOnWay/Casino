@@ -58,10 +58,28 @@ namespace Assets.Script {
             set => colorGradient = value;
         }
 
+        public bool Clockwise {
+            get => clockwise;
+            set {
+                clockwise = value;
+                Apply();
+            }
+        }
+
+        public bool ShowEmptyAsTint {
+            get => showEmptyAsTint;
+            set {
+                showEmptyAsTint = value;
+                Apply();
+            }
+        }
+
         private void Awake() {
-            sr = GetComponent<SpriteRenderer>();
-            block = new MaterialPropertyBlock();
-            InitializeDefaultGradient();
+            sr ??= GetComponent<SpriteRenderer>();
+            block ??= new MaterialPropertyBlock();
+            if ( useGradient && (colorGradient == null || colorGradient.colorKeys == null || colorGradient.colorKeys.Length == 0) ) {
+                InitializeDefaultGradient();
+            }
         }
 
         private void OnEnable() {
@@ -137,10 +155,8 @@ namespace Assets.Script {
         }
 
         public void Apply() {
-            if ( sr == null ) {
-                sr = GetComponent<SpriteRenderer>();
-                if ( sr == null ) return;
-            }
+            sr ??= GetComponent<SpriteRenderer>();
+            if ( sr == null ) return;
 
             block ??= new MaterialPropertyBlock();
             sr.GetPropertyBlock(block);

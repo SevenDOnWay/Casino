@@ -1,16 +1,18 @@
 using Assets.Script.NetWorkScript;
 using Assets.Script.TienLen.Player;
+using Assets.Script.TienLen.UI;
 using Fusion;
 using Fusion.Sockets;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using VContainer;
 
 namespace Assets.Script.TienLen.Game {
     /// <summary>
     /// Authoritative lobby controller. Handles player joins, leaves,
-    /// network player object spawning, and seat registration.
+    /// network player object spawning, seat registration, and player kicking/exit lifecycle.
     /// </summary>
     public class SessionController : NetworkBehaviour, INetworkRunnerCallbacks {
         [Header("Scene Dependencies (Serialized / Injected)")]
@@ -20,6 +22,7 @@ namespace Assets.Script.TienLen.Game {
         private IPlayerRegisterService playerRegisterService;
         private ISeatQueryService seatQueryService;
         private LocalPlayerService localPlayerService;
+        private UiManager uiManager;
 
         [Inject]
         public void Construct(
@@ -27,23 +30,29 @@ namespace Assets.Script.TienLen.Game {
             TienLenGameController gameController,
             IPlayerRegisterService playerRegisterService = null,
             ISeatQueryService seatQueryService = null,
-            LocalPlayerService localPlayerService = null ) {
+            LocalPlayerService localPlayerService = null,
+            UiManager uiManager = null ) {
             this.seatManager = seatManager;
             this.gameController = gameController;
             this.playerRegisterService = playerRegisterService ?? seatManager;
             this.seatQueryService = seatQueryService ?? seatManager;
             this.localPlayerService = localPlayerService;
+            this.uiManager = uiManager;
         }
 
         public IPlayerRegisterService RegisterService => playerRegisterService ?? seatManager;
         public ISeatQueryService SeatQuery => seatQueryService ?? seatManager;
         public TienLenGameController GameController => gameController;
 
+        private UiManager UiMgr => uiManager != null ? uiManager : (uiManager = FindAnyObjectByType<UiManager>());
+
         [Header("Prefab")]
         [SerializeField] private GameObject networkPlayerPrefab;
 
         public override void Spawned() {
             Runner.AddCallbacks(this);
+
+            RestoreQueuedDisconnects();
 
             if ( Object.HasStateAuthority && Runner != null && Runner.LocalPlayer.IsValid ) {
                 if ( CheckPlayerCanJoin(Runner.LocalPlayer) ) {
@@ -96,6 +105,12 @@ namespace Assets.Script.TienLen.Game {
         }
 
         public void OnPlayerLeft( NetworkRunner runner, PlayerRef player ) {
+            queuedDisconnectPlayers.Remove(player);
+            if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                if ( QueuedDisconnectsNet.ContainsKey(player) ) {
+                    QueuedDisconnectsNet.Remove(player);
+                }
+            }
             if ( !Object.HasStateAuthority ) return;
 
             if ( GameController != null && GameController.IsGameStarted && GameController.WinnerSeat == -1 ) {
@@ -189,6 +204,174 @@ namespace Assets.Script.TienLen.Game {
                 Debug.Log($"[Lobby] Despawned network player for {player.PlayerId}");
             }
         }
+
+        #region Disconnect Queue & Kicking
+
+        [Networked, Capacity(4), OnChangedRender(nameof(OnQueuedDisconnectsChanged))]
+        public NetworkDictionary<PlayerRef, NetworkBool> QueuedDisconnectsNet => default;
+
+        private void OnQueuedDisconnectsChanged() {
+            RestoreQueuedDisconnects();
+        }
+
+        private readonly HashSet<PlayerRef> queuedDisconnectPlayers = new();
+
+        public bool IsLocalDisconnectQueued { get; private set; }
+
+        public bool HasQueuedDisconnects =>
+            queuedDisconnectPlayers.Count > 0 ||
+            IsLocalDisconnectQueued ||
+            (Object != null && Object.IsValid && QueuedDisconnectsNet.Count > 0);
+
+        public bool IsPlayerDisconnectQueued( PlayerRef player ) {
+            if ( Runner != null && Runner.LocalPlayer == player && IsLocalDisconnectQueued ) return true;
+            if ( queuedDisconnectPlayers.Contains(player) ) return true;
+            if ( Object != null && Object.IsValid && QueuedDisconnectsNet.ContainsKey(player) ) return true;
+            return false;
+        }
+
+        public IReadOnlyCollection<PlayerRef> GetQueuedDisconnectPlayers() {
+            if ( Object != null && Object.IsValid ) {
+                foreach ( var kvp in QueuedDisconnectsNet ) {
+                    if ( kvp.Value ) queuedDisconnectPlayers.Add(kvp.Key);
+                }
+            }
+            return queuedDisconnectPlayers;
+        }
+
+        public void RestoreQueuedDisconnects() {
+            if ( Object != null && Object.IsValid ) {
+                queuedDisconnectPlayers.Clear();
+                foreach ( var kvp in QueuedDisconnectsNet ) {
+                    if ( kvp.Value ) {
+                        queuedDisconnectPlayers.Add(kvp.Key);
+                    }
+                }
+
+                if ( Runner != null && Runner.LocalPlayer.IsValid ) {
+                    IsLocalDisconnectQueued = queuedDisconnectPlayers.Contains(Runner.LocalPlayer);
+                }
+            }
+        }
+
+        public void RequestLeaveToLobby() {
+            bool isGameInProgress = GameController != null && GameController.IsGameStarted && GameController.WinnerSeat == -1;
+            if ( !isGameInProgress ) {
+                LeaveLocalToLobby();
+            }
+            else {
+                if ( Runner != null && Runner.LocalPlayer.IsValid ) {
+                    QueuePlayerDisconnect(Runner.LocalPlayer);
+                }
+                UiMgr?.ShowAnnouncement("Left at the end of game");
+            }
+        }
+
+        public void QueuePlayerDisconnect( PlayerRef player ) {
+            if ( Runner != null && Runner.LocalPlayer == player ) {
+                IsLocalDisconnectQueued = true;
+            }
+
+            if ( Object != null && Object.IsValid ) {
+                if ( Object.HasStateAuthority ) {
+                    queuedDisconnectPlayers.Add(player);
+                    if ( !QueuedDisconnectsNet.ContainsKey(player) ) {
+                        QueuedDisconnectsNet.Add(player, true);
+                    }
+                }
+                else {
+                    RPCQueuePlayerDisconnect(player);
+                }
+            }
+            else {
+                queuedDisconnectPlayers.Add(player);
+            }
+        }
+
+        [Rpc(sources: RpcSources.All, targets: RpcTargets.StateAuthority)]
+        public void RPCQueuePlayerDisconnect( PlayerRef player, RpcInfo info = default ) {
+            PlayerRef sender = (info.Source != PlayerRef.None) ? info.Source : player;
+            if ( info.Source != PlayerRef.None && info.Source != player ) {
+                Debug.LogWarning($"[SessionController] Unauthorized disconnect request: client {info.Source.PlayerId} attempted to queue player {player.PlayerId}. Rejected.");
+                return;
+            }
+
+            Debug.Log($"[SessionController] Player {sender.PlayerId} queued disconnect at end of game.");
+            queuedDisconnectPlayers.Add(sender);
+
+            if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                if ( !QueuedDisconnectsNet.ContainsKey(sender) ) {
+                    QueuedDisconnectsNet.Add(sender, true);
+                }
+            }
+        }
+
+        public void KickQueuedPlayers() {
+            if ( Object == null || !Object.HasStateAuthority ) return;
+
+            RestoreQueuedDisconnects();
+
+            if ( queuedDisconnectPlayers.Count > 0 ) {
+                var toKick = new List<PlayerRef>(queuedDisconnectPlayers);
+                queuedDisconnectPlayers.Clear();
+                if ( Object.IsValid ) {
+                    QueuedDisconnectsNet.Clear();
+                }
+
+                foreach ( var pRef in toKick ) {
+                    if ( Runner != null && pRef == Runner.LocalPlayer ) continue;
+                    Debug.Log($"[SessionController] Kicking queued player {pRef.PlayerId}.");
+                    RPCKickPlayer(pRef);
+                    RemovePlayer(pRef);
+                }
+            }
+
+            if ( IsLocalDisconnectQueued ) {
+                Debug.Log("[SessionController] Local host queued disconnect. Leaving to lobby.");
+                LeaveLocalToLobby();
+            }
+        }
+
+        public void KickPlayer( PlayerRef player ) {
+            if ( Runner != null && player == Runner.LocalPlayer ) {
+                LeaveLocalToLobby();
+                return;
+            }
+
+            if ( Object == null || !Object.HasStateAuthority ) return;
+
+            queuedDisconnectPlayers.Remove(player);
+            if ( Object.IsValid && QueuedDisconnectsNet.ContainsKey(player) ) {
+                QueuedDisconnectsNet.Remove(player);
+            }
+            RPCKickPlayer(player);
+            RemovePlayer(player);
+        }
+
+        [Rpc(sources: RpcSources.StateAuthority, targets: RpcTargets.All)]
+        public void RPCKickPlayer( PlayerRef targetPlayer ) {
+            if ( Runner != null && Runner.LocalPlayer == targetPlayer ) {
+                Debug.Log($"[SessionController] Received kick instruction for local player.");
+                LeaveLocalToLobby();
+            }
+        }
+
+        public void LeaveLocalToLobby() {
+            IsLocalDisconnectQueued = false;
+            queuedDisconnectPlayers.Clear();
+            if ( Object != null && Object.IsValid && Object.HasStateAuthority ) {
+                QueuedDisconnectsNet.Clear();
+            }
+
+            if ( Runner != null && Runner.IsRunning ) {
+                Runner.Shutdown();
+            }
+            if ( Application.isPlaying ) {
+                SceneManager.LoadScene("MainMenuScene");
+            }
+        }
+
+        #endregion
 
         #region INetworkRunnerCallbacks
 
