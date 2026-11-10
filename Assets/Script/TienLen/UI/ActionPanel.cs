@@ -22,13 +22,14 @@ namespace Assets.Script.TienLen.UI {
         private TienLenRuleValidator validator;
 
         [Header("UI Elements")]
-        [Tooltip("Optional panel root. Falls back to this component's GameObject.")]
+        [Tooltip("Optional panel root. Falls back to toggling action buttons directly.")]
         [SerializeField] private GameObject panelRoot;
         [SerializeField] private Button playBtn;
         [SerializeField] private Button sortBtn;
         [SerializeField] private Button passBtn;
 
         private GameObject panelRootObject;
+        private Image backgroundImage;
         private bool isThisPlayerTurn;
         private CardHolder subscribedHand;
 
@@ -53,6 +54,10 @@ namespace Assets.Script.TienLen.UI {
 
         private void Awake() {
             panelRootObject = panelRoot != null ? panelRoot : gameObject;
+            backgroundImage = GetComponent<Image>();
+            if ( backgroundImage != null ) {
+                backgroundImage.raycastTarget = false;
+            }
         }
 
         private void Start() {
@@ -64,6 +69,7 @@ namespace Assets.Script.TienLen.UI {
             SetPassInteractable(false);
 
             EnsureHandSubscribed();
+            ReturnToLobby();
         }
 
         private void OnDestroy() {
@@ -115,9 +121,22 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void SetPanelVisible( bool visible ) {
-            if ( panelRootObject == null ) return;
-            if ( panelRootObject.activeSelf != visible ) {
-                panelRootObject.SetActive(visible);
+            if ( backgroundImage != null ) {
+                backgroundImage.enabled = visible;
+                backgroundImage.raycastTarget = false;
+            }
+
+            if ( panelRoot != null ) {
+                if ( panelRoot.activeSelf != visible ) {
+                    panelRoot.SetActive(visible);
+                }
+            }
+            else {
+                // If no separate root container is assigned, toggle the action buttons directly
+                // so this MonoBehaviour component stays active and retains event listeners/subscriptions
+                if ( playBtn != null && playBtn.gameObject.activeSelf != visible ) playBtn.gameObject.SetActive(visible);
+                if ( passBtn != null && passBtn.gameObject.activeSelf != visible ) passBtn.gameObject.SetActive(visible);
+                if ( sortBtn != null && sortBtn.gameObject.activeSelf != visible ) sortBtn.gameObject.SetActive(visible);
             }
         }
 
@@ -217,24 +236,24 @@ namespace Assets.Script.TienLen.UI {
             if ( passBtn != null ) passBtn.interactable = interactable;
         }
 
-        #endregion
-
         private bool CheckForPlayable() {
             CardHolder hand = LocalHand;
             if ( hand == null ) return false;
 
-            IReadOnlyList<CardView> selectedCards = hand.SelectedCards;
-            if ( selectedCards == null || selectedCards.Count == 0 ) {
+            IReadOnlyList<CardView> selectedViews = hand.SelectedCards;
+            if ( selectedViews == null || selectedViews.Count == 0 ) return false;
+
+            List<Card> selectedCards = selectedViews.Select(v => v.Card).ToList();
+
+            if ( combinationEvaluator == null || !combinationEvaluator.TryEvaluate(selectedCards, out CardCombination candidate) ) {
                 return false;
             }
-            List<Card> cards = selectedCards
-                .Select(view => view.Card)
-                .ToList();
 
-            if ( combinationEvaluator == null || !combinationEvaluator.TryEvaluate(cards, out CardCombination combination) ) return false;
-            if ( validator != null && !validator.CanPlay(combination) ) return false;
+            if ( validator == null ) return true;
 
-            return true;
+            return validator.CanPlay(candidate);
         }
+
+        #endregion
     }
 }

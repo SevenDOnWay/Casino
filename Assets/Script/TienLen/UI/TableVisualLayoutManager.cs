@@ -127,13 +127,25 @@ namespace Assets.Script.TienLen.UI {
 
         public PlayerSeat GetSeatByNetworkIndex( int networkSeatIndex ) {
             EnsureVisualSlots();
-            if ( visualSlots == null || networkSeatIndex < 0 ) return null;
+            if ( visualSlots == null || visualSlots.Length == 0 || networkSeatIndex < 0 ) return null;
+
             for ( int i = 0; i < visualSlots.Length; i++ ) {
                 if ( visualSlots[i] != null && visualSlots[i].BoundSeatIndex == networkSeatIndex ) {
                     return visualSlots[i];
                 }
             }
-            return null;
+
+            // Fallback: resolve visual slot directly via seatProvider layout
+            int localSeatIndex = ResolveLocalSeatIndex();
+            int visualSlotIndex = seatProvider != null
+                ? seatProvider.CalculateVisualSlotIndex(networkSeatIndex, localSeatIndex)
+                : (networkSeatIndex % visualSlots.Length);
+
+            if ( visualSlotIndex >= 0 && visualSlotIndex < visualSlots.Length && visualSlots[visualSlotIndex] != null ) {
+                return visualSlots[visualSlotIndex];
+            }
+
+            return visualSlots[0];
         }
 
         public CardHolder GetCardHolderForSeat( int networkSeatIndex ) {
@@ -169,6 +181,14 @@ namespace Assets.Script.TienLen.UI {
         public IReadOnlyList<PlayerSeat> GetAllVisualSlots() {
             EnsureVisualSlots();
             return visualSlots;
+        }
+
+        public void ClearAllCardHolders() {
+            EnsureVisualSlots();
+            if ( visualSlots == null ) return;
+            for ( int i = 0; i < visualSlots.Length; i++ ) {
+                visualSlots[i]?.CardHolder?.Clear();
+            }
         }
     }
 }

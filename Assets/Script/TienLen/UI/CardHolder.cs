@@ -1,4 +1,4 @@
-﻿using Assets.Script.TienLen.Rule;
+using Assets.Script.TienLen.Rule;
 using DG.Tweening;
 using System;
 using System.Collections.Generic;
@@ -78,7 +78,12 @@ namespace Assets.Script.TienLen.UI {
             foreach ( CardView card in cardsViews ) {
                 if ( card == null ) continue;
                 card.OnClicked -= HandleCardClicked;
-                Destroy(card.gameObject);
+                if ( Application.isPlaying ) {
+                    Destroy(card.gameObject);
+                }
+                else {
+                    DestroyImmediate(card.gameObject);
+                }
             }
 
             cardsViews.Clear();

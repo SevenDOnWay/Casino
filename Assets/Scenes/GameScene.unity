@@ -1339,6 +1339,7 @@ GameObject:
   m_Component:
   - component: {fileID: 643257689}
   - component: {fileID: 643257690}
+  - component: {fileID: 643257691}
   m_Layer: 5
   m_Name: Panel
   m_TagString: Untagged
@@ -1375,6 +1376,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 643257688}
   m_CullTransparentMesh: 1
+--- !u!114 &643257691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 643257688}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78a096a66bf469e42a21a534aa152115, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.UI.MenuPanel
+  sessionController: {fileID: 1937543992}
+  goToLobbyBtn: {fileID: 618995961}
+  settingBtn: {fileID: 1480278372}
 --- !u!1 &735630239
 GameObject:
   m_ObjectHideFlags: 0
@@ -2636,6 +2652,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63bd97fdc2599d54faa46f7875056665, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Script.TienLen.Game.TurnManager
+  gameController: {fileID: 0}
   turnDuration: 15
 --- !u!4 &1042030306
 Transform:
@@ -3549,6 +3566,7 @@ MonoBehaviour:
   tienLenGameController: {fileID: 183374122}
   lobbySessionController: {fileID: 0}
   seatManager: {fileID: 2034101244}
+  turnManager: {fileID: 0}
   sessionDisplayUI: {fileID: 1967596341}
   startGameUI: {fileID: 428874638}
   actionPanel: {fileID: 2077176568}
@@ -3837,7 +3855,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:

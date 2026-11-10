@@ -15,6 +15,7 @@ namespace Assets.Script.TienLen.Effects {
         [SerializeField] private float autoDestroyAfterSeconds = 6.0f;
 
         private GameObject currentEffectInstance;
+        private static Texture2D cachedCircleTexture;
 
         public void PlayWinEffect( int winnerSeatIndex, Vector3 worldPosition ) {
             StopWinEffect();
@@ -51,6 +52,24 @@ namespace Assets.Script.TienLen.Effects {
             }
         }
 
+        private static Texture2D GetOrCreateCircleTexture() {
+            if ( cachedCircleTexture != null ) return cachedCircleTexture;
+            int size = 32;
+            cachedCircleTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            float center = (size - 1) * 0.5f;
+            float radius = size * 0.5f;
+            for ( int y = 0; y < size; y++ ) {
+                for ( int x = 0; x < size; x++ ) {
+                    float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                    float alpha = Mathf.Clamp01(1f - (dist / radius));
+                    alpha = Mathf.SmoothStep(0f, 1f, alpha);
+                    cachedCircleTexture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                }
+            }
+            cachedCircleTexture.Apply();
+            return cachedCircleTexture;
+        }
+
         private GameObject CreateProceduralParticles( Vector3 position ) {
             GameObject go = new GameObject("WinCelebrationParticles");
             go.transform.position = new Vector3(position.x, position.y, -1f);
@@ -64,10 +83,10 @@ namespace Assets.Script.TienLen.Effects {
             var main = ps.main;
             main.duration = 4.0f;
             main.loop = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(1.5f, 2.8f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(6f, 12f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.7f);
-            main.gravityModifier = 0.9f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2.2f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2.5f, 5.0f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.25f, 0.5f);
+            main.gravityModifier = 0.35f;
             main.playOnAwake = false;
 
             // Vibrant multi-color confetti / sparkles
@@ -89,24 +108,24 @@ namespace Assets.Script.TienLen.Effects {
             main.startColor = new ParticleSystem.MinMaxGradient(gradient);
 
             var emission = ps.emission;
-            emission.rateOverTime = 100;
+            emission.rateOverTime = 80;
             emission.SetBursts(new ParticleSystem.Burst[] {
-                new ParticleSystem.Burst(0.0f, 60),
-                new ParticleSystem.Burst(0.4f, 50),
-                new ParticleSystem.Burst(0.9f, 40)
+                new ParticleSystem.Burst(0.0f, 50),
+                new ParticleSystem.Burst(0.3f, 40),
+                new ParticleSystem.Burst(0.7f, 30)
             });
 
+            // Radial 360-degree blossom around winning player seat
             var shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 40f;
-            shape.radius = 0.8f;
-            shape.rotation = new Vector3(-90f, 0f, 0f); // Upward burst in 2D space
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 0.6f;
+            shape.rotation = Vector3.zero;
+            shape.arc = 360f;
 
-            var velocityOverLifetime = ps.velocityOverLifetime;
-            velocityOverLifetime.enabled = true;
-            velocityOverLifetime.x = new ParticleSystem.MinMaxCurve(-3f, 3f);
-            velocityOverLifetime.y = new ParticleSystem.MinMaxCurve(1f, 4f);
-            velocityOverLifetime.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            var limitVelocityOverLifetime = ps.limitVelocityOverLifetime;
+            limitVelocityOverLifetime.enabled = true;
+            limitVelocityOverLifetime.limit = 1.2f;
+            limitVelocityOverLifetime.dampen = 0.2f;
 
             var colorOverLifetime = ps.colorOverLifetime;
             colorOverLifetime.enabled = true;
@@ -125,20 +144,25 @@ namespace Assets.Script.TienLen.Effects {
             curve.AddKey(1.0f, 0.0f);
             sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, curve);
 
-            var renderer = go.GetComponent<ParticleSystemRenderer>();
-            renderer.sortingLayerName = "Default";
-            renderer.sortingOrder = 500;
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            if ( renderer != null ) {
+                renderer.sortingLayerName = "Default";
+                renderer.sortingOrder = 500;
 
-            Shader particleShader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default")
-                ?? Shader.Find("Sprites/Default")
-                ?? Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            if ( particleShader != null ) {
-                Material mat = new Material(particleShader);
-                mat.mainTexture = Texture2D.whiteTexture;
-                if ( mat.HasProperty("_BaseMap") ) {
-                    mat.SetTexture("_BaseMap", Texture2D.whiteTexture);
+                Shader particleShader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                    ?? Shader.Find("Particles/Standard Unlit")
+                    ?? Shader.Find("Universal Render Pipeline/Unlit")
+                    ?? Shader.Find("Sprites/Default");
+
+                if ( particleShader != null ) {
+                    Material mat = new Material(particleShader);
+                    Texture2D circleTex = GetOrCreateCircleTexture();
+                    mat.mainTexture = circleTex;
+                    if ( mat.HasProperty("_BaseMap") ) {
+                        mat.SetTexture("_BaseMap", circleTex);
+                    }
+                    renderer.material = mat;
                 }
-                renderer.material = mat;
             }
 
             ps.Play();

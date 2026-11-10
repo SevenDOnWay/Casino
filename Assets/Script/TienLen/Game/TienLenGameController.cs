@@ -1,7 +1,6 @@
 using Assets.Script.Data.Models;
 using Assets.Script.Data.Services;
 using Assets.Script.NetWorkScript;
-using Assets.Script.TienLen.CardFolder;
 using Assets.Script.TienLen.Game.Controller;
 using Assets.Script.TienLen.Game.Services;
 using Assets.Script.TienLen.Player;

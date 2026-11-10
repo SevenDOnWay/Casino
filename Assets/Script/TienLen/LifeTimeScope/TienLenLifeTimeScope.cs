@@ -56,6 +56,10 @@ namespace Assets.Script.TienLen.LifeTimeScope {
             builder.RegisterComponentInHierarchy<StartGameUI>();
             builder.RegisterComponentInHierarchy<CardSpawner>();
             builder.RegisterComponentInHierarchy<ActionPanel>();
+            var menuPanel = FindAnyObjectByType<MenuPanel>();
+            if ( menuPanel != null ) {
+                builder.RegisterComponent(menuPanel);
+            }
             builder.RegisterComponentOnNewGameObject<PlayerWinEffectController>(Lifetime.Singleton, "PlayerWinEffectController")
                    .As<IPlayerWinEffect>()
                    .AsSelf();

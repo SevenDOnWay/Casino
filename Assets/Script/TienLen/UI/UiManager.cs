@@ -266,28 +266,32 @@ namespace Assets.Script.TienLen.UI {
         }
 
         private void RenderGamePhase() {
-            if ( actionPanel == null || !IsGameLogicReady() ) return;
+            if ( actionPanel == null ) return;
 
-            if ( tienLenGameController.IsGameStarted ) {
-                if ( tienLenGameController.WinnerSeat == -1 ) {
-                    winEffectController?.StopWinEffect();
-                }
-                actionPanel.EnterGame();
-                RenderTurn();
-            }
-            else {
+            if ( !IsGameLogicReady() || !tienLenGameController.IsGameStarted || tienLenGameController.WinnerSeat != -1 ) {
                 winEffectController?.StopWinEffect();
                 StopAllTurnTimers();
                 actionPanel.ReturnToLobby();
+                if ( !IsGameLogicReady() || !tienLenGameController.IsGameStarted ) {
+                    tableVisualLayoutManager?.ClearAllCardHolders();
+                }
+                return;
             }
+
+            winEffectController?.StopWinEffect();
+            actionPanel.EnterGame();
+            RenderTurn();
         }
 
         private void RenderTurn() {
             if ( actionPanel == null || !IsGameLogicReady() ) return;
-            if ( tienLenGameController.WinnerSeat == -1 ) {
-                winEffectController?.StopWinEffect();
-                sessionDisplayUI?.RenderAnnouncement(string.Empty);
+            if ( tienLenGameController.WinnerSeat != -1 || !tienLenGameController.IsGameStarted ) {
+                actionPanel.ReturnToLobby();
+                return;
             }
+
+            winEffectController?.StopWinEffect();
+            sessionDisplayUI?.RenderAnnouncement(string.Empty);
             actionPanel.RenderTurnState(IsLocalTurn());
         }
 
@@ -350,13 +354,22 @@ namespace Assets.Script.TienLen.UI {
 
             string name = SeatDisplayName(seat);
             sessionDisplayUI?.RenderAnnouncement($"{name} wins! Next round starting soon...");
-            actionPanel?.RenderTurnState(false);
 
-            Vector3 winPos = Vector3.zero;
+            // Hide action panel during game over celebration
+            actionPanel?.ReturnToLobby();
+
             var winnerSlot = tableVisualLayoutManager?.GetSeatByNetworkIndex(seat);
-            if ( winnerSlot != null ) {
-                winPos = winnerSlot.transform.position;
+            Vector3 winPos = winnerSlot != null
+                ? (winnerSlot.InfoView != null ? winnerSlot.InfoView.transform.position : winnerSlot.transform.position)
+                : Vector3.zero;
+
+            if ( winPos == Vector3.zero && tableVisualLayoutManager != null ) {
+                var anchorSlot = tableVisualLayoutManager.GetVisualSlot(0);
+                if ( anchorSlot != null ) {
+                    winPos = anchorSlot.InfoView != null ? anchorSlot.InfoView.transform.position : anchorSlot.transform.position;
+                }
             }
+
             EnsureWinEffectController();
             winEffectController?.PlayWinEffect(seat, winPos);
 
